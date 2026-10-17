@@ -39,7 +39,6 @@ import {
   GripHorizontal,
   GripVertical,
   Check,
-  ArrowLeftRight,
 
   Share2,
   Copy,
@@ -284,7 +283,6 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
     onStartConnection,
     onCompleteConnect,
     onOpenAddModal,
-    onToggleDecisionSwap,
     flowType,
     isViewOnly,
     isRunnerActive,
@@ -675,11 +673,6 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
       const stroke = isSelected ? '#d97706' : '#f59e0b';
       const strokeWidth = isSelected ? 2.5 : 2;
 
-      const isHorizontalFlow = flowType === 'swimlane';
-      const defaultRightIsPositive = isHorizontalFlow;
-      const rightIsPositive = node.decisionSwap ? !defaultRightIsPositive : defaultRightIsPositive;
-      const bottomIsPositive = !rightIsPositive;
-
       return (
         <div
           id={node.id}
@@ -728,114 +721,9 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
             ) : null}
           </div>
 
-          {/* Dynamic Branch 1: Right Port */}
-          {!isViewOnly && (
-            <div className="absolute -right-3.5 top-1/2 -translate-y-1/2 z-30 flex items-center">
-              <button
-                type="button"
-                title={
-                  rightIsPositive
-                    ? 'Positive Branch / Yes (Proceed to Right)'
-                    : 'Negative Branch / No (Alternative to Right)'
-                }
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenAddModal(node.id, 'right', rightIsPositive ? 'Yes' : 'No');
-                }}
-                className={`w-6 h-6 rounded-full text-white shadow-md flex items-center justify-center cursor-pointer hover:scale-115 transition-transform ${rightIsPositive
-                  ? 'bg-emerald-600 hover:bg-emerald-700 ring-2 ring-emerald-200'
-                  : 'bg-rose-600 hover:bg-rose-700 ring-2 ring-rose-200'
-                  }`}
-              >
-                {rightIsPositive ? (
-                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                ) : (
-                  <X className="w-3.5 h-3.5 stroke-[3]" />
-                )}
-              </button>
-              {/* Subtle Branch Label Badge */}
-              <span
-                className={`absolute left-7 px-1.5 py-0.5 rounded-full text-[9px] font-bold shadow-2xs whitespace-nowrap pointer-events-none transition-opacity ${rightIsPositive
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-300'
-                  : 'bg-rose-50 text-rose-700 border border-rose-300'
-                  }`}
-              >
-                {rightIsPositive ? '✓ Yes' : '✕ No'}
-              </span>
-            </div>
-          )}
-
-          {/* Dynamic Branch 2: Bottom Port */}
-          {!isViewOnly && (
-            <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center">
-              <button
-                type="button"
-                title={
-                  bottomIsPositive
-                    ? 'Positive Branch / Yes (Proceed to Bottom)'
-                    : 'Negative Branch / No (Alternative to Bottom)'
-                }
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenAddModal(node.id, 'bottom', bottomIsPositive ? 'Yes' : 'No');
-                }}
-                className={`w-6 h-6 rounded-full text-white shadow-md flex items-center justify-center cursor-pointer hover:scale-115 transition-transform ${bottomIsPositive
-                  ? 'bg-emerald-600 hover:bg-emerald-700 ring-2 ring-emerald-200'
-                  : 'bg-rose-600 hover:bg-rose-700 ring-2 ring-rose-200'
-                  }`}
-              >
-                {bottomIsPositive ? (
-                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                ) : (
-                  <X className="w-3.5 h-3.5 stroke-[3]" />
-                )}
-              </button>
-              {/* Subtle Branch Label Badge */}
-              <span
-                className={`absolute top-7 px-1.5 py-0.5 rounded-full text-[9px] font-bold shadow-2xs whitespace-nowrap pointer-events-none transition-opacity ${bottomIsPositive
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-300'
-                  : 'bg-rose-50 text-rose-700 border border-rose-300'
-                  }`}
-              >
-                {bottomIsPositive ? '✓ Yes' : '✕ No'}
-              </span>
-            </div>
-          )}
-
-          {/* Action Toolbar at Top-Right Corner Outside Node */}
-          {_renderEditButton(
-            !isViewOnly && onToggleDecisionSwap && (
-              <button
-                type="button"
-                title="Swap Branch Direction (Positive ⇄ Negative)"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleDecisionSwap(node.id);
-                }}
-                className="w-5 h-5 rounded-md hover:bg-amber-50 text-amber-600 flex items-center justify-center transition-colors cursor-pointer"
-              >
-                <ArrowLeftRight className="w-3 h-3" />
-              </button>
-            )
-          )}
-
-          {/* Quick Add Node (+) Button at Bottom-Right Corner Outside Node */}
-          {!isViewOnly && (
-            <button
-              type="button"
-              title="Add next step / node (Quick Add Node)"
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenAddModal(node.id, flowType === 'swimlane' ? 'right' : 'bottom');
-              }}
-              className={`absolute -bottom-3.5 -right-3.5 w-6 h-6 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center justify-center cursor-pointer hover:scale-115 transition-transform z-45 pointer-events-auto ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                } transition-opacity`}
-            >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5] pointer-events-none" />
-            </button>
-          )}
-
-          {_renderScreenBadge()}
+          {/* Dynamic 4-Way Connection Ports (Top, Bottom, Left, Right) */}
+          {_renderConsistentPlusButtons()}
+          {_renderEditButton()}
           {_renderResizeGrip()}
         </div>
       );
