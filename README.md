@@ -1,9 +1,9 @@
-# ⚡ @wtf/cli (Want Take Flow)
+# ⚡ want-take-flow (WTF CLI)
 
 > **Enterprise Architecture, Business Process & ERP Flowchart Gateway**  
 > Modern visual flowchart workspace with AI Codebase Scanner, Swimlane Process Matrix, Kanban Task Board, and high-performance interactive diagramming.
 
-[![npm version](https://img.shields.io/badge/npm-v1.0.0-blue.svg)](https://npmjs.com/package/@wtf/cli)
+[![npm version](https://img.shields.io/badge/npm-v1.0.0-blue.svg)](https://npmjs.com/package/want-take-flow)
 [![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
 [![React](https://img.shields.io/badge/react-v19.2-61dafb.svg)](https://react.dev)
 [![TailwindCSS](https://img.shields.io/badge/tailwind-v4.0-38bdf8.svg)](https://tailwindcss.com)
@@ -18,13 +18,13 @@ Install the CLI globally using your favorite package manager:
 
 ```bash
 # Using npm
-npm install -g @wtf/cli@latest
+npm install -g want-take-flow@latest
 
 # Using bun
-bun add -g @wtf/cli
+bun add -g want-take-flow
 
 # Or run directly without installation via npx
-npx @wtf/cli gateway start
+npx want-take-flow gateway start
 ```
 
 ---

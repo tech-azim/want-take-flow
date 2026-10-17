@@ -1,10 +1,11 @@
 {
-  "name": "@wtf/cli",
+  "name": "want-take-flow",
   "version": "1.0.0",
   "description": "WTF (Want Take Flow) - Visual Architecture & Process Diagram Gateway CLI",
   "type": "module",
   "bin": {
-    "wtf": "bin/wtf.js"
+    "wtf": "bin/wtf.js",
+    "want-take-flow": "bin/wtf.js"
   },
   "files": [
     "bin",
