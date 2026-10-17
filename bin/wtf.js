@@ -26,7 +26,7 @@ const CWD = process.cwd();
 const WTF_DIR = path.resolve(CWD, '.wtf');
 const PID_FILE = path.resolve(WTF_DIR, 'gateway.pid');
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -82,6 +82,8 @@ ${colors.bold}COMMANDS:${colors.reset}
   ${colors.green}gateway start${colors.reset}          Launch WTF Gateway local application web server
   ${colors.green}gateway status${colors.reset}         Check status of running gateway process
   ${colors.green}gateway stop${colors.reset}           Stop active local gateway server
+  ${colors.green}push <file.json>${colors.reset}       Push diagram JSON schema to live browser interface
+  ${colors.green}schema${colors.reset}                 Display JSON schema format & prompt instructions for Hermes/AI
 
 ${colors.bold}OPTIONS:${colors.reset}
   ${colors.yellow}-p, --port <number>${colors.reset}   Gateway port (default: 5174)
@@ -93,7 +95,8 @@ ${colors.bold}OPTIONS:${colors.reset}
 ${colors.bold}EXAMPLES:${colors.reset}
   $ ${colors.cyan}wtf init${colors.reset}
   $ ${colors.cyan}wtf gateway start${colors.reset}
-  $ ${colors.cyan}wtf gateway start --port 3000 --no-open${colors.reset}
+  $ ${colors.cyan}wtf push my_flow.json${colors.reset}
+  $ ${colors.cyan}wtf schema${colors.reset}
   $ ${colors.cyan}wtf gateway status${colors.reset}
   $ ${colors.cyan}wtf gateway stop${colors.reset}
 
@@ -280,6 +283,185 @@ function handleStop() {
 }
 
 /**
+ * Command: wtf push <file.json>
+ */
+function handlePush(args) {
+  const filePath = args[0];
+  if (!filePath) {
+    console.error(`${colors.red}Error: Please specify the path to a JSON diagram file.${colors.reset}`);
+    console.log(`Usage: ${colors.cyan}wtf push <path/to/diagram.json>${colors.reset}`);
+    process.exit(1);
+  }
+
+  const resolvedPath = path.resolve(CWD, filePath);
+  if (!fs.existsSync(resolvedPath)) {
+    console.error(`${colors.red}Error: File not found at '${resolvedPath}'${colors.reset}`);
+    process.exit(1);
+  }
+
+  let content = '';
+  try {
+    content = fs.readFileSync(resolvedPath, 'utf-8');
+    JSON.parse(content);
+  } catch (e) {
+    console.error(`${colors.red}Error: Invalid JSON in '${filePath}': ${e.message}${colors.reset}`);
+    process.exit(1);
+  }
+
+  // Save to .wtf/schemas/current.json locally
+  try {
+    if (!fs.existsSync(path.resolve(WTF_DIR, 'schemas'))) {
+      fs.mkdirSync(path.resolve(WTF_DIR, 'schemas'), { recursive: true });
+    }
+    fs.writeFileSync(path.resolve(WTF_DIR, 'schemas', 'current.json'), content, 'utf-8');
+  } catch (_) {}
+
+  // Check if gateway is running
+  let port = 5174;
+  let isGatewayRunning = false;
+  if (fs.existsSync(PID_FILE)) {
+    try {
+      const pidData = JSON.parse(fs.readFileSync(PID_FILE, 'utf-8'));
+      process.kill(pidData.pid, 0);
+      port = pidData.port || 5174;
+      isGatewayRunning = true;
+    } catch (_) {
+      isGatewayRunning = false;
+    }
+  }
+
+  if (isGatewayRunning) {
+    const postData = content;
+    const req = http.request(
+      {
+        hostname: 'localhost',
+        port,
+        path: '/api/diagram',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData),
+        },
+      },
+      (res) => {
+        let respBody = '';
+        res.on('data', (d) => { respBody += d; });
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            console.log(`\n${colors.green}${colors.bold}✓ Flowchart pushed successfully to WTF Gateway (port ${port})!${colors.reset}`);
+            console.log(`  Live Browser UI updated in real-time at ${colors.cyan}http://localhost:${port}${colors.reset}\n`);
+          } else {
+            console.error(`${colors.red}Gateway returned error (${res.statusCode}):${colors.reset}`, respBody);
+          }
+        });
+      }
+    );
+
+    req.on('error', (err) => {
+      console.log(`\n${colors.yellow}! Saved to .wtf/schemas/current.json, but gateway connection failed: ${err.message}${colors.reset}`);
+      console.log(`Start the gateway with: ${colors.cyan}wtf gateway start${colors.reset}\n`);
+    });
+
+    req.write(postData);
+    req.end();
+  } else {
+    console.log(`\n${colors.green}${colors.bold}✓ Saved to .wtf/schemas/current.json${colors.reset}`);
+    console.log(`${colors.yellow}! Gateway is not currently running.${colors.reset}`);
+    console.log(`To open and view in browser, run:`);
+    console.log(`  $ ${colors.cyan}wtf gateway start${colors.reset}\n`);
+  }
+}
+
+/**
+ * Command: wtf schema
+ */
+function handleSchema() {
+  printBanner();
+  console.log(`${colors.bold}📐 WTF DIAGRAM SCHEMA SPECIFICATION (FOR HERMES / AI AGENTS):${colors.reset}\n`);
+  console.log(`Hermes can generate multi-tab flowcharts using this exact JSON structure:\n`);
+  console.log(`${colors.cyan}{
+  "name": "Project Workflow & Architecture",
+  "version": "1.0.0",
+  "tabs": [
+    {
+      "id": "tab_overview",
+      "title": "1. E2E System Overview",
+      "type": "flowchart",
+      "nodes": [
+        {
+          "id": "node_1",
+          "type": "start",
+          "label": "Client Request",
+          "description": "User clicks checkout in web app",
+          "position": { "x": 260, "y": 80 },
+          "colorTheme": "indigo"
+        },
+        {
+          "id": "node_2",
+          "type": "process",
+          "label": "Order Service",
+          "description": "Validates stock & calculates tax",
+          "position": { "x": 260, "y": 240 },
+          "colorTheme": "blue"
+        },
+        {
+          "id": "node_3",
+          "type": "decision",
+          "label": "Payment OK?",
+          "description": "Checks payment gateway webhook",
+          "position": { "x": 260, "y": 400 },
+          "colorTheme": "amber"
+        },
+        {
+          "id": "node_4",
+          "type": "end",
+          "label": "Invoice Sent",
+          "description": "Email confirmation and shipping label",
+          "position": { "x": 260, "y": 560 },
+          "colorTheme": "emerald"
+        }
+      ],
+      "edges": [
+        { "id": "e1", "sourceNodeId": "node_1", "targetNodeId": "node_2", "label": "POST /order" },
+        { "id": "e2", "sourceNodeId": "node_2", "targetNodeId": "node_3", "label": "Verify" },
+        { "id": "e3", "sourceNodeId": "node_3", "targetNodeId": "node_4", "label": "Approved" }
+      ]
+    },
+    {
+      "id": "tab_sub_payment",
+      "title": "2. Payment Sub-Process Breakdown",
+      "type": "flowchart",
+      "nodes": [],
+      "edges": []
+    },
+    {
+      "id": "tab_kanban",
+      "title": "3. Project Tasks Board",
+      "type": "kanban",
+      "nodes": [],
+      "edges": [],
+      "kanbanTasks": [
+        { "id": "k1", "title": "Refactor payment webhook retry", "status": "inprogress", "priority": "high" }
+      ]
+    }
+  ]
+}${colors.reset}\n`);
+
+  console.log(`${colors.bold}NODE TYPES:${colors.reset} start, process, decision, subprocess, database, api, queue, end`);
+  console.log(`${colors.bold}COLOR THEMES:${colors.reset} indigo, blue, emerald, amber, rose, purple, cyan, slate\n`);
+
+  console.log(`${colors.bold}🤖 PROMPT UNTUK DISERAHKAN KE HERMES:${colors.reset}`);
+  console.log(`--------------------------------------------------------------------------------`);
+  console.log(`${colors.yellow}Scan folder codebase project ini, pelajari alur flow aplikasinya, lalu buat file JSON bernama 'flow.json' yang berisi arsitektur multi-tab:
+- Tab 1: High-Level Overview (Garis besar alur E2E dari input user, controller, service sampai database)
+- Tab 2+: Sub-process Breakdown untuk flow yang panjang/kompleks (misal Auth, Transaksi, Sync)
+- Tab terakhir: Kanban Task Board berisi task/to-do yang relevan
+Gunakan format 'wtf schema'. Setelah selesai simpan ke 'flow.json' lalu jalankan:
+  wtf push flow.json${colors.reset}`);
+  console.log(`--------------------------------------------------------------------------------\n`);
+}
+
+/**
  * Command: wtf gateway start
  */
 function handleGatewayStart(args) {
@@ -308,9 +490,95 @@ function handleGatewayStart(args) {
     process.exit(1);
   }
 
+  let sseClients = [];
+
+  const broadcastDiagramUpdate = (payload) => {
+    const dataStr = `data: ${JSON.stringify({ type: 'DIAGRAM_UPDATE', payload })}\n\n`;
+    sseClients = sseClients.filter((client) => {
+      try {
+        client.write(dataStr);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    });
+  };
+
   const server = http.createServer((req, res) => {
     const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     let pathname = decodeURIComponent(parsedUrl.pathname);
+
+    // CORS Headers for AI Agent & Hermes integrations
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    // SSE Events for live browser synchronization
+    if (pathname === '/api/events') {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+      });
+      res.write(': connected\n\n');
+      sseClients.push(res);
+      req.on('close', () => {
+        sseClients = sseClients.filter((c) => c !== res);
+      });
+      return;
+    }
+
+    // API Diagram POST (Hermes & CLI push endpoint)
+    if (pathname === '/api/diagram' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const parsed = JSON.parse(body);
+          if (!fs.existsSync(path.resolve(WTF_DIR, 'schemas'))) {
+            fs.mkdirSync(path.resolve(WTF_DIR, 'schemas'), { recursive: true });
+          }
+          fs.writeFileSync(
+            path.resolve(WTF_DIR, 'schemas', 'current.json'),
+            JSON.stringify(parsed, null, 2),
+            'utf-8'
+          );
+
+          broadcastDiagramUpdate(parsed);
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: true,
+            message: 'Diagram updated and broadcast to browser tabs successfully',
+            tabsCount: parsed.tabs ? parsed.tabs.length : (parsed.nodes ? 1 : 0),
+            clientsNotified: sseClients.length,
+          }));
+        } catch (err) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid JSON payload', details: err.message }));
+        }
+      });
+      return;
+    }
+
+    // API Diagram GET (Fetch current diagram)
+    if (pathname === '/api/diagram' && req.method === 'GET') {
+      const currentFile = path.resolve(WTF_DIR, 'schemas', 'current.json');
+      if (fs.existsSync(currentFile)) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(fs.readFileSync(currentFile, 'utf-8'));
+      } else {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'No active diagram found' }));
+      }
+      return;
+    }
 
     // API Gateway Health Endpoint
     if (pathname === '/api/health') {
@@ -448,6 +716,10 @@ const subCommand = rawArgs[1];
 
 if (command === 'init') {
   handleInit();
+} else if (command === 'push') {
+  handlePush(rawArgs.slice(1));
+} else if (command === 'schema') {
+  handleSchema();
 } else if (command === 'gateway' || command === 'start') {
   const action = command === 'start' ? 'start' : subCommand;
   const remainingArgs = command === 'start' ? rawArgs.slice(1) : rawArgs.slice(2);

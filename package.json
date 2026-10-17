@@ -1,6 +1,6 @@
 {
   "name": "want-take-flow",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "WTF (Want Take Flow) - Visual Architecture & Process Diagram Gateway CLI",
   "type": "module",
   "bin": {
