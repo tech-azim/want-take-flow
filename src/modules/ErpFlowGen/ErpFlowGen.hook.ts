@@ -2607,7 +2607,8 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         tableResizingState.isResizing ||
         groupDraggingState.isDragging ||
         groupResizingState.isResizing ||
-        edgeWaypointDragState.isDragging
+        edgeWaypointDragState.isDragging ||
+        edgeEndpointDragState.isDragging
       ) {
         return;
       }
@@ -2616,6 +2617,10 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       const isInteractive = Boolean(
         target.closest('[data-node-id]') ||
         target.closest('[data-group-id]') ||
+        target.closest('[data-edge-id]') ||
+        target.closest('[data-edge-handle]') ||
+        target.closest('.group\\/target-handle') ||
+        target.closest('.group\\/source-handle') ||
         target.closest('button') ||
         target.closest('input') ||
         target.closest('select') ||

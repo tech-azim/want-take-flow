@@ -247,6 +247,7 @@ export const _renderEdgeCurve = (
   return (
     <g
       key={edge.id}
+      data-edge-id={edge.id}
       className="cursor-pointer group"
       onMouseEnter={() => onHoverEdge?.(edge.id)}
       onMouseLeave={() => onHoverEdge?.('')}
@@ -255,14 +256,21 @@ export const _renderEdgeCurve = (
         onSelectEdge?.(edge.id);
       }}
     >
-      {/* Background hover path for easy clicking to select edge */}
+      {/* Background hover path for easy clicking & direct line dragging to reconnect */}
       <path
         d={geometry.pathD}
         fill="none"
         stroke="transparent"
-        strokeWidth={14}
-        className="pointer-events-auto cursor-pointer"
+        strokeWidth={18}
+        data-edge-id={edge.id}
+        className="pointer-events-auto cursor-grab active:cursor-grabbing"
         style={{ pointerEvents: 'stroke' }}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onSelectEdge?.(edge.id);
+          onStartEdgeEndpointDrag?.(e, edge.id, 'auto');
+        }}
         onClick={(e) => {
           e.stopPropagation();
           onSelectEdge?.(edge.id);
@@ -288,24 +296,30 @@ export const _renderEdgeCurve = (
         stroke={strokeColor}
         strokeWidth={isSelected ? 3.5 : 2}
         markerEnd={markerId}
-        className="transition-colors group-hover:stroke-indigo-600"
+        className="transition-colors group-hover:stroke-indigo-600 pointer-events-none"
       />
 
-      {/* Interactive Arrowhead Endpoint Drag Handle (Only active when edge is selected so it doesn't block connecting) */}
-      {geometry.endX !== undefined && geometry.endY !== undefined && isSelected && (
+      {/* Interactive Arrowhead Endpoint Drag Handle (Reconnecting target node) */}
+      {geometry.endX !== undefined && geometry.endY !== undefined && (
         <g
-          className="cursor-grab active:cursor-grabbing group/target-handle pointer-events-auto"
+          data-edge-id={edge.id}
+          data-edge-handle="target"
+          className={`cursor-grab active:cursor-grabbing group/target-handle pointer-events-auto transition-opacity duration-150 ${
+            isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          }`}
           onMouseDown={(e) => {
+            e.preventDefault();
             e.stopPropagation();
+            onSelectEdge?.(edge.id);
             onStartEdgeEndpointDrag?.(e, edge.id, 'target');
           }}
         >
-          <title>Drag this handle to move the arrow endpoint</title>
+          <title>Tarik ujung panah untuk menyambungkan ke node lain</title>
           {/* Hit area for easy grabbing */}
           <circle
             cx={geometry.endX}
             cy={geometry.endY}
-            r={14}
+            r={18}
             fill="transparent"
             className="cursor-grab active:cursor-grabbing pointer-events-auto"
           />
@@ -313,7 +327,7 @@ export const _renderEdgeCurve = (
           <circle
             cx={geometry.endX}
             cy={geometry.endY}
-            r={12}
+            r={13}
             fill="#4f46e5"
             className="transition-all duration-150 pointer-events-none opacity-35"
           />
@@ -321,7 +335,7 @@ export const _renderEdgeCurve = (
           <circle
             cx={geometry.endX}
             cy={geometry.endY}
-            r={6}
+            r={6.5}
             fill="#ffffff"
             stroke="#4f46e5"
             strokeWidth={2.5}
@@ -338,21 +352,27 @@ export const _renderEdgeCurve = (
         </g>
       )}
 
-      {/* Interactive Source Origin Drag Handle (Only active when edge is selected to avoid blocking new node connections) */}
-      {geometry.startX !== undefined && geometry.startY !== undefined && isSelected && (
+      {/* Interactive Source Origin Drag Handle (Reconnecting source node) */}
+      {geometry.startX !== undefined && geometry.startY !== undefined && (
         <g
-          className="cursor-grab active:cursor-grabbing group/source-handle pointer-events-auto"
+          data-edge-id={edge.id}
+          data-edge-handle="source"
+          className={`cursor-grab active:cursor-grabbing group/source-handle pointer-events-auto transition-opacity duration-150 ${
+            isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          }`}
           onMouseDown={(e) => {
+            e.preventDefault();
             e.stopPropagation();
+            onSelectEdge?.(edge.id);
             onStartEdgeEndpointDrag?.(e, edge.id, 'source');
           }}
         >
-          <title>Drag this handle to move the line starting point</title>
+          <title>Tarik titik awal garis untuk memindah ke node lain</title>
           {/* Hit area */}
           <circle
             cx={geometry.startX}
             cy={geometry.startY}
-            r={12}
+            r={18}
             fill="transparent"
             className="cursor-grab active:cursor-grabbing pointer-events-auto"
           />
@@ -360,7 +380,7 @@ export const _renderEdgeCurve = (
           <circle
             cx={geometry.startX}
             cy={geometry.startY}
-            r={12}
+            r={13}
             fill="#6366f1"
             className="transition-all duration-150 pointer-events-none opacity-35"
           />
@@ -368,33 +388,36 @@ export const _renderEdgeCurve = (
           <circle
             cx={geometry.startX}
             cy={geometry.startY}
-            r={isSelected ? 7.5 : 5.5}
+            r={6.5}
             fill="#ffffff"
             stroke="#6366f1"
             strokeWidth={2.5}
-            className={`transition-all duration-150 filter drop-shadow-md pointer-events-none ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-90'
-              }`}
+            className="transition-all duration-150 filter drop-shadow-md pointer-events-none opacity-100"
           />
           {/* Center bullet dot */}
           <circle
             cx={geometry.startX}
             cy={geometry.startY}
-            r={3}
+            r={2.5}
             fill="#6366f1"
-            className={`transition-opacity duration-150 pointer-events-none ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'
-              }`}
+            className="transition-opacity duration-150 pointer-events-none opacity-100"
           />
         </g>
       )}
 
       {/* Interactive Waypoint Drag Handle on the bend/midpoint */}
       <g
-        className="cursor-grab active:cursor-grabbing"
+        data-edge-id={edge.id}
+        data-edge-handle="waypoint"
+        className="cursor-grab active:cursor-grabbing pointer-events-auto"
         onMouseDown={(e) => {
+          e.preventDefault();
           e.stopPropagation();
+          onSelectEdge?.(edge.id);
           onStartEdgeWaypointDrag?.(e, edge.id);
         }}
         onDoubleClick={(e) => {
+          e.preventDefault();
           e.stopPropagation();
           onResetEdgeWaypoint?.(edge.id);
         }}
@@ -403,7 +426,7 @@ export const _renderEdgeCurve = (
         <circle
           cx={geometry.midX}
           cy={geometry.midY}
-          r={18}
+          r={20}
           fill="transparent"
         />
 

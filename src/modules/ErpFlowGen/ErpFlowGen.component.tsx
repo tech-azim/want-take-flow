@@ -3199,6 +3199,31 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     })()
                   ) : null}
 
+                  {/* Live Visual Drag Path when dragging an edge endpoint */}
+                  {edgeEndpointDragState?.isDragging && edgeEndpointDragState.edgeId ? (
+                    (() => {
+                      const draggingEdge = edges.find((e) => e.id === edgeEndpointDragState.edgeId);
+                      if (!draggingEdge) return null;
+                      const fixedNodeId =
+                        edgeEndpointDragState.endpointType === 'target'
+                          ? draggingEdge.sourceNodeId
+                          : draggingEdge.targetNodeId;
+                      const fixedNode = nodes.find((n) => n.id === fixedNodeId);
+                      if (!fixedNode) return null;
+                      const rawAnchor =
+                        edgeEndpointDragState.endpointType === 'target'
+                          ? draggingEdge.sourceAnchor
+                          : draggingEdge.targetAnchor;
+                      const sanitizedAnchor =
+                        rawAnchor && rawAnchor !== 'auto' ? rawAnchor : undefined;
+                      return _renderConnectingPath(
+                        fixedNode,
+                        edgeEndpointDragState.currentPos,
+                        sanitizedAnchor,
+                      );
+                    })()
+                  ) : null}
+
                   {/* Render top-layer interactive endpoint & waypoint handles for selected edge ONLY when NOT connecting */}
                   {!connectingState.isConnecting && selectedEdgeId ? (
                     (() => {
