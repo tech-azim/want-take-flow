@@ -52,6 +52,7 @@ const ErpFlowGenContainer = (): React.ReactElement => {
     handleToggleGhostSkeleton,
     handleAddSwimlane,
     handleUpdateSwimlaneName,
+    handleUpdateMasterTitle,
     handleDeleteSwimlane,
     handleUpdateTableWidth,
     handleStartTableResize,
@@ -201,6 +202,7 @@ const ErpFlowGenContainer = (): React.ReactElement => {
       onToggleGhostSkeleton={handleToggleGhostSkeleton}
       onAddSwimlane={handleAddSwimlane}
       onUpdateSwimlaneName={handleUpdateSwimlaneName}
+      onUpdateMasterTitle={handleUpdateMasterTitle}
       onDeleteSwimlane={handleDeleteSwimlane}
       onUpdateTableWidth={handleUpdateTableWidth}
       onStartTableResize={handleStartTableResize}

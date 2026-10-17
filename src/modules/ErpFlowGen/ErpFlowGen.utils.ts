@@ -275,7 +275,7 @@ export const _calculateEdgePath = (
         const stepY = startY + (endY - startY) / 2 + offY;
         if (offX !== 0) {
           const wpX = (startX + endX) / 2 + offX;
-          pathD = `M ${startX} ${startY} L ${startX} ${stepY} L ${wpX} ${stepY} L ${wpX} ${endY - 15} L ${endX} ${endY - 15} L ${endX} ${endY}`;
+          pathD = `M ${startX} ${startY} L ${startX} ${stepY} L ${wpX} ${stepY} L ${wpX} ${endY - 25} L ${endX} ${endY - 25} L ${endX} ${endY}`;
           midX = wpX;
           midY = stepY;
         } else {
@@ -284,16 +284,16 @@ export const _calculateEdgePath = (
           midY = stepY;
         }
       } else {
-        const downY = startY + 25 + offY;
-        const upY = endY - 25;
-        const bypassX = (startX >= endX ? Math.min(startX, endX) - 80 : Math.max(startX, endX) + 80) + offX;
+        const downY = startY + 30 + offY;
+        const upY = endY - 30;
+        const bypassX = (startX >= endX ? Math.min(startX, endX) - 60 : Math.max(startX, endX) + 60) + offX;
         pathD = `M ${startX} ${startY} L ${startX} ${downY} L ${bypassX} ${downY} L ${bypassX} ${upY} L ${endX} ${upY} L ${endX} ${endY}`;
         midX = bypassX;
         midY = (downY + upY) / 2;
       }
     } else if (sourceSide === 'bottom' && targetSide === 'left') {
-      const stepY = startY + Math.max(20, (endY - startY) / 2) + offY;
-      if (endX > startX + 25 && offX === 0) {
+      const stepY = startY + Math.max(25, (endY - startY) / 2) + offY;
+      if (endX > startX + 35 && endY >= startY + 15 && offX === 0) {
         pathD = `M ${startX} ${startY} L ${startX} ${endY} L ${endX} ${endY}`;
         midX = (startX + endX) / 2;
         midY = endY;
@@ -304,8 +304,8 @@ export const _calculateEdgePath = (
         midY = (stepY + endY) / 2;
       }
     } else if (sourceSide === 'bottom' && targetSide === 'right') {
-      const stepY = startY + Math.max(20, (endY - startY) / 2) + offY;
-      if (endX < startX - 25 && offX === 0) {
+      const stepY = startY + Math.max(25, (endY - startY) / 2) + offY;
+      if (endX < startX - 35 && endY >= startY + 15 && offX === 0) {
         pathD = `M ${startX} ${startY} L ${startX} ${endY} L ${endX} ${endY}`;
         midX = (startX + endX) / 2;
         midY = endY;
@@ -325,7 +325,7 @@ export const _calculateEdgePath = (
         const stepY = startY + (endY - startY) / 2 + offY;
         if (offX !== 0) {
           const wpX = (startX + endX) / 2 + offX;
-          pathD = `M ${startX} ${startY} L ${startX} ${stepY} L ${wpX} ${stepY} L ${wpX} ${endY + 15} L ${endX} ${endY + 15} L ${endX} ${endY}`;
+          pathD = `M ${startX} ${startY} L ${startX} ${stepY} L ${wpX} ${stepY} L ${wpX} ${endY + 25} L ${endX} ${endY + 25} L ${endX} ${endY}`;
           midX = wpX;
           midY = stepY;
         } else {
@@ -334,9 +334,9 @@ export const _calculateEdgePath = (
           midY = stepY;
         }
       } else {
-        const upY = startY - 25 + offY;
-        const downY = endY + 25;
-        const bypassX = (startX >= endX ? Math.min(startX, endX) - 80 : Math.max(startX, endX) + 80) + offX;
+        const upY = startY - 30 + offY;
+        const downY = endY + 30;
+        const bypassX = (startX >= endX ? Math.min(startX, endX) - 60 : Math.max(startX, endX) + 60) + offX;
         pathD = `M ${startX} ${startY} L ${startX} ${upY} L ${bypassX} ${upY} L ${bypassX} ${downY} L ${endX} ${downY} L ${endX} ${endY}`;
         midX = bypassX;
         midY = (upY + downY) / 2;
@@ -359,11 +359,11 @@ export const _calculateEdgePath = (
       midX = approachX;
       midY = (stepY + endY) / 2;
     } else if (sourceSide === 'right' && targetSide === 'left') {
-      if (endX > startX + 15) {
+      if (endX > startX + 35) {
         const stepX = startX + (endX - startX) / 2 + offX;
         if (offY !== 0) {
           const wpY = (startY + endY) / 2 + offY;
-          pathD = `M ${startX} ${startY} L ${stepX} ${startY} L ${stepX} ${wpY} L ${endX - 15} ${wpY} L ${endX - 15} ${endY} L ${endX} ${endY}`;
+          pathD = `M ${startX} ${startY} L ${stepX} ${startY} L ${stepX} ${wpY} L ${endX - 25} ${wpY} L ${endX - 25} ${endY} L ${endX} ${endY}`;
           midX = stepX;
           midY = wpY;
         } else {
@@ -374,34 +374,36 @@ export const _calculateEdgePath = (
       } else {
         const rightX = startX + 35 + offX;
         const leftX = endX - 35;
-        const bypassY = Math.min(startY, endY) - 50 + offY;
+        const bypassY = Math.min(startY, endY) - 45 + offY;
         pathD = `M ${startX} ${startY} L ${rightX} ${startY} L ${rightX} ${bypassY} L ${leftX} ${bypassY} L ${leftX} ${endY} L ${endX} ${endY}`;
         midX = (rightX + leftX) / 2;
         midY = bypassY;
       }
     } else if (sourceSide === 'right' && targetSide === 'top') {
-      const cornerX = endX + offX;
-      const cornerY = startY + offY;
-      if (offX !== 0 || offY !== 0) {
-        pathD = `M ${startX} ${startY} L ${cornerX} ${startY} L ${cornerX} ${cornerY} L ${endX} ${cornerY} L ${endX} ${endY}`;
+      if (endY > startY + 20) {
+        const cornerX = endX + offX;
+        pathD = `M ${startX} ${startY} L ${cornerX} ${startY} L ${cornerX} ${endY - 25} L ${endX} ${endY - 25} L ${endX} ${endY}`;
         midX = cornerX;
-        midY = cornerY;
-      } else {
-        pathD = `M ${startX} ${startY} L ${endX} ${startY} L ${endX} ${endY}`;
-        midX = (startX + endX) / 2;
         midY = startY;
+      } else {
+        const upY = Math.min(startY, endY) - 35 + offY;
+        const rightX = Math.max(startX + 30, endX) + offX;
+        pathD = `M ${startX} ${startY} L ${rightX} ${startY} L ${rightX} ${upY} L ${endX} ${upY} L ${endX} ${endY}`;
+        midX = rightX;
+        midY = upY;
       }
     } else if (sourceSide === 'right' && targetSide === 'bottom') {
-      const cornerX = endX + offX;
-      const cornerY = startY + offY;
-      if (offX !== 0 || offY !== 0) {
-        pathD = `M ${startX} ${startY} L ${cornerX} ${startY} L ${cornerX} ${cornerY} L ${endX} ${cornerY} L ${endX} ${endY}`;
+      if (endY < startY - 20) {
+        const cornerX = endX + offX;
+        pathD = `M ${startX} ${startY} L ${cornerX} ${startY} L ${cornerX} ${endY + 25} L ${endX} ${endY + 25} L ${endX} ${endY}`;
         midX = cornerX;
-        midY = cornerY;
-      } else {
-        pathD = `M ${startX} ${startY} L ${endX} ${startY} L ${endX} ${endY}`;
-        midX = (startX + endX) / 2;
         midY = startY;
+      } else {
+        const downY = Math.max(startY, endY) + 35 + offY;
+        const rightX = Math.max(startX + 30, endX) + offX;
+        pathD = `M ${startX} ${startY} L ${rightX} ${startY} L ${rightX} ${downY} L ${endX} ${downY} L ${endX} ${endY}`;
+        midX = rightX;
+        midY = downY;
       }
     } else if (sourceSide === 'right' && targetSide === 'right') {
       const farX = Math.max(startX, endX) + 35 + offX;
@@ -409,11 +411,11 @@ export const _calculateEdgePath = (
       midX = farX;
       midY = (startY + endY) / 2 + offY;
     } else if (sourceSide === 'left' && targetSide === 'right') {
-      if (endX < startX - 15) {
+      if (endX < startX - 35) {
         const stepX = startX + (endX - startX) / 2 + offX;
         if (offY !== 0) {
           const wpY = (startY + endY) / 2 + offY;
-          pathD = `M ${startX} ${startY} L ${stepX} ${startY} L ${stepX} ${wpY} L ${endX + 15} ${wpY} L ${endX + 15} ${endY} L ${endX} ${endY}`;
+          pathD = `M ${startX} ${startY} L ${stepX} ${startY} L ${stepX} ${wpY} L ${endX + 25} ${wpY} L ${endX + 25} ${endY} L ${endX} ${endY}`;
           midX = stepX;
           midY = wpY;
         } else {
@@ -424,34 +426,36 @@ export const _calculateEdgePath = (
       } else {
         const leftX = startX - 35 + offX;
         const rightX = endX + 35;
-        const bypassY = Math.min(startY, endY) - 50 + offY;
+        const bypassY = Math.min(startY, endY) - 45 + offY;
         pathD = `M ${startX} ${startY} L ${leftX} ${startY} L ${leftX} ${bypassY} L ${rightX} ${bypassY} L ${rightX} ${endY} L ${endX} ${endY}`;
         midX = (leftX + rightX) / 2;
         midY = bypassY;
       }
     } else if (sourceSide === 'left' && targetSide === 'top') {
-      const cornerX = endX + offX;
-      const cornerY = startY + offY;
-      if (offX !== 0 || offY !== 0) {
-        pathD = `M ${startX} ${startY} L ${cornerX} ${startY} L ${cornerX} ${cornerY} L ${endX} ${cornerY} L ${endX} ${endY}`;
+      if (endY > startY + 20) {
+        const cornerX = endX + offX;
+        pathD = `M ${startX} ${startY} L ${cornerX} ${startY} L ${cornerX} ${endY - 25} L ${endX} ${endY - 25} L ${endX} ${endY}`;
         midX = cornerX;
-        midY = cornerY;
-      } else {
-        pathD = `M ${startX} ${startY} L ${endX} ${startY} L ${endX} ${endY}`;
-        midX = (startX + endX) / 2;
         midY = startY;
+      } else {
+        const upY = Math.min(startY, endY) - 35 + offY;
+        const leftX = Math.min(startX - 30, endX) + offX;
+        pathD = `M ${startX} ${startY} L ${leftX} ${startY} L ${leftX} ${upY} L ${endX} ${upY} L ${endX} ${endY}`;
+        midX = leftX;
+        midY = upY;
       }
     } else if (sourceSide === 'left' && targetSide === 'bottom') {
-      const cornerX = endX + offX;
-      const cornerY = startY + offY;
-      if (offX !== 0 || offY !== 0) {
-        pathD = `M ${startX} ${startY} L ${cornerX} ${startY} L ${cornerX} ${cornerY} L ${endX} ${cornerY} L ${endX} ${endY}`;
+      if (endY < startY - 20) {
+        const cornerX = endX + offX;
+        pathD = `M ${startX} ${startY} L ${cornerX} ${startY} L ${cornerX} ${endY + 25} L ${endX} ${endY + 25} L ${endX} ${endY}`;
         midX = cornerX;
-        midY = cornerY;
-      } else {
-        pathD = `M ${startX} ${startY} L ${endX} ${startY} L ${endX} ${endY}`;
-        midX = (startX + endX) / 2;
         midY = startY;
+      } else {
+        const downY = Math.max(startY, endY) + 35 + offY;
+        const leftX = Math.min(startX - 30, endX) + offX;
+        pathD = `M ${startX} ${startY} L ${leftX} ${startY} L ${leftX} ${downY} L ${endX} ${downY} L ${endX} ${endY}`;
+        midX = leftX;
+        midY = downY;
       }
     } else if (sourceSide === 'left' && targetSide === 'left') {
       const farX = Math.min(startX, endX) - 35 + offX;
@@ -459,16 +463,26 @@ export const _calculateEdgePath = (
       midX = farX;
       midY = (startY + endY) / 2 + offY;
     } else {
-      if (Math.abs(endY - startY) > Math.abs(endX - startX)) {
-        const stepY = startY + (endY - startY) / 2 + offY;
-        pathD = `M ${startX} ${startY} L ${startX} ${stepY} L ${endX} ${stepY} L ${endX} ${endY}`;
-        midX = (startX + endX) / 2 + offX;
-        midY = stepY;
+      if (targetSide === 'top') {
+        const approachY = endY - 35;
+        pathD = `M ${startX} ${startY} L ${startX} ${approachY} L ${endX} ${approachY} L ${endX} ${endY}`;
+        midX = (startX + endX) / 2;
+        midY = approachY;
+      } else if (targetSide === 'bottom') {
+        const approachY = endY + 35;
+        pathD = `M ${startX} ${startY} L ${startX} ${approachY} L ${endX} ${approachY} L ${endX} ${endY}`;
+        midX = (startX + endX) / 2;
+        midY = approachY;
+      } else if (targetSide === 'left') {
+        const approachX = endX - 35;
+        pathD = `M ${startX} ${startY} L ${approachX} ${startY} L ${approachX} ${endY} L ${endX} ${endY}`;
+        midX = approachX;
+        midY = (startY + endY) / 2;
       } else {
-        const stepX = startX + (endX - startX) / 2 + offX;
-        pathD = `M ${startX} ${startY} L ${stepX} ${startY} L ${stepX} ${endY} L ${endX} ${endY}`;
-        midX = stepX;
-        midY = (startY + endY) / 2 + offY;
+        const approachX = endX + 35;
+        pathD = `M ${startX} ${startY} L ${approachX} ${startY} L ${approachX} ${endY} L ${endX} ${endY}`;
+        midX = approachX;
+        midY = (startY + endY) / 2;
       }
     }
 

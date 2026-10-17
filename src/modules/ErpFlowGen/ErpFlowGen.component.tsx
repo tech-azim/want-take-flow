@@ -37,6 +37,7 @@ import {
   FolderPlus,
   Palette,
   GripHorizontal,
+  GripVertical,
   Check,
   ArrowLeftRight,
 
@@ -66,6 +67,7 @@ import type {
   FlowchartProjectType,
   ErpFlowGenComponentProps,
   KanbanTaskStatus,
+  EdgeEndpointDragState,
 } from './ErpFlowGen.type';
 import {
   FLOW_NODE_TYPE_OPTIONS,
@@ -260,8 +262,10 @@ type CanvasNodeProps = {
   onMouseEnter?: (nodeId: string) => void;
   onMouseLeave?: () => void;
   onOpenCreateKanbanTask?: (defaultStatus?: KanbanTaskStatus, defaultSourceNodeId?: string) => void;
+  onDeleteNode?: (nodeId: string) => void;
   edges?: FlowEdge[];
   allNodes?: FlowNode[];
+  edgeEndpointDragState?: EdgeEndpointDragState;
 };
 
 /**
@@ -274,6 +278,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
     isSelected,
     onSelect,
     onOpenEditModal,
+    onDeleteNode,
     onStartDrag,
     onStartResize,
     onStartConnection,
@@ -289,6 +294,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
     onOpenCreateKanbanTask,
     edges,
     allNodes,
+    edgeEndpointDragState,
   } = props;
 
   // Track which ports are already occupied by existing connected edges
@@ -390,184 +396,15 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
     );
   };
 
-  // 4-Side Drag-to-Connect Ports + Consistent Quick-Action Buttons (Miro / Figma style)
-  const _renderConsistentPlusButtons = (): React.ReactElement => {
-    const isPortVisible = isSelected ? 'opacity-100 scale-100' : 'opacity-0 group-hover:opacity-100';
-
-    return (
-      <>
-        {_renderScreenBadge()}
-
-        {!isViewOnly && (
-          <>
-            {/* 1. Top Connection Port (Always available to drag new lines) */}
-            <div
-              title="Tarik untuk buat garis baru dari Atas (Drag to connect)"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onStartConnection?.(e, node.id, 'top');
-              }}
-              className={`absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-130 transition-all cursor-crosshair z-30 ${isPortVisible} flex items-center justify-center pointer-events-auto`}
-            >
-              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
-            </div>
-
-            {/* 2. Left Connection Port (Always available to drag new lines) */}
-            <div
-              title="Tarik untuk buat garis baru dari Kiri (Drag to connect)"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onStartConnection?.(e, node.id, 'left');
-              }}
-              className={`absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-130 transition-all cursor-crosshair z-30 ${isPortVisible} flex items-center justify-center pointer-events-auto`}
-            >
-              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
-            </div>
-
-            {/* 3. Right Connection Port or Plus Button */}
-            {!connectedAnchors.has('right') ? (
-              <button
-                type="button"
-                title="Klik untuk tambah langkah baru ke Kanan, atau tarik untuk buat garis baru"
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  onStartConnection?.(e, node.id, 'right');
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenAddModal(node.id, 'right');
-                }}
-                className={`absolute -right-3.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center justify-center cursor-crosshair hover:scale-120 transition-all z-30 pointer-events-auto ${isPortVisible}`}
-              >
-                <Plus className="w-3.5 h-3.5 stroke-[2.5] pointer-events-none" />
-              </button>
-            ) : (
-              <div
-                title="Tarik untuk buat garis baru dari Kanan (Drag to connect)"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onStartConnection?.(e, node.id, 'right');
-                }}
-                className={`absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-130 transition-all cursor-crosshair z-30 ${isPortVisible} flex items-center justify-center pointer-events-auto`}
-              >
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
-              </div>
-            )}
-
-            {/* 4. Bottom Connection Port or Plus Button */}
-            {!connectedAnchors.has('bottom') ? (
-              <button
-                type="button"
-                title="Klik untuk tambah langkah baru ke Bawah, atau tarik untuk buat garis baru"
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  onStartConnection?.(e, node.id, 'bottom');
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenAddModal(node.id, 'bottom');
-                }}
-                className={`absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center justify-center cursor-crosshair hover:scale-120 transition-all z-30 pointer-events-auto ${isPortVisible}`}
-              >
-                <Plus className="w-3.5 h-3.5 stroke-[2.5] pointer-events-none" />
-              </button>
-            ) : (
-              <div
-                title="Tarik untuk buat garis baru dari Bawah (Drag to connect)"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onStartConnection?.(e, node.id, 'bottom');
-                }}
-                className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-130 transition-all cursor-crosshair z-30 ${isPortVisible} flex items-center justify-center pointer-events-auto`}
-              >
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
-              </div>
-            )}
-          </>
-        )}
-      </>
-    );
-  };
-
-  // Professional Multi-Point Drag Resize Handles (Figma / Draw.io style)
-  const _renderResizeGrip = (): React.ReactElement | null => {
-    if (isViewOnly || !onStartResize) return null;
-
-    const isHorizontal = flowType === 'swimlane';
-    const showHandles = isSelected;
-
-    return (
-      <>
-        {/* Live Dimension Indicator Badge when selected */}
-        {isSelected && (
-          <div className="absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-slate-900/90 text-white text-[9.5px] font-mono font-bold rounded-md shadow-md pointer-events-none z-50 whitespace-nowrap">
-            {dims.width} × {dims.height} px
-          </div>
-        )}
-
-        {/* 1. Primary Bottom-Right Corner Resize Handle (Width & Height) */}
-        <div
-          title="Tarik sudut ini untuk ubah lebar & tinggi bebas"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onStartResize(e, node.id, 'both');
-          }}
-          className={`absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-indigo-600 rounded-xs shadow-md cursor-se-resize hover:scale-130 transition-transform z-40 select-none interactive-control ${showHandles ? 'opacity-100 scale-100 ring-2 ring-indigo-200' : 'opacity-0 group-hover:opacity-90 scale-90'
-            }`}
-        />
-
-        {/* 2. Right-Edge Center Resize Handle (Width Only) */}
-        {!isHorizontal && !isDecision && (
-          <div
-            title="Tarik ke samping untuk ubah lebar node"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onStartResize(e, node.id, 'horizontal');
-            }}
-            className={`absolute top-1/2 -right-1.5 -translate-y-1/2 w-2 h-6 bg-white border-2 border-indigo-600 rounded-full shadow-md cursor-ew-resize hover:scale-125 transition-transform z-40 select-none interactive-control ${showHandles ? 'opacity-100' : 'opacity-0 group-hover:opacity-90'
-              }`}
-          />
-        )}
-
-        {/* 3. Bottom-Edge Center Resize Handle (Height Only) */}
-        {isHorizontal && !isDecision && (
-          <div
-            title="Tarik ke bawah untuk ubah tinggi node"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onStartResize(e, node.id, 'vertical');
-            }}
-            className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-2 w-6 bg-white border-2 border-indigo-600 rounded-full shadow-md cursor-ns-resize hover:scale-125 transition-transform z-40 select-none interactive-control ${showHandles ? 'opacity-100' : 'opacity-0 group-hover:opacity-90'
-              }`}
-          />
-        )}
-      </>
-    );
-  };
-
-  // Quick Node Action Buttons (Tambah Langkah, Tarik Garis, Buka Modal Edit)
-  const _renderEditButton = (): React.ReactElement | null => {
+  // Quick Node Action Buttons (Tarik Garis, Task Jira, Buka Modal Edit) at Top-Right Corner Outside Node
+  const _renderEditButton = (extraButtons?: React.ReactNode): React.ReactElement | null => {
     if (isViewOnly) return null;
     return (
-      <div className="flex items-center gap-0.5 bg-white/95 backdrop-blur-xs rounded-md p-0.5 shadow-xs border border-slate-200">
-        <button
-          type="button"
-          title="Tambah Langkah Baru dari Node Ini"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenAddModal(node.id, flowType === 'swimlane' ? 'right' : 'bottom');
-          }}
-          className="w-5 h-5 rounded-md hover:bg-indigo-50 text-indigo-600 flex items-center justify-center transition-colors cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-        </button>
+      <div
+        className={`absolute -top-7.5 right-0 flex items-center gap-0.5 bg-white/95 backdrop-blur-xs rounded-md p-0.5 shadow-xs border border-slate-200 z-40 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          } transition-opacity pointer-events-auto`}
+      >
+        {extraButtons}
         {onStartConnection && (
           <button
             type="button"
@@ -605,7 +442,192 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
         >
           <Edit3 className="w-3 h-3" />
         </button>
+        {onDeleteNode && (
+          <button
+            type="button"
+            title="Hapus Node (Delete)"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteNode(node.id);
+            }}
+            className="w-5 h-5 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        )}
       </div>
+    );
+  };
+
+  // 4-Side Drag-to-Connect Ports + Consistent Quick-Action Buttons (Miro / Figma style)
+  const _renderConsistentPlusButtons = (): React.ReactElement => {
+    const isPortVisible = 'opacity-0 group-hover:opacity-100';
+    const isEndpointDragging = Boolean(edgeEndpointDragState?.isDragging);
+    const isCandidateNode = isEndpointDragging && edgeEndpointDragState?.candidateNodeId === node.id;
+    const candidateAnchor = isCandidateNode ? edgeEndpointDragState?.candidateAnchor : undefined;
+
+    return (
+      <>
+        {_renderScreenBadge()}
+
+        {/* Magnetic Snap Target Indicator when dragging an edge endpoint onto this node */}
+        {isCandidateNode && candidateAnchor && (
+          <>
+            <div
+              className={`absolute w-7 h-7 rounded-full bg-indigo-500/25 border-2 border-indigo-600 animate-ping pointer-events-none z-45 ${candidateAnchor === 'top'
+                ? '-top-3.5 left-1/2 -translate-x-1/2'
+                : candidateAnchor === 'bottom'
+                  ? '-bottom-3.5 left-1/2 -translate-x-1/2'
+                  : candidateAnchor === 'left'
+                    ? '-left-3.5 top-1/2 -translate-y-1/2'
+                    : '-right-3.5 top-1/2 -translate-y-1/2'
+                }`}
+            />
+            <div
+              className={`absolute w-4 h-4 rounded-full bg-indigo-600 border-2 border-white shadow-lg pointer-events-none z-45 flex items-center justify-center scale-110 ${candidateAnchor === 'top'
+                ? '-top-2 left-1/2 -translate-x-1/2'
+                : candidateAnchor === 'bottom'
+                  ? '-bottom-2 left-1/2 -translate-x-1/2'
+                  : candidateAnchor === 'left'
+                    ? '-left-2 top-1/2 -translate-y-1/2'
+                    : '-right-2 top-1/2 -translate-y-1/2'
+                }`}
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-white" />
+            </div>
+          </>
+        )}
+
+        {!isViewOnly && !isEndpointDragging && (
+          <>
+            {/* 1. Top Connection Port (Always available to drag new lines) */}
+            <div
+              title="Tarik untuk buat garis baru dari Atas (Drag to connect)"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onStartConnection?.(e, node.id, 'top');
+              }}
+              className={`absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-130 transition-all cursor-crosshair z-30 ${isPortVisible} flex items-center justify-center pointer-events-auto`}
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
+            </div>
+
+            {/* 2. Left Connection Port (Always available to drag new lines) */}
+            <div
+              title="Tarik untuk buat garis baru dari Kiri (Drag to connect)"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onStartConnection?.(e, node.id, 'left');
+              }}
+              className={`absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-130 transition-all cursor-crosshair z-30 ${isPortVisible} flex items-center justify-center pointer-events-auto`}
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
+            </div>
+
+            {/* 3. Right Connection Port (Always available to drag new lines) */}
+            <div
+              title="Tarik untuk buat garis baru dari Kanan (Drag to connect)"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onStartConnection?.(e, node.id, 'right');
+              }}
+              className={`absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-130 transition-all cursor-crosshair z-30 ${isPortVisible} flex items-center justify-center pointer-events-auto`}
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
+            </div>
+
+            {/* 4. Bottom Connection Port (Always available to drag new lines) */}
+            <div
+              title="Tarik untuk buat garis baru dari Bawah (Drag to connect)"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onStartConnection?.(e, node.id, 'bottom');
+              }}
+              className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-130 transition-all cursor-crosshair z-30 ${isPortVisible} flex items-center justify-center pointer-events-auto`}
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
+            </div>
+
+            {/* 5. Quick Add Node (+) Button at Bottom-Right Corner Outside Node */}
+            <button
+              type="button"
+              title="Tambah langkah / node baru (Quick Add Node)"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenAddModal(node.id, flowType === 'swimlane' ? 'right' : 'bottom');
+              }}
+              className={`absolute -bottom-3.5 -right-3.5 w-6 h-6 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center justify-center cursor-pointer hover:scale-115 transition-transform z-45 pointer-events-auto ${isSelected ? 'opacity-100' : isPortVisible
+                } transition-opacity`}
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[2.5] pointer-events-none" />
+            </button>
+
+            {/* 6. Quick Action Toolbar (Link, Jira, Edit) at Top-Right Corner Outside Node */}
+            {_renderEditButton()}
+          </>
+        )}
+      </>
+    );
+  };
+
+  // Professional Multi-Point Drag Resize Handles (Figma / Draw.io style)
+  const _renderResizeGrip = (): React.ReactElement | null => {
+    if (isViewOnly || !onStartResize) return null;
+
+    const isHorizontal = flowType === 'swimlane';
+    const showHandles = isSelected;
+
+    return (
+      <>
+        {/* Live Dimension Indicator Badge when selected */}
+        {isSelected && (
+          <div className="absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-slate-900/90 text-white text-[9.5px] font-mono font-bold rounded-md shadow-md pointer-events-none z-50 whitespace-nowrap">
+            {dims.width} × {dims.height} px
+          </div>
+        )}
+
+        {/* 1. Primary Bottom-Right Corner Resize Handle (Width & Height) */}
+        <div
+          title="Tarik sudut ini untuk ubah lebar & tinggi bebas"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onStartResize(e, node.id, 'both');
+          }}
+          className={`absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-indigo-600 rounded-xs shadow-md cursor-se-resize hover:scale-130 transition-transform z-40 select-none interactive-control ${showHandles ? 'opacity-100 scale-100 ring-2 ring-indigo-200' : 'opacity-0 group-hover:opacity-90 scale-90'
+            }`}
+        />
+
+        {/* 2. Right-Edge Center Resize Handle (Width Only - Hover only) */}
+        {!isHorizontal && !isDecision && (
+          <div
+            title="Tarik ke samping untuk ubah lebar node"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onStartResize(e, node.id, 'horizontal');
+            }}
+            className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-2 h-6 bg-white border-2 border-indigo-600 rounded-full shadow-md cursor-ew-resize hover:scale-125 transition-transform z-40 select-none interactive-control opacity-0 group-hover:opacity-90"
+          />
+        )}
+
+        {/* 3. Bottom-Edge Center Resize Handle (Height Only - Hover only) */}
+        {isHorizontal && !isDecision && (
+          <div
+            title="Tarik ke bawah untuk ubah tinggi node"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onStartResize(e, node.id, 'vertical');
+            }}
+            className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-2 w-6 bg-white border-2 border-indigo-600 rounded-full shadow-md cursor-ns-resize hover:scale-125 transition-transform z-40 select-none interactive-control opacity-0 group-hover:opacity-90"
+          />
+        )}
+      </>
     );
   };
 
@@ -644,10 +666,6 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
             <span className="text-xs font-bold text-slate-800 truncate tracking-tight">
               {node.label}
             </span>
-
-            <div className="absolute right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-              {_renderEditButton()}
-            </div>
           </div>
 
           {_renderConsistentPlusButtons()}
@@ -703,24 +721,6 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
 
           {/* Diamond Content: Clean centered question text */}
           <div className="relative z-10 w-full h-full flex flex-col items-center justify-center p-4 text-center pointer-events-auto">
-            {/* Action buttons (Swap & Edit) */}
-            <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-              {!isViewOnly && onToggleDecisionSwap && (
-                <button
-                  type="button"
-                  title="Tukar Arah Cabang (Positif ⇄ Negatif)"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleDecisionSwap(node.id);
-                  }}
-                  className="w-5 h-5 rounded-md bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-700 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-110 active:scale-95"
-                >
-                  <ArrowLeftRight className="w-2.5 h-2.5" />
-                </button>
-              )}
-              {_renderEditButton()}
-            </div>
-
             <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-0.5 opacity-80">
               Decision
             </div>
@@ -808,6 +808,39 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
             </div>
           )}
 
+          {/* Action Toolbar at Top-Right Corner Outside Node */}
+          {_renderEditButton(
+            !isViewOnly && onToggleDecisionSwap && (
+              <button
+                type="button"
+                title="Tukar Arah Cabang (Positif ⇄ Negatif)"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleDecisionSwap(node.id);
+                }}
+                className="w-5 h-5 rounded-md hover:bg-amber-50 text-amber-600 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <ArrowLeftRight className="w-3 h-3" />
+              </button>
+            )
+          )}
+
+          {/* Quick Add Node (+) Button at Bottom-Right Corner Outside Node */}
+          {!isViewOnly && (
+            <button
+              type="button"
+              title="Tambah langkah / node baru (Quick Add Node)"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenAddModal(node.id, flowType === 'swimlane' ? 'right' : 'bottom');
+              }}
+              className={`absolute -bottom-3.5 -right-3.5 w-6 h-6 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center justify-center cursor-pointer hover:scale-115 transition-transform z-45 pointer-events-auto ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                } transition-opacity`}
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[2.5] pointer-events-none" />
+            </button>
+          )}
+
           {_renderScreenBadge()}
           {_renderResizeGrip()}
         </div>
@@ -868,9 +901,6 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
           </svg>
 
           <div className="relative z-10 w-full h-full flex items-center justify-center p-3 text-center pointer-events-auto">
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              {_renderEditButton()}
-            </div>
             <span className="text-xs font-bold text-slate-800 tracking-tight line-clamp-3 max-w-[85%]">
               {node.label}
             </span>
@@ -917,9 +947,6 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
           </svg>
 
           <div className="relative z-10 w-full h-full flex items-center justify-center px-4 py-2 pointer-events-auto bg-white/90 text-center">
-            <div className="absolute top-1.5 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              {_renderEditButton()}
-            </div>
             <span className="text-xs font-bold text-slate-800 truncate">{node.label}</span>
           </div>
 
@@ -975,9 +1002,6 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
           </svg>
 
           <div className="relative z-10 w-full h-full flex items-center justify-center p-3 pointer-events-auto text-center">
-            <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              {_renderEditButton()}
-            </div>
             <span className="text-xs font-bold text-slate-800 line-clamp-2 max-w-[85%]">{node.label}</span>
           </div>
 
@@ -1052,9 +1076,6 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
           </svg>
 
           <div className="relative z-10 w-full h-full flex items-center justify-center p-3 px-6 pointer-events-auto text-center">
-            <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              {_renderEditButton()}
-            </div>
             <span className="text-xs font-bold text-slate-800 leading-snug line-clamp-3 max-w-[85%]">
               {node.label}
             </span>
@@ -1108,9 +1129,6 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
           </svg>
 
           <div className="relative z-10 w-full h-full flex items-center justify-center pl-3 pr-6 py-2 pointer-events-auto text-center">
-            <div className="absolute top-1.5 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-              {_renderEditButton()}
-            </div>
             <span className="text-xs font-bold text-slate-800 leading-snug line-clamp-3 max-w-[85%]">
               {node.label}
             </span>
@@ -1162,9 +1180,6 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
           </svg>
 
           <div className="relative z-10 w-full h-full flex items-center justify-center p-3 px-6 pointer-events-auto text-center">
-            <div className="absolute top-1.5 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              {_renderEditButton()}
-            </div>
             <span className="text-xs font-bold text-slate-800 leading-snug line-clamp-3 max-w-[85%]">
               {node.label}
             </span>
@@ -1247,9 +1262,6 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
           </svg>
 
           <div className="relative z-10 w-full h-full flex items-center justify-center p-3.5 pb-6 pointer-events-auto text-center">
-            <div className="absolute top-2 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-              {_renderEditButton()}
-            </div>
             <span className="text-xs font-bold text-slate-800 leading-snug line-clamp-3 max-w-[88%]">
               {node.label}
             </span>
@@ -1301,9 +1313,6 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
           </svg>
 
           <div className="relative z-10 w-full h-full flex items-center justify-center py-2.5 px-7 pointer-events-auto text-center">
-            <div className="absolute top-1.5 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-              {_renderEditButton()}
-            </div>
             <span className="text-xs font-bold text-slate-800 leading-snug line-clamp-3 max-w-[85%]">
               {node.label}
             </span>
@@ -1414,9 +1423,6 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
 
           {/* Database Content: Clean centered label */}
           <div className="relative z-10 w-full h-full flex items-center justify-center px-4 pointer-events-auto text-center">
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              {_renderEditButton()}
-            </div>
             <span className="text-xs font-bold text-slate-800 tracking-tight leading-snug line-clamp-3 max-w-[85%]">
               {node.label}
             </span>
@@ -1441,10 +1447,6 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
         className={`group rounded-lg border-2 bg-white shadow-xs select-none cursor-grab active:cursor-grabbing relative flex items-center justify-center p-3 text-center ${isSelected ? `${theme.border} ring-4 ring-indigo-100 shadow-md` : `${theme.border} hover:shadow-md`
           }`}
       >
-        <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          {_renderEditButton()}
-        </div>
-
         <span className="text-xs font-bold text-slate-800 tracking-tight leading-snug line-clamp-3 max-w-[90%]">
           {node.label}
         </span>
@@ -1459,7 +1461,10 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
   const runnerGlowClass = isRunnerActive
     ? 'ring-4 ring-indigo-500 ring-offset-2 animate-pulse scale-105 z-30 shadow-2xl'
     : '';
-  const candidateClass = isConnectingCandidate
+  const isEndpointCandidate = Boolean(
+    edgeEndpointDragState?.isDragging && edgeEndpointDragState.candidateNodeId === node.id,
+  );
+  const candidateClass = (isConnectingCandidate || isEndpointCandidate)
     ? 'ring-4 ring-indigo-500 ring-offset-2 scale-[1.03] z-30 shadow-2xl transition-all'
     : '';
 
@@ -1564,150 +1569,185 @@ const _renderGroupFrames = (
   onStartGroupResize: (event: React.MouseEvent, groupId: string, mode?: 'both' | 'horizontal' | 'vertical') => void,
 ): React.ReactElement => {
   return (
-    <div className="absolute inset-0 pointer-events-none z-10">
-      {groups.map((group) => {
-        const theme = GROUP_FRAME_THEMES[group.colorTheme || 'indigo'] || GROUP_FRAME_THEMES.indigo;
-        const isSelected = selectedGroupId === group.id;
+    <>
+      {/* 1. Background Frame Boxes Layer (Below nodes & lines) */}
+      <div className="absolute inset-0 pointer-events-none z-5">
+        {groups.map((group) => {
+          const theme = GROUP_FRAME_THEMES[group.colorTheme || 'indigo'] || GROUP_FRAME_THEMES.indigo;
+          const isSelected = selectedGroupId === group.id;
 
-        // Count nodes situated within or intersecting this frame
-        const insideCount = nodes.filter((n) => {
-          const dims = _getNodeDimensions(n);
-          const cx = n.position.x + dims.width / 2;
-          const cy = n.position.y + dims.height / 2;
-          const centerInside =
-            cx >= group.position.x &&
-            cx <= group.position.x + group.width &&
-            cy >= group.position.y &&
-            cy <= group.position.y + group.height;
-          const overlaps =
-            n.position.x < group.position.x + group.width &&
-            n.position.x + dims.width > group.position.x &&
-            n.position.y < group.position.y + group.height &&
-            n.position.y + dims.height > group.position.y;
-          return centerInside || overlaps;
-        }).length;
+          const insideCount = nodes.filter((n) => {
+            const dims = _getNodeDimensions(n);
+            const cx = n.position.x + dims.width / 2;
+            const cy = n.position.y + dims.height / 2;
+            const centerInside =
+              cx >= group.position.x &&
+              cx <= group.position.x + group.width &&
+              cy >= group.position.y &&
+              cy <= group.position.y + group.height;
+            const overlaps =
+              n.position.x < group.position.x + group.width &&
+              n.position.x + dims.width > group.position.x &&
+              n.position.y < group.position.y + group.height &&
+              n.position.y + dims.height > group.position.y;
+            return centerInside || overlaps;
+          }).length;
 
-        return (
-          <div
-            key={group.id}
-            data-group-id={group.id}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelectGroup(group.id);
-            }}
-            onMouseDown={(e) => onStartGroupDrag(e, group.id)}
-            title="Klik & Tarik Frame ini untuk memindahkan semua node di dalamnya sekaligus"
-            className={`absolute pointer-events-auto rounded-2xl border-2 border-dashed cursor-grab active:cursor-grabbing select-none group/frame transition-[border-color,background-color] duration-150 ${theme.bg
-              } ${isSelected ? theme.selectedBorder : theme.border}`}
-            style={{
-              left: `${group.position.x}px`,
-              top: `${group.position.y}px`,
-              width: `${group.width}px`,
-              height: `${group.height}px`,
-            }}
-          >
-            {/* Header Tag / Drag Handle */}
+          return (
             <div
-              onMouseDown={(e) => onStartGroupDrag(e, group.id)}
-              className={`absolute -top-8 left-3 flex items-center gap-1.5 px-3 py-1.5 rounded-t-xl text-xs font-semibold shadow-md cursor-grab active:cursor-grabbing select-none transition-transform hover:-translate-y-0.5 z-30 ${theme.tagBg} ${theme.tagText}`}
+              key={`bg-${group.id}`}
+              className={`absolute pointer-events-none rounded-2xl border-2 border-dashed select-none transition-[border-color,background-color] duration-150 ${theme.bg
+                } ${isSelected ? theme.selectedBorder : theme.border}`}
+              style={{
+                left: `${group.position.x}px`,
+                top: `${group.position.y}px`,
+                width: `${group.width}px`,
+                height: `${group.height}px`,
+              }}
             >
-              <GripHorizontal className="w-4 h-4 opacity-90 shrink-0" />
+              {insideCount === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40 text-xs font-medium text-slate-500">
+                  <span>Geser node ke dalam frame ini untuk grouping</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
-              {/* Inline Editable Title */}
-              <input
-                type="text"
-                value={group.title}
-                onChange={(e) => onUpdateGroupTitle(group.id, e.target.value)}
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => e.stopPropagation()}
-                className="bg-transparent border-b border-transparent hover:border-white/40 focus:border-white focus:bg-white/10 outline-none px-1 text-xs font-bold text-white rounded-xs w-28 sm:w-36 truncate transition-colors"
-                placeholder="Nama Group Frame..."
+      {/* 2. Interactive Foreground Controls Layer (Header Tags & Resize Handles, Above lines & nodes at z-40) */}
+      <div className="absolute inset-0 pointer-events-none z-40">
+        {groups.map((group) => {
+          const theme = GROUP_FRAME_THEMES[group.colorTheme || 'indigo'] || GROUP_FRAME_THEMES.indigo;
+
+          const insideCount = nodes.filter((n) => {
+            const dims = _getNodeDimensions(n);
+            const cx = n.position.x + dims.width / 2;
+            const cy = n.position.y + dims.height / 2;
+            const centerInside =
+              cx >= group.position.x &&
+              cx <= group.position.x + group.width &&
+              cy >= group.position.y &&
+              cy <= group.position.y + group.height;
+            const overlaps =
+              n.position.x < group.position.x + group.width &&
+              n.position.x + dims.width > group.position.x &&
+              n.position.y < group.position.y + group.height &&
+              n.position.y + dims.height > group.position.y;
+            return centerInside || overlaps;
+          }).length;
+
+          return (
+            <div
+              key={`ctrl-${group.id}`}
+              data-group-id={group.id}
+              className="absolute pointer-events-none select-none group/frame"
+              style={{
+                left: `${group.position.x}px`,
+                top: `${group.position.y}px`,
+                width: `${group.width}px`,
+                height: `${group.height}px`,
+              }}
+            >
+              {/* Header Tag / Drag Handle */}
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectGroup(group.id);
+                }}
+                onMouseDown={(e) => onStartGroupDrag(e, group.id)}
+                title="Tarik tab ini untuk memindahkan Frame Group dan semua node di dalamnya"
+                className={`absolute -top-8 left-3 flex items-center gap-1.5 px-3 py-1.5 rounded-t-xl text-xs font-semibold shadow-md cursor-grab active:cursor-grabbing select-none transition-transform hover:-translate-y-0.5 z-40 pointer-events-auto ${theme.tagBg} ${theme.tagText}`}
+              >
+                <GripHorizontal className="w-4 h-4 opacity-90 shrink-0" />
+
+                {/* Inline Editable Title */}
+                <input
+                  type="text"
+                  value={group.title}
+                  onChange={(e) => onUpdateGroupTitle(group.id, e.target.value)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-transparent border-b border-transparent hover:border-white/40 focus:border-white focus:bg-white/10 outline-none px-1 text-xs font-bold text-white rounded-xs w-28 sm:w-36 truncate transition-colors"
+                  placeholder="Nama Group Frame..."
+                />
+
+                {/* Node Count Pill with Move icon */}
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold flex items-center gap-1 ${theme.badgeBg}`}
+                  title={`${insideCount} node berada di dalam frame ini. Tarik frame untuk memindahkan seluruh grup sekaligus.`}
+                >
+                  <Move className="w-2.5 h-2.5" />
+                  {insideCount} node
+                </span>
+
+                {/* Cycle Color Button */}
+                <button
+                  type="button"
+                  title="Ganti warna Frame"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const currentIdx = COLOR_CYCLES.indexOf(group.colorTheme || 'indigo');
+                    const nextTheme = COLOR_CYCLES[(currentIdx + 1) % COLOR_CYCLES.length];
+                    onUpdateGroupColor(group.id, nextTheme);
+                  }}
+                  className="w-4 h-4 rounded hover:bg-black/20 flex items-center justify-center transition-colors cursor-pointer ml-0.5"
+                >
+                  <Palette className="w-2.5 h-2.5" />
+                </button>
+
+                {/* Delete Frame Button */}
+                <button
+                  type="button"
+                  title="Hapus Frame Group (Node tidak ikut terhapus)"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteGroupFrame(group.id);
+                  }}
+                  className="w-4 h-4 rounded hover:bg-black/20 flex items-center justify-center transition-colors cursor-pointer text-white/80 hover:text-white"
+                >
+                  <Trash2 className="w-2.5 h-2.5" />
+                </button>
+              </div>
+
+              {/* Resize Handle: Bottom-Right Corner */}
+              <div
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  onStartGroupResize(e, group.id, 'both');
+                }}
+                title="Tarik untuk perbesar / perkecil Frame"
+                className="absolute -bottom-2 -right-2 w-5 h-5 bg-white border-2 border-slate-400 hover:border-indigo-600 hover:bg-indigo-50 rounded-md shadow-xs flex items-center justify-center cursor-nwse-resize z-40 group-hover/frame:opacity-100 transition-opacity pointer-events-auto"
+              >
+                <div className="w-1.5 h-1.5 bg-slate-500 rounded-xs" />
+              </div>
+
+              {/* Resize Handle: Right Edge */}
+              <div
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  onStartGroupResize(e, group.id, 'horizontal');
+                }}
+                title="Tarik lebar Frame"
+                className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-3 h-8 bg-white border-2 border-slate-300 hover:border-indigo-600 rounded-sm shadow-2xs cursor-ew-resize z-40 opacity-0 group-hover/frame:opacity-100 transition-opacity pointer-events-auto"
               />
 
-              {/* Node Count Pill with Move icon */}
-              <span
-                className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold flex items-center gap-1 ${theme.badgeBg}`}
-                title={`${insideCount} node berada di dalam frame ini. Tarik frame untuk memindahkan seluruh grup sekaligus.`}
-              >
-                <Move className="w-2.5 h-2.5" />
-                {insideCount} node
-              </span>
-
-              {/* Cycle Color Button */}
-              <button
-                type="button"
-                title="Ganti warna Frame"
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
+              {/* Resize Handle: Bottom Edge */}
+              <div
+                onMouseDown={(e) => {
                   e.stopPropagation();
-                  const currentIdx = COLOR_CYCLES.indexOf(group.colorTheme || 'indigo');
-                  const nextTheme = COLOR_CYCLES[(currentIdx + 1) % COLOR_CYCLES.length];
-                  onUpdateGroupColor(group.id, nextTheme);
+                  onStartGroupResize(e, group.id, 'vertical');
                 }}
-                className="w-4 h-4 rounded hover:bg-black/20 flex items-center justify-center transition-colors cursor-pointer ml-0.5"
-              >
-                <Palette className="w-2.5 h-2.5" />
-              </button>
-
-              {/* Delete Frame Button */}
-              <button
-                type="button"
-                title="Hapus Frame Group (Node tidak ikut terhapus)"
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteGroupFrame(group.id);
-                }}
-                className="w-4 h-4 rounded hover:bg-black/20 flex items-center justify-center transition-colors cursor-pointer text-white/80 hover:text-white"
-              >
-                <Trash2 className="w-2.5 h-2.5" />
-              </button>
+                title="Tarik tinggi Frame"
+                className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-8 h-3 bg-white border-2 border-slate-300 hover:border-indigo-600 rounded-sm shadow-2xs cursor-ns-resize z-40 opacity-0 group-hover/frame:opacity-100 transition-opacity pointer-events-auto"
+              />
             </div>
-
-            {/* Quick Move Visual Hint inside frame */}
-            {insideCount > 0 ? (
-              <></>
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40 text-xs font-medium text-slate-500">
-                <span>Geser node ke dalam frame ini untuk grouping</span>
-              </div>
-            )}
-
-            {/* Resize Handle: Bottom-Right Corner */}
-            <div
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                onStartGroupResize(e, group.id, 'both');
-              }}
-              title="Tarik untuk perbesar / perkecil Frame"
-              className="absolute -bottom-2 -right-2 w-5 h-5 bg-white border-2 border-slate-400 hover:border-indigo-600 hover:bg-indigo-50 rounded-md shadow-xs flex items-center justify-center cursor-nwse-resize z-20 group-hover/frame:opacity-100 transition-opacity"
-            >
-              <div className="w-1.5 h-1.5 bg-slate-500 rounded-xs" />
-            </div>
-
-            {/* Resize Handle: Right Edge */}
-            <div
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                onStartGroupResize(e, group.id, 'horizontal');
-              }}
-              title="Tarik lebar Frame"
-              className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-3 h-8 bg-white border-2 border-slate-300 hover:border-indigo-600 rounded-sm shadow-2xs cursor-ew-resize z-20 opacity-0 group-hover/frame:opacity-100 transition-opacity"
-            />
-
-            {/* Resize Handle: Bottom Edge */}
-            <div
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                onStartGroupResize(e, group.id, 'vertical');
-              }}
-              title="Tarik tinggi Frame"
-              className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-8 h-3 bg-white border-2 border-slate-300 hover:border-indigo-600 rounded-sm shadow-2xs cursor-ns-resize z-20 opacity-0 group-hover/frame:opacity-100 transition-opacity"
-            />
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+    </>
   );
 };
 
@@ -1966,6 +2006,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
     onUpdateEditNodeField,
     onSaveEditNode,
     onDeleteNodeFromModal,
+    onDeleteSelectedNode,
     onToggleGhostSkeleton,
     onSelectNode,
     onDeselectAll,
@@ -1987,6 +2028,8 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
     onClearCanvas,
     onToggleHelpModal,
     onAddSwimlane,
+    onUpdateSwimlaneName,
+    onUpdateMasterTitle,
     onDeleteSwimlane,
     onUpdateTableWidth,
     onStartTableResize,
@@ -2063,11 +2106,22 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
     onStartEdgeEndpointDrag,
     onUpdateEdgeLabel,
     onUpdateEdgeColor,
-    onResetEdgeAnchors,
-    onSetEdgeSourceAnchor,
+    onResetEdgeAnchors: _onResetEdgeAnchors,
+    onSetEdgeSourceAnchor: _onSetEdgeSourceAnchor,
   } = props;
 
   const currentSkeleton = SKELETON_TEMPLATES[activeTab.type];
+
+  const [activeEdgeLabelToolbarId, setActiveEdgeLabelToolbarId] = React.useState<string | null>(null);
+  const [hoveredEdgeId, setHoveredEdgeId] = React.useState<string>('');
+  const [draggingKanbanTaskId, setDraggingKanbanTaskId] = React.useState<string | null>(null);
+  const [dragOverKanbanColId, setDragOverKanbanColId] = React.useState<KanbanTaskStatus | null>(null);
+
+  React.useEffect(() => {
+    if (!selectedEdgeId) {
+      setActiveEdgeLabelToolbarId(null);
+    }
+  }, [selectedEdgeId]);
 
   // Filtered shape options in modal
   const filteredShapes = addNodeModal.shapeCategoryFilter === 'Semua'
@@ -2234,9 +2288,6 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   <Copy className="w-3 h-3" />
                 </button>
               </div>
-              <div className="text-[10px] text-slate-400 font-mono mt-0.5 truncate whitespace-nowrap">
-                {activeTab.type.toUpperCase()} • {nodes.length} langkah • {edges.length} konektor
-              </div>
             </div>
           </div>
 
@@ -2247,11 +2298,10 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               onClick={onUndo}
               disabled={!canUndo}
               title="Undo (Ctrl+Z / Cmd+Z)"
-              className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${
-                canUndo
-                  ? 'hover:bg-white text-slate-700 hover:text-indigo-600 cursor-pointer shadow-2xs active:scale-95'
-                  : 'text-slate-300 cursor-not-allowed'
-              }`}
+              className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${canUndo
+                ? 'hover:bg-white text-slate-700 hover:text-indigo-600 cursor-pointer shadow-2xs active:scale-95'
+                : 'text-slate-300 cursor-not-allowed'
+                }`}
             >
               <Undo2 className="w-3.5 h-3.5" />
             </button>
@@ -2261,11 +2311,10 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               onClick={onRedo}
               disabled={!canRedo}
               title="Redo (Ctrl+Y / Cmd+Shift+Z)"
-              className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${
-                canRedo
-                  ? 'hover:bg-white text-slate-700 hover:text-indigo-600 cursor-pointer shadow-2xs active:scale-95'
-                  : 'text-slate-300 cursor-not-allowed'
-              }`}
+              className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${canRedo
+                ? 'hover:bg-white text-slate-700 hover:text-indigo-600 cursor-pointer shadow-2xs active:scale-95'
+                : 'text-slate-300 cursor-not-allowed'
+                }`}
             >
               <Redo2 className="w-3.5 h-3.5" />
             </button>
@@ -2309,16 +2358,6 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             </button>
           </div>
 
-          {/* Fokus Start */}
-          <button
-            type="button"
-            onClick={onFocusStart}
-            title="Auto Focus ke Node Start"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
-          >
-            <Target className="w-3.5 h-3.5 text-indigo-600" />
-            <span className="hidden xl:inline">Fokus Start</span>
-          </button>
 
           {/* + Tambah Node */}
           <button
@@ -2328,7 +2367,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all cursor-pointer shadow-xs active:scale-95 shrink-0"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>+ Tambah Node</span>
+            <span>Tambah Node</span>
           </button>
 
           {/* + Frame Group */}
@@ -2339,7 +2378,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:text-indigo-600 hover:border-indigo-300 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
           >
             <FolderPlus className="w-3.5 h-3.5 text-indigo-600" />
-            <span className="hidden lg:inline">+ Frame Group</span>
+            <span className="hidden lg:inline">Frame Group</span>
           </button>
 
           <div className="h-5 w-[1px] bg-slate-200 mx-0.5 shrink-0" />
@@ -2396,11 +2435,10 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               type="button"
               onClick={() => onSetProjectSubView('flowchart')}
               title="Tampilkan Diagram Alur / Node"
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                projectSubView === 'flowchart' && activeTab.type !== 'kanban'
-                  ? 'bg-white text-indigo-700 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${projectSubView === 'flowchart' && activeTab.type !== 'kanban'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+                }`}
             >
               <Workflow className="w-3.5 h-3.5" />
               <span>Flowchart</span>
@@ -2409,11 +2447,10 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               type="button"
               onClick={() => onSetProjectSubView('kanban')}
               title="Tampilkan Task Board (Tiket Alur)"
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                projectSubView === 'kanban' || activeTab.type === 'kanban'
-                  ? 'bg-white text-indigo-700 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${projectSubView === 'kanban' || activeTab.type === 'kanban'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+                }`}
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span>Task Board</span>
@@ -2433,11 +2470,10 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               type="button"
               onClick={() => onSetConnectorStyle('orthogonal')}
               title="Garis Siku-Siku Tegas (Standar Flowchart)"
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                connectorStyle === 'orthogonal'
-                  ? 'bg-white text-indigo-700 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${connectorStyle === 'orthogonal'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+                }`}
             >
               <span>⏞ Siku Tegas</span>
             </button>
@@ -2445,11 +2481,10 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               type="button"
               onClick={() => onSetConnectorStyle('curved')}
               title="Garis Melengkung Halus (Smooth Curve)"
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                connectorStyle === 'curved'
-                  ? 'bg-white text-indigo-700 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${connectorStyle === 'curved'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+                }`}
             >
               <span>∿ Lengkung</span>
             </button>
@@ -2691,7 +2726,35 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   return (
                     <div
                       key={col.id}
-                      className="flex flex-col bg-slate-200/50 rounded-2xl border border-slate-200/80 p-3 h-full min-h-[450px]"
+                      onDragOver={(e) => {
+                        if (isViewOnly) return;
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        if (dragOverKanbanColId !== col.id) {
+                          setDragOverKanbanColId(col.id);
+                        }
+                      }}
+                      onDragLeave={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                          if (dragOverKanbanColId === col.id) {
+                            setDragOverKanbanColId(null);
+                          }
+                        }
+                      }}
+                      onDrop={(e) => {
+                        if (isViewOnly) return;
+                        e.preventDefault();
+                        const taskId = e.dataTransfer.getData('text/plain') || draggingKanbanTaskId;
+                        if (taskId) {
+                          onMoveKanbanTaskStatus(taskId, col.id);
+                        }
+                        setDraggingKanbanTaskId(null);
+                        setDragOverKanbanColId(null);
+                      }}
+                      className={`flex flex-col rounded-2xl border p-3 h-full min-h-[450px] transition-all duration-150 ${dragOverKanbanColId === col.id
+                        ? 'bg-indigo-50/70 border-indigo-400 ring-2 ring-indigo-400/30 shadow-md'
+                        : 'bg-slate-200/50 border-slate-200/80'
+                        }`}
                     >
                       {/* Column Header */}
                       <div className="flex items-center justify-between pb-3 px-1 border-b border-slate-200/60 mb-3">
@@ -2720,10 +2783,15 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                       {/* Column Cards Container */}
                       <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-0.5">
                         {colTasks.length === 0 ? (
-                          <div className="flex-1 flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-slate-200 rounded-xl text-center">
-                            <ListTodo className="w-6 h-6 text-slate-300 mb-1" />
-                            <span className="text-xs font-medium text-slate-400">
-                              Tidak ada tiket
+                          <div
+                            className={`flex-1 flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed rounded-xl text-center transition-colors ${dragOverKanbanColId === col.id
+                              ? 'border-indigo-400 bg-indigo-50/50 text-indigo-700'
+                              : 'border-slate-200 text-slate-400'
+                              }`}
+                          >
+                            <ListTodo className="w-6 h-6 mb-1 opacity-70" />
+                            <span className="text-xs font-medium">
+                              {dragOverKanbanColId === col.id ? 'Lepaskan tiket di sini' : 'Tidak ada tiket'}
                             </span>
                           </div>
                         ) : (
@@ -2750,11 +2818,28 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                             return (
                               <div
                                 key={task.id}
-                                className="group bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col gap-2.5"
+                                draggable={!isViewOnly}
+                                onDragStart={(e) => {
+                                  e.dataTransfer.setData('text/plain', task.id);
+                                  e.dataTransfer.effectAllowed = 'move';
+                                  setDraggingKanbanTaskId(task.id);
+                                }}
+                                onDragEnd={() => {
+                                  setDraggingKanbanTaskId(null);
+                                  setDragOverKanbanColId(null);
+                                }}
+                                className={`group bg-white rounded-xl border p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col gap-2.5 ${!isViewOnly ? 'cursor-grab active:cursor-grabbing' : ''
+                                  } ${draggingKanbanTaskId === task.id
+                                    ? 'opacity-40 border-indigo-400 border-dashed scale-95 shadow-none'
+                                    : 'border-slate-200'
+                                  }`}
                               >
                                 {/* Card Top Row: Issue Type, Key & Priority */}
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-1.5">
+                                    {!isViewOnly && (
+                                      <GripVertical className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 shrink-0 cursor-grab active:cursor-grabbing -ml-0.5" />
+                                    )}
                                     <span className={`px-1.5 py-0.5 rounded text-[9.5px] font-semibold border ${issueBadge.cls}`}>
                                       {issueBadge.label}
                                     </span>
@@ -2960,6 +3045,14 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                             );
                           })
                         )}
+
+                        {/* Drop Target Indicator when hovering over column */}
+                        {dragOverKanbanColId === col.id && draggingKanbanTaskId && colTasks.length > 0 && (
+                          <div className="py-3 px-4 rounded-xl border-2 border-dashed border-indigo-400 bg-indigo-50/70 text-indigo-700 text-xs font-semibold text-center flex items-center justify-center gap-1.5 animate-in fade-in transition-all">
+                            <Plus className="w-4 h-4 stroke-[2.5]" />
+                            <span>Lepaskan tiket di sini untuk pindah ke {col.title}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -3005,6 +3098,8 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 onUpdateLaneHeight,
                 onStartTableResize,
                 onStartLaneResize,
+                onUpdateSwimlaneName,
+                onUpdateMasterTitle,
               )}
 
               {/* Group Frames Layer (Visual frames to group nodes) */}
@@ -3032,62 +3127,68 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   <marker
                     id="erp-arrow-marker"
                     markerWidth="10"
-                    markerHeight="7"
-                    refX="9.5"
-                    refY="3.5"
+                    markerHeight="8"
+                    refX="8.5"
+                    refY="4"
                     orient="auto"
+                    markerUnits="userSpaceOnUse"
                   >
-                    <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+                    <polygon points="0 1, 8.5 4, 0 7" fill="#64748b" />
                   </marker>
                   <marker
                     id="erp-arrow-marker-emerald"
                     markerWidth="10"
-                    markerHeight="7"
-                    refX="9.5"
-                    refY="3.5"
+                    markerHeight="8"
+                    refX="8.5"
+                    refY="4"
                     orient="auto"
+                    markerUnits="userSpaceOnUse"
                   >
-                    <polygon points="0 0, 10 3.5, 0 7" fill="#10b981" />
+                    <polygon points="0 1, 8.5 4, 0 7" fill="#10b981" />
                   </marker>
                   <marker
                     id="erp-arrow-marker-rose"
                     markerWidth="10"
-                    markerHeight="7"
-                    refX="9.5"
-                    refY="3.5"
+                    markerHeight="8"
+                    refX="8.5"
+                    refY="4"
                     orient="auto"
+                    markerUnits="userSpaceOnUse"
                   >
-                    <polygon points="0 0, 10 3.5, 0 7" fill="#f43f5e" />
+                    <polygon points="0 1, 8.5 4, 0 7" fill="#f43f5e" />
                   </marker>
                   <marker
                     id="erp-arrow-marker-indigo"
                     markerWidth="10"
-                    markerHeight="7"
-                    refX="9.5"
-                    refY="3.5"
+                    markerHeight="8"
+                    refX="8.5"
+                    refY="4"
                     orient="auto"
+                    markerUnits="userSpaceOnUse"
                   >
-                    <polygon points="0 0, 10 3.5, 0 7" fill="#4f46e5" />
+                    <polygon points="0 1, 8.5 4, 0 7" fill="#4f46e5" />
                   </marker>
                   <marker
                     id="erp-arrow-marker-amber"
                     markerWidth="10"
-                    markerHeight="7"
-                    refX="9.5"
-                    refY="3.5"
+                    markerHeight="8"
+                    refX="8.5"
+                    refY="4"
                     orient="auto"
+                    markerUnits="userSpaceOnUse"
                   >
-                    <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b" />
+                    <polygon points="0 1, 8.5 4, 0 7" fill="#f59e0b" />
                   </marker>
                   <marker
                     id="erp-arrow-marker-purple"
                     markerWidth="10"
-                    markerHeight="7"
-                    refX="9.5"
-                    refY="3.5"
+                    markerHeight="8"
+                    refX="8.5"
+                    refY="4"
                     orient="auto"
+                    markerUnits="userSpaceOnUse"
                   >
-                    <polygon points="0 0, 10 3.5, 0 7" fill="#8b5cf6" />
+                    <polygon points="0 1, 8.5 4, 0 7" fill="#8b5cf6" />
                   </marker>
                 </defs>
 
@@ -3115,6 +3216,8 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     onStartEdgeEndpointDrag,
                     edgeEndpointDragState,
                     onUpdateEdgeLabel,
+                    setActiveEdgeLabelToolbarId,
+                    setHoveredEdgeId,
                   ),
                 )}
               </svg>
@@ -3141,8 +3244,10 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     onMouseEnter={onNodeMouseEnter}
                     onMouseLeave={onNodeMouseLeave}
                     onOpenCreateKanbanTask={onOpenCreateKanbanTask}
+                    onDeleteNode={onDeleteSelectedNode}
                     edges={edges}
                     allNodes={nodes}
+                    edgeEndpointDragState={edgeEndpointDragState}
                   />
                 ))}
 
@@ -3157,15 +3262,16 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     })()
                   ) : null}
 
-                  {/* Render top-layer interactive endpoint & waypoint handles for selected edge */}
-                  {selectedEdgeId ? (
+                  {/* Render top-layer interactive endpoint & waypoint handles for selected or hovered edge */}
+                  {(selectedEdgeId || hoveredEdgeId) ? (
                     (() => {
-                      const selEdge = edges.find((e) => e.id === selectedEdgeId);
-                      if (!selEdge) return null;
+                      const activeEdgeId = selectedEdgeId || hoveredEdgeId;
+                      const activeEdge = edges.find((e) => e.id === activeEdgeId);
+                      if (!activeEdge) return null;
                       return _renderEdgeCurve(
-                        selEdge,
+                        activeEdge,
                         nodes,
-                        true,
+                        selectedEdgeId === activeEdgeId,
                         onSelectEdge,
                         _onOpenEditEdgeModal,
                         onDeleteEdgeById,
@@ -3176,6 +3282,8 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                         onStartEdgeEndpointDrag,
                         edgeEndpointDragState,
                         onUpdateEdgeLabel,
+                        setActiveEdgeLabelToolbarId,
+                        setHoveredEdgeId,
                       );
                     })()
                   ) : null}
@@ -3216,29 +3324,28 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 })()}
               </div>
 
-              {/* Floating Toolbar for Selected Edge (z-30, pure HTML, 100% reliable) */}
+              {/* Floating Color Toolbar for Selected Edge (Shown only when edge label text is clicked) */}
               {(() => {
-                if (!selectedEdgeId || isViewOnly) return null;
+                if (!selectedEdgeId || isViewOnly || activeEdgeLabelToolbarId !== selectedEdgeId) return null;
                 const edge = edges.find((e) => e.id === selectedEdgeId);
                 if (!edge) return null;
                 const src = nodes.find((n) => n.id === edge.sourceNodeId);
                 const tgt = nodes.find((n) => n.id === edge.targetNodeId);
                 if (!src || !tgt) return null;
                 const geom = _calculateEdgePath(src, tgt, connectorStyle, edge.waypointOffset, edge.sourceAnchor, edge.targetAnchor);
-                const hasCustomWaypoint = Boolean(edge.waypointOffset && (edge.waypointOffset.x !== 0 || edge.waypointOffset.y !== 0));
 
                 return (
                   <div
                     style={{
                       position: 'absolute',
                       left: `${geom.midX}px`,
-                      top: `${geom.midY - 44}px`,
+                      top: `${geom.midY - 40}px`,
                       transform: 'translateX(-50%)',
                     }}
-                    className="z-30 pointer-events-auto flex items-center justify-center gap-2 bg-slate-900/95 backdrop-blur-md text-white px-3 py-1.5 rounded-2xl shadow-2xl border border-slate-700/80 text-[11px] select-none scale-95 hover:scale-100 transition-all animate-in fade-in zoom-in-95"
+                    className="z-30 pointer-events-auto flex items-center justify-center bg-slate-900/95 backdrop-blur-md text-white px-2.5 py-1.5 rounded-full shadow-2xl border border-slate-700/80 text-[11px] select-none scale-95 hover:scale-100 transition-all animate-in fade-in zoom-in-95"
                   >
-                    {/* Color Swatches */}
-                    <div className="flex items-center gap-1.5 px-1.5 py-0.5 bg-slate-800/80 rounded-xl border border-slate-700/50">
+                    {/* Color Swatches Only */}
+                    <div className="flex items-center gap-1.5 px-0.5">
                       {[
                         { name: 'Indigo (Default)', color: '#4f46e5' },
                         { name: 'Hijau', color: '#10b981' },
@@ -3257,110 +3364,29 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                               e.stopPropagation();
                               onUpdateEdgeColor(edge.id, swatch.color);
                             }}
-                            className={`w-4 h-4 rounded-full transition-transform cursor-pointer flex items-center justify-center ${
-                              isCurrentColor
-                                ? 'scale-125 ring-2 ring-white ring-offset-1 ring-offset-slate-900 shadow-xs'
-                                : 'hover:scale-110 opacity-75 hover:opacity-100'
-                            }`}
+                            className={`w-4 h-4 rounded-full transition-transform cursor-pointer flex items-center justify-center ${isCurrentColor
+                              ? 'scale-125 ring-2 ring-white ring-offset-1 ring-offset-slate-900 shadow-xs'
+                              : 'hover:scale-110 opacity-75 hover:opacity-100'
+                              }`}
                             style={{ backgroundColor: swatch.color }}
                           />
                         );
                       })}
                     </div>
 
-                    {/* Source Anchor (Pangkal Garis) Selector */}
-                    <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-800/80 rounded-xl border border-slate-700/50 text-[10px]">
-                      <span className="text-slate-400 font-semibold px-0.5">Pangkal:</span>
-                      {[
-                        { id: 'auto', label: 'Auto' },
-                        { id: 'right', label: '➡️ Kanan' },
-                        { id: 'bottom', label: '⬇️ Bawah' },
-                        { id: 'left', label: '⬅️ Kiri' },
-                        { id: 'top', label: '⬆️ Atas' },
-                      ].map((port) => (
-                        <button
-                          key={port.id}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSetEdgeSourceAnchor?.(edge.id, port.id as any);
-                          }}
-                          className={`px-1.5 py-0.5 rounded-lg font-bold transition-all cursor-pointer ${
-                            (edge.sourceAnchor || 'auto') === port.id
-                              ? 'bg-indigo-600 text-white shadow-xs'
-                              : 'text-slate-300 hover:bg-slate-700'
-                          }`}
-                        >
-                          {port.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Target Anchor (Ujung Garis) Selector */}
-                    <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-800/80 rounded-xl border border-slate-700/50 text-[10px]">
-                      <span className="text-slate-400 font-semibold px-0.5">Ujung:</span>
-                      {[
-                        { id: 'auto', label: 'Auto' },
-                        { id: 'top', label: '⬆️ Atas' },
-                        { id: 'bottom', label: '⬇️ Bawah' },
-                        { id: 'left', label: '⬅️ Kiri' },
-                        { id: 'right', label: '➡️ Kanan' },
-                      ].map((port) => (
-                        <button
-                          key={port.id}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSetEdgeTargetAnchor?.(edge.id, port.id as any);
-                          }}
-                          className={`px-1.5 py-0.5 rounded-lg font-bold transition-all cursor-pointer ${
-                            (edge.targetAnchor || 'auto') === port.id
-                              ? 'bg-indigo-600 text-white shadow-xs'
-                              : 'text-slate-300 hover:bg-slate-700'
-                          }`}
-                        >
-                          {port.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Auto Rute / Reset Arah button */}
+                    {/* Divider & Delete Edge Button */}
+                    <div className="h-3 w-px bg-slate-700 mx-1 shrink-0" />
                     <button
                       type="button"
-                      title="Rapikan rute garis otomatis (Reset ke rute terpendek)"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onResetEdgeAnchors?.(edge.id);
-                      }}
-                      className="px-2 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs whitespace-nowrap text-[10px]"
-                    >
-                      <span>⚡ Auto Rute</span>
-                    </button>
-
-                    {hasCustomWaypoint && (
-                      <button
-                        type="button"
-                        title="Reset garis ke lekukan default otomatis"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onResetEdgeWaypoint(edge.id);
-                        }}
-                        className="px-2 py-1 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs whitespace-nowrap ml-0.5"
-                      >
-                        <span>↺ Reset</span>
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      title="Hapus garis ini"
+                      title="Hapus Garis"
                       onClick={(e) => {
                         e.stopPropagation();
                         onDeleteEdgeById(edge.id);
+                        setActiveEdgeLabelToolbarId(null);
                       }}
-                      className="px-2 py-1 rounded-xl bg-rose-600 hover:bg-rose-500 font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs whitespace-nowrap"
+                      className="w-5 h-5 rounded-full hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer shrink-0"
                     >
-                      <span>🗑️ Hapus</span>
+                      <Trash2 className="w-3 h-3" />
                     </button>
                   </div>
                 );
@@ -3393,11 +3419,10 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   if (isViewOnly) onToggleViewOnly();
                 }}
                 title="Beralih ke Mode Edit (Tambah, ubah, dan susun diagram)"
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-                  !isViewOnly
-                    ? 'bg-indigo-600 text-white shadow-md active:scale-95'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${!isViewOnly
+                  ? 'bg-indigo-600 text-white shadow-md active:scale-95'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
+                  }`}
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Mode Edit</span>
@@ -3409,11 +3434,10 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   if (!isViewOnly) onToggleViewOnly();
                 }}
                 title="Beralih ke Mode Preview Only (Lihat alur & preview mockup bersih)"
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-                  isViewOnly
-                    ? 'bg-purple-600 text-white shadow-md active:scale-95'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${isViewOnly
+                  ? 'bg-purple-600 text-white shadow-md active:scale-95'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
+                  }`}
               >
                 <Eye className="w-3.5 h-3.5" />
                 <span>Preview Only</span>
@@ -3475,308 +3499,184 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               </button>
             </div>
 
-            {/* Mode Switcher Tabs */}
-            <div className="flex items-center gap-2 px-6 py-2 bg-slate-100/90 border-b border-slate-200 shrink-0">
-              <button
-                type="button"
-                onClick={() => onUpdateAddNodeField('mode', 'new')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${addNodeModal.mode !== 'connect'
-                  ? 'bg-white text-indigo-700 shadow-2xs border border-indigo-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-                  }`}
-              >
-                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Buat Node Langkah Baru</span>
-              </button>
+            {/* Modal Form Body for New Node */}
+            <form onSubmit={onSubmitAddNode} className="flex-1 overflow-y-auto p-6 space-y-4">
+              {/* Form Input: Label */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Nama / Label Langkah <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Verifikasi Pembayaran Customer"
+                  value={addNodeModal.label}
+                  onChange={(e) => onUpdateAddNodeField('label', e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all"
+                  autoFocus
+                />
+              </div>
 
-              <button
-                type="button"
-                onClick={() => onUpdateAddNodeField('mode', 'connect')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${addNodeModal.mode === 'connect'
-                  ? 'bg-white text-indigo-700 shadow-2xs border border-indigo-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-                  }`}
-              >
-                <Workflow className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Sambungkan ke Node yang Sudah Ada</span>
-              </button>
-            </div>
-
-            {addNodeModal.mode === 'connect' ? (
-              <form onSubmit={onSubmitAddNode} className="flex-1 overflow-y-auto p-6 space-y-4">
-                {/* Visual Connection Route Banner */}
-                <div className="p-3.5 bg-gradient-to-r from-indigo-50/90 to-purple-50/90 border border-indigo-200 rounded-xl flex items-center justify-between text-xs font-semibold text-indigo-950 shadow-2xs">
-                  <div className="truncate max-w-[42%]">
-                    <span className="text-[9.5px] uppercase font-bold text-indigo-500 block">Dari Node Asal</span>
-                    <span className="font-bold truncate text-slate-800">{addNodeModal.sourceNodeLabel || 'Node Asal'}</span>
-                  </div>
-                  <div className="flex flex-col items-center px-2 text-indigo-600 shrink-0">
-                    <span className="text-[10px] font-bold bg-white border border-indigo-200 px-2 py-0.5 rounded-full mb-0.5 shadow-2xs">
-                      {addNodeModal.edgeLabel || (addNodeModal.sourceNodeType === 'decision' ? (addNodeModal.direction === 'bottom' ? 'Tidak' : 'Ya') : 'Alur')}
-                    </span>
-                    <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-                  </div>
-                  <div className="truncate max-w-[42%] text-right">
-                    <span className="text-[9.5px] uppercase font-bold text-indigo-500 block">Ke Node Tujuan</span>
-                    <span className="font-bold truncate text-slate-800">
-                      {nodes.find((n) => n.id === addNodeModal.targetNodeId)?.label || 'Pilih Node di Bawah'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Form Input: Pilih Target Node */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                    Pilih Node Tujuan Alur <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/70">
-                    {nodes
-                      .filter((n) => n.id !== addNodeModal.sourceNodeId)
-                      .map((targetNode) => {
-                        const isTargetSelected = addNodeModal.targetNodeId === targetNode.id;
-                        return (
-                          <div
-                            key={targetNode.id}
-                            onClick={() => onUpdateAddNodeField('targetNodeId', targetNode.id)}
-                            className={`p-2.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 ${isTargetSelected
-                              ? 'border-indigo-600 bg-indigo-50/90 text-indigo-950 shadow-xs ring-2 ring-indigo-200'
-                              : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700 hover:shadow-2xs'
-                              }`}
-                          >
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isTargetSelected ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600'
-                              }`}>
-                              {_renderShapeVisualPreview(targetNode.type, 'w-5 h-5')}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-xs font-bold truncate leading-tight">
-                                {targetNode.label}
-                              </div>
-                              <div className="text-[10px] text-slate-400 truncate mt-0.5 font-mono">
-                                {targetNode.moduleCategory || 'General'}
-                              </div>
-                            </div>
-                            {isTargetSelected && (
-                              <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
-                            )}
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-
-                {/* Form Input: Edge Label */}
+              {/* Form Input: Edge Label & Category */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Label Garis Hubungan (Transisi Alur)
+                    Label Garis Penghubung
                   </label>
                   <input
                     type="text"
-                    placeholder="Contoh: Tidak / Gagal / Kembali ke Form / Retry"
+                    placeholder="Contoh: Ya / Valid / Disetujui"
                     value={addNodeModal.edgeLabel}
                     onChange={(e) => onUpdateAddNodeField('edgeLabel', e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all"
                   />
                 </div>
 
-                {/* Modal Submit Footer for Connect Mode */}
-                <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2.5">
-                  <button
-                    type="button"
-                    onClick={onCloseAddNodeModal}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={!addNodeModal.targetNodeId}
-                    className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Workflow className="w-4 h-4 stroke-[2.5]" />
-                    <span>Hubungkan Garis Alur</span>
-                  </button>
-                </div>
-              </form>
-            ) : (
-              /* Modal Form Body for New Node */
-              <form onSubmit={onSubmitAddNode} className="flex-1 overflow-y-auto p-6 space-y-4">
-                {/* Form Input: Label */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Nama / Label Langkah <span className="text-rose-500">*</span>
+                    Kategori / Lajur Departemen
                   </label>
                   <input
                     type="text"
-                    required
-                    placeholder="Contoh: Verifikasi Pembayaran Customer"
-                    value={addNodeModal.label}
-                    onChange={(e) => onUpdateAddNodeField('label', e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all"
-                    autoFocus
+                    placeholder="Contoh: Finance / Sales"
+                    value={addNodeModal.category}
+                    onChange={(e) => onUpdateAddNodeField('category', e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all"
                   />
                 </div>
+              </div>
 
-                {/* Form Input: Edge Label & Category */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Label Garis Penghubung
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: Ya / Valid / Disetujui"
-                      value={addNodeModal.edgeLabel}
-                      onChange={(e) => onUpdateAddNodeField('edgeLabel', e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all"
-                    />
-                  </div>
+              {/* Form Input: Deskripsi */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Deskripsi Tambahan (Opsional)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Instruksi kerja singkat atau catatan parameter..."
+                  value={addNodeModal.description}
+                  onChange={(e) => onUpdateAddNodeField('description', e.target.value)}
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all resize-none"
+                />
+              </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Kategori / Lajur Departemen
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: Finance / Sales"
-                      value={addNodeModal.category}
-                      onChange={(e) => onUpdateAddNodeField('category', e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Form Input: Deskripsi */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Deskripsi Tambahan (Opsional)
+              {/* Shape Selector: Direct Title + Shape Name (Zero verbose descriptions) */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-slate-800">
+                    Pilih Jenis Shape / Bentuk
                   </label>
-                  <textarea
-                    rows={2}
-                    placeholder="Instruksi kerja singkat atau catatan parameter..."
-                    value={addNodeModal.description}
-                    onChange={(e) => onUpdateAddNodeField('description', e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all resize-none"
-                  />
+
+                  {/* Filter tabs */}
+                  <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px]">
+                    {['Semua', 'Event', 'Proses', 'Logika', 'Data & Dokumen', 'DFD'].map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => onUpdateAddNodeField('shapeCategoryFilter', cat)}
+                        className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${addNodeModal.shapeCategoryFilter === cat
+                          ? 'bg-indigo-600 text-white shadow-2xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                {/* Shape Selector: Direct Title + Shape Name (Zero verbose descriptions) */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-bold text-slate-800">
-                      Pilih Jenis Shape / Bentuk
-                    </label>
-
-                    {/* Filter tabs */}
-                    <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px]">
-                      {['Semua', 'Event', 'Proses', 'Logika', 'Data & Dokumen', 'DFD'].map((cat) => (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => onUpdateAddNodeField('shapeCategoryFilter', cat)}
-                          className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${addNodeModal.shapeCategoryFilter === cat
-                            ? 'bg-indigo-600 text-white shadow-2xs font-bold'
-                            : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                        >
-                          {cat}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/50">
-                    {filteredShapes.map((shape) => {
-                      const isSelected = addNodeModal.type === shape.type;
-                      return (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/50">
+                  {filteredShapes.map((shape) => {
+                    const isSelected = addNodeModal.type === shape.type;
+                    return (
+                      <div
+                        key={shape.type}
+                        onClick={() => onUpdateAddNodeField('type', shape.type)}
+                        className={`p-2.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3 ${isSelected
+                          ? 'border-indigo-600 bg-indigo-50/90 text-indigo-950 shadow-xs ring-2 ring-indigo-200'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-2xs text-slate-800'
+                          }`}
+                      >
                         <div
-                          key={shape.type}
-                          onClick={() => onUpdateAddNodeField('type', shape.type)}
-                          className={`p-2.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3 ${isSelected
-                            ? 'border-indigo-600 bg-indigo-50/90 text-indigo-950 shadow-xs ring-2 ring-indigo-200'
-                            : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-2xs text-slate-800'
+                          className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isSelected
+                            ? 'bg-indigo-600 text-white shadow-2xs'
+                            : 'bg-slate-100 text-slate-700'
                             }`}
                         >
-                          <div
-                            className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isSelected
-                              ? 'bg-indigo-600 text-white shadow-2xs'
-                              : 'bg-slate-100 text-slate-700'
-                              }`}
-                          >
-                            {_renderShapeVisualPreview(shape.type, 'w-6 h-6')}
-                          </div>
+                          {_renderShapeVisualPreview(shape.type, 'w-6 h-6')}
+                        </div>
 
-                          <div className="min-w-0 flex-1">
-                            <div className={`font-bold text-xs truncate ${isSelected ? 'text-indigo-950' : 'text-slate-800'}`}>
-                              {shape.label}
-                            </div>
+                        <div className="min-w-0 flex-1">
+                          <div className={`font-bold text-xs truncate ${isSelected ? 'text-indigo-950' : 'text-slate-800'}`}>
+                            {shape.label}
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    );
+                  })}
                 </div>
+              </div>
 
-                {/* Form Input: Color Theme */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Warna Tema Node
-                  </label>
-                  <div className="flex items-center gap-2">
-                    {(['indigo', 'emerald', 'amber', 'rose', 'cyan', 'slate', 'violet'] as NodeColorTheme[]).map(
-                      (color) => (
-                        <button
-                          key={color}
-                          type="button"
-                          onClick={() => onUpdateAddNodeField('colorTheme', color)}
-                          className={`w-7 h-7 rounded-full transition-transform cursor-pointer flex items-center justify-center ${addNodeModal.colorTheme === color
-                            ? 'scale-115 ring-2 ring-offset-2 ring-indigo-500 shadow-sm'
-                            : 'opacity-70 hover:opacity-100'
-                            }`}
-                          style={{
-                            backgroundColor:
-                              color === 'indigo'
-                                ? '#6366f1'
-                                : color === 'emerald'
-                                  ? '#10b981'
-                                  : color === 'amber'
-                                    ? '#f59e0b'
-                                    : color === 'rose'
-                                      ? '#f43f5e'
-                                      : color === 'cyan'
-                                        ? '#06b6d4'
-                                        : color === 'violet'
-                                          ? '#8b5cf6'
-                                          : '#64748b',
-                          }}
-                        >
-                          {addNodeModal.colorTheme === color ? (
-                            <div className="w-2 h-2 rounded-full bg-white" />
-                          ) : null}
-                        </button>
-                      ),
-                    )}
-                  </div>
+              {/* Form Input: Color Theme */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Warna Tema Node
+                </label>
+                <div className="flex items-center gap-2">
+                  {(['indigo', 'emerald', 'amber', 'rose', 'cyan', 'slate', 'violet'] as NodeColorTheme[]).map(
+                    (color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => onUpdateAddNodeField('colorTheme', color)}
+                        className={`w-7 h-7 rounded-full transition-transform cursor-pointer flex items-center justify-center ${addNodeModal.colorTheme === color
+                          ? 'scale-115 ring-2 ring-offset-2 ring-indigo-500 shadow-sm'
+                          : 'opacity-70 hover:opacity-100'
+                          }`}
+                        style={{
+                          backgroundColor:
+                            color === 'indigo'
+                              ? '#6366f1'
+                              : color === 'emerald'
+                                ? '#10b981'
+                                : color === 'amber'
+                                  ? '#f59e0b'
+                                  : color === 'rose'
+                                    ? '#f43f5e'
+                                    : color === 'cyan'
+                                      ? '#06b6d4'
+                                      : color === 'violet'
+                                        ? '#8b5cf6'
+                                        : '#64748b',
+                        }}
+                      >
+                        {addNodeModal.colorTheme === color ? (
+                          <div className="w-2 h-2 rounded-full bg-white" />
+                        ) : null}
+                      </button>
+                    ),
+                  )}
                 </div>
+              </div>
 
-                {/* Modal Submit Footer */}
-                <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2.5">
-                  <button
-                    type="button"
-                    onClick={onCloseAddNodeModal}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm hover:shadow transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Plus className="w-4 h-4 stroke-[2.5]" />
-                    <span>Tambahkan Langkah</span>
-                  </button>
-                </div>
-              </form>
-            )}
+              {/* Modal Submit Footer */}
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={onCloseAddNodeModal}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm hover:shadow transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4 stroke-[2.5]" />
+                  <span>Tambahkan Langkah</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       ) : null}

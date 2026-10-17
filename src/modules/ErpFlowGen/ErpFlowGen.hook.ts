@@ -47,6 +47,7 @@ import {
   _generateUniqueId,
   _findNodeById,
   _getNodeDimensions,
+  _calculateEdgePath,
   _validateSchemaJson,
   _downloadJsonFile,
 } from './ErpFlowGen.utils';
@@ -128,6 +129,7 @@ export type UseErpFlowGenReturn = {
   handleToggleGhostSkeleton: () => void;
   handleAddSwimlane: (name: string, color?: string) => void;
   handleUpdateSwimlaneName: (laneId: string, name: string) => void;
+  handleUpdateMasterTitle: (title: string) => void;
   handleDeleteSwimlane: (laneId: string) => void;
   handleUpdateTableWidth: (newWidth: number) => void;
   handleStartTableResize: (event: React.MouseEvent) => void;
@@ -138,7 +140,7 @@ export type UseErpFlowGenReturn = {
   handleUpdateNodeLabel: (nodeId: string, label: string) => void;
   handleUpdateNodeCategory: (nodeId: string, category: string) => void;
   handleUpdateNodeColor: (nodeId: string, color: NodeColorTheme) => void;
-  handleDeleteSelectedNode: () => void;
+  handleDeleteSelectedNode: (nodeId?: string) => void;
   handleDeleteSelectedEdge: () => void;
   handleStartNodeDrag: (event: React.MouseEvent<HTMLDivElement>, nodeId: string) => void;
   handleStartNodeResize: (event: React.MouseEvent, nodeId: string, mode?: 'both' | 'horizontal' | 'vertical') => void;
@@ -240,7 +242,7 @@ export type UseErpFlowGenReturn = {
   handleSetEdgeTargetAnchor: (edgeId: string, anchor: 'auto' | 'top' | 'bottom' | 'left' | 'right') => void;
   handleSetEdgeSourceAnchor: (edgeId: string, anchor: 'auto' | 'top' | 'bottom' | 'left' | 'right') => void;
   edgeEndpointDragState: EdgeEndpointDragState;
-  handleStartEdgeEndpointDrag: (event: React.MouseEvent, edgeId: string, endpointType: 'source' | 'target') => void;
+  handleStartEdgeEndpointDrag: (event: React.MouseEvent, edgeId: string, endpointType?: 'source' | 'target' | 'auto') => void;
   handleUpdateEdgeLabel: (edgeId: string, label: string) => void;
   handleUpdateEdgeColor: (edgeId: string, color: string) => void;
   handleResetEdgeAnchors: (edgeId: string) => void;
@@ -1229,47 +1231,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
       const sourceNode = _findNodeById(nodes, addNodeModal.sourceNodeId);
 
-      // 1. Mode: Sambungkan ke node yang sudah ada (Connect to existing node)
-      if (addNodeModal.mode === 'connect') {
-        const targetId = addNodeModal.targetNodeId;
-        if (!targetId || !addNodeModal.sourceNodeId || targetId === addNodeModal.sourceNodeId) return;
-
-        const isDuplicate = edges.some(
-          (edge) =>
-            edge.sourceNodeId === addNodeModal.sourceNodeId &&
-            edge.targetNodeId === targetId,
-        );
-
-        if (!isDuplicate) {
-          const defaultEdgeLabel = sourceNode?.type === 'decision'
-            ? (addNodeModal.direction === 'bottom' ? 'Tidak / Else' : 'Ya / If')
-            : 'Lanjut';
-
-          const newEdge: FlowEdge = {
-            id: _generateUniqueId('edge'),
-            sourceNodeId: addNodeModal.sourceNodeId,
-            targetNodeId: targetId,
-            label: addNodeModal.edgeLabel || defaultEdgeLabel,
-          };
-
-          setTabs((prevTabs) =>
-            prevTabs.map((t) => {
-              if (t.id !== activeTabId) return t;
-              return {
-                ...t,
-                edges: [...t.edges, newEdge],
-              };
-            }),
-          );
-
-          setSelectedEdgeId(newEdge.id);
-        }
-
-        setAddNodeModal((prev) => ({ ...prev, isOpen: false }));
-        return;
-      }
-
-      // 2. Mode: Buat langkah/node baru
+      // Buat langkah/node baru
       if (!addNodeModal.label.trim()) return;
 
       const newNodeId = _generateUniqueId('node');
@@ -1942,9 +1904,10 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     [activeTabId, recordHistory],
   );
 
-  const handleDeleteSelectedNode = useCallback((): void => {
+  const handleDeleteSelectedNode = useCallback((nodeIdToDelete?: string): void => {
     if (isViewOnly) return;
-    if (!selectedNodeId) return;
+    const targetId = nodeIdToDelete || selectedNodeId;
+    if (!targetId) return;
 
     recordHistory();
     setTabs((prev) =>
@@ -1952,16 +1915,18 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         if (t.id !== activeTabId) return t;
         return {
           ...t,
-          nodes: t.nodes.filter((node) => node.id !== selectedNodeId),
+          nodes: t.nodes.filter((node) => node.id !== targetId),
           edges: t.edges.filter(
             (edge) =>
-              edge.sourceNodeId !== selectedNodeId && edge.targetNodeId !== selectedNodeId,
+              edge.sourceNodeId !== targetId && edge.targetNodeId !== targetId,
           ),
         };
       }),
     );
 
-    setSelectedNodeId('');
+    if (selectedNodeId === targetId) {
+      setSelectedNodeId('');
+    }
   }, [isViewOnly, selectedNodeId, activeTabId, recordHistory]);
 
   const handleDeleteSelectedEdge = useCallback((): void => {
@@ -2234,7 +2199,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   );
 
   const handleStartEdgeEndpointDrag = useCallback(
-    (event: React.MouseEvent, edgeId: string, endpointType: 'source' | 'target'): void => {
+    (event: React.MouseEvent, edgeId: string, endpointType: 'source' | 'target' | 'auto' = 'auto'): void => {
       if (isViewOnly) return;
       event.preventDefault();
       event.stopPropagation();
@@ -2251,20 +2216,47 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       const canvasY = (clientY - rect.top - transform.y) / transform.scale;
 
       const edge = activeTab.edges.find((e) => e.id === edgeId);
-      const initialNodeId = endpointType === 'target' ? edge?.targetNodeId : edge?.sourceNodeId;
-      const initialAnchor = endpointType === 'target' ? edge?.targetAnchor : edge?.sourceAnchor;
+      if (!edge) return;
+
+      const sourceNode = activeTab.nodes.find((n) => n.id === edge.sourceNodeId);
+      const targetNode = activeTab.nodes.find((n) => n.id === edge.targetNodeId);
+
+      let effectiveEndpointType: 'source' | 'target' = endpointType === 'auto' ? 'target' : endpointType;
+
+      if (endpointType === 'auto' && sourceNode && targetNode) {
+        const geom = _calculateEdgePath(
+          sourceNode,
+          targetNode,
+          connectorStyle,
+          edge.waypointOffset,
+          edge.sourceAnchor,
+          edge.targetAnchor,
+        );
+        const startX = geom.startX ?? 0;
+        const startY = geom.startY ?? 0;
+        const endX = geom.endX ?? 0;
+        const endY = geom.endY ?? 0;
+
+        const distToStart = Math.hypot(canvasX - startX, canvasY - startY);
+        const distToEnd = Math.hypot(canvasX - endX, canvasY - endY);
+
+        effectiveEndpointType = distToEnd <= distToStart ? 'target' : 'source';
+      }
+
+      const initialNodeId = effectiveEndpointType === 'target' ? edge.targetNodeId : edge.sourceNodeId;
+      const initialAnchor = effectiveEndpointType === 'target' ? edge.targetAnchor : edge.sourceAnchor;
       const sanitizedAnchor = initialAnchor && initialAnchor !== 'auto' ? initialAnchor : undefined;
 
       setEdgeEndpointDragState({
         isDragging: true,
         edgeId,
-        endpointType,
+        endpointType: effectiveEndpointType,
         currentPos: { x: canvasX, y: canvasY },
         candidateNodeId: initialNodeId,
         candidateAnchor: sanitizedAnchor,
       });
     },
-    [isViewOnly, tabs, activeTab.edges, transform],
+    [isViewOnly, tabs, activeTab.edges, activeTab.nodes, connectorStyle, transform],
   );
 
   // Keyboard shortcut listener for deleting selected Node or Edge
@@ -2284,6 +2276,9 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         } else if (selectedNodeId) {
           e.preventDefault();
           handleDeleteSelectedNode();
+        } else if (selectedGroupId) {
+          e.preventDefault();
+          handleDeleteGroupFrame(selectedGroupId);
         }
       }
     };
@@ -2292,7 +2287,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [selectedEdgeId, selectedNodeId, handleDeleteSelectedEdge, handleDeleteSelectedNode]);
+  }, [selectedEdgeId, selectedNodeId, selectedGroupId, handleDeleteSelectedEdge, handleDeleteSelectedNode, handleDeleteGroupFrame]);
 
   // Fast Butter-Smooth Dragging
   const handleStartNodeDrag = useCallback(
@@ -2867,15 +2862,21 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         const clientY = event.clientY;
 
         rafRef.current = requestAnimationFrame(() => {
+          hasMovedDuringDrag.current = true;
           const rect = mainContainerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
           const canvasX = (clientX - rect.left - transform.x) / transform.scale;
           const canvasY = (clientY - rect.top - transform.y) / transform.scale;
 
+          const currentEdge = activeTab.edges.find((e) => e.id === edgeEndpointDragState.edgeId);
           let bestNodeId: string | undefined;
           let bestAnchor: 'top' | 'bottom' | 'left' | 'right' | undefined;
           let bestDist = Infinity;
 
           activeTab.nodes.forEach((n) => {
+            if (currentEdge) {
+              if (edgeEndpointDragState.endpointType === 'target' && n.id === currentEdge.sourceNodeId) return;
+              if (edgeEndpointDragState.endpointType === 'source' && n.id === currentEdge.targetNodeId) return;
+            }
             const dims = _getNodeDimensions(n);
             const ports: { anchor: 'top' | 'bottom' | 'left' | 'right'; x: number; y: number }[] = [
               { anchor: 'top', x: n.position.x + dims.width / 2, y: n.position.y },
@@ -2918,12 +2919,14 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
                         ...ed,
                         targetNodeId: snappedNodeId,
                         targetAnchor: snappedAnchor,
+                        waypointOffset: { x: 0, y: 0 },
                       };
                     } else {
                       return {
                         ...ed,
                         sourceNodeId: snappedNodeId,
                         sourceAnchor: snappedAnchor,
+                        waypointOffset: { x: 0, y: 0 },
                       };
                     }
                   }),
@@ -3254,6 +3257,22 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
           return {
             ...t,
             swimlanes: (t.swimlanes || []).map((l) => (l.id === laneId ? { ...l, name } : l)),
+          };
+        }),
+      );
+    },
+    [activeTabId, recordHistory],
+  );
+
+  const handleUpdateMasterTitle = useCallback(
+    (masterTitle: string): void => {
+      recordHistory();
+      setTabs((prev) =>
+        prev.map((t) => {
+          if (t.id !== activeTabId) return t;
+          return {
+            ...t,
+            masterTitle,
           };
         }),
       );
@@ -3697,6 +3716,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     handleToggleGhostSkeleton,
     handleAddSwimlane,
     handleUpdateSwimlaneName,
+    handleUpdateMasterTitle,
     handleDeleteSwimlane,
     handleUpdateTableWidth,
     handleStartTableResize,

@@ -158,9 +158,11 @@ export const _renderEdgeCurve = (
   onStartEdgeWaypointDrag?: (e: React.MouseEvent, edgeId: string) => void,
   onResetEdgeWaypoint?: (edgeId: string) => void,
   _onSetEdgeTargetAnchor?: (edgeId: string, anchor: 'auto' | 'top' | 'bottom' | 'left' | 'right') => void,
-  onStartEdgeEndpointDrag?: (e: React.MouseEvent, edgeId: string, endpointType: 'source' | 'target') => void,
+  onStartEdgeEndpointDrag?: (e: React.MouseEvent, edgeId: string, endpointType?: 'source' | 'target' | 'auto') => void,
   _edgeEndpointDragState?: EdgeEndpointDragState,
   onUpdateEdgeLabel?: (edgeId: string, label: string) => void,
+  onClickEdgeLabel?: (edgeId: string) => void,
+  onHoverEdge?: (edgeId: string) => void,
 ): React.ReactElement | null => {
   const sourceNode = nodes.find((node) => node.id === edge.sourceNodeId);
   const targetNode = nodes.find((node) => node.id === edge.targetNodeId);
@@ -203,22 +205,22 @@ export const _renderEdgeCurve = (
   const strokeColor = isSelected
     ? '#4f46e5'
     : edge.color
-    ? edge.color
-    : isBranchYes
-    ? '#10b981'
-    : isBranchNo
-    ? '#f43f5e'
-    : '#64748b';
+      ? edge.color
+      : isBranchYes
+        ? '#10b981'
+        : isBranchNo
+          ? '#f43f5e'
+          : '#64748b';
 
   const markerColor = isSelected
     ? '#4f46e5'
     : edge.color
-    ? edge.color
-    : isBranchYes
-    ? '#10b981'
-    : isBranchNo
-    ? '#f43f5e'
-    : '#64748b';
+      ? edge.color
+      : isBranchYes
+        ? '#10b981'
+        : isBranchNo
+          ? '#f43f5e'
+          : '#64748b';
 
   const getMarkerId = (color: string) => {
     switch (color) {
@@ -245,20 +247,21 @@ export const _renderEdgeCurve = (
   return (
     <g
       key={edge.id}
-      className="cursor-pointer group pointer-events-auto"
-      style={{ pointerEvents: 'all' }}
+      className="cursor-pointer group"
+      onMouseEnter={() => onHoverEdge?.(edge.id)}
+      onMouseLeave={() => onHoverEdge?.('')}
       onClick={(e) => {
         e.stopPropagation();
         onSelectEdge?.(edge.id);
       }}
     >
-      {/* Background thicker hover path for easy clicking & dragging */}
+      {/* Background thicker hover path for easy clicking & dragging to move arrow or start */}
       <path
         d={geometry.pathD}
         fill="none"
         stroke="transparent"
-        strokeWidth={36}
-        className={`pointer-events-auto ${isSelected ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
+        strokeWidth={22}
+        className="pointer-events-auto cursor-grab active:cursor-grabbing"
         style={{ pointerEvents: 'stroke' }}
         onClick={(e) => {
           e.stopPropagation();
@@ -266,9 +269,11 @@ export const _renderEdgeCurve = (
         }}
         onMouseDown={(e) => {
           e.stopPropagation();
-          onStartEdgeWaypointDrag?.(e, edge.id);
+          onStartEdgeEndpointDrag?.(e, edge.id, 'auto');
         }}
-      />
+      >
+        <title>Geser garis untuk memindahkan panah atau titik pangkal (Drag line to move arrow or start)</title>
+      </path>
 
       {/* Selection outer glow */}
       {isSelected && (
@@ -316,9 +321,8 @@ export const _renderEdgeCurve = (
             cy={geometry.endY}
             r={isSelected ? 13 : 9}
             fill="#4f46e5"
-            className={`transition-all duration-150 pointer-events-none ${
-              isSelected ? 'opacity-35 scale-100' : 'opacity-0 group-hover:opacity-25'
-            }`}
+            className={`transition-all duration-150 pointer-events-none ${isSelected ? 'opacity-35 scale-100' : 'opacity-0 group-hover:opacity-25'
+              }`}
           />
           {/* Circular handle ("buletin") */}
           <circle
@@ -328,9 +332,8 @@ export const _renderEdgeCurve = (
             fill="#ffffff"
             stroke="#4f46e5"
             strokeWidth={2.5}
-            className={`transition-all duration-150 filter drop-shadow-md pointer-events-none ${
-              isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-90'
-            }`}
+            className={`transition-all duration-150 filter drop-shadow-md pointer-events-none ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-90'
+              }`}
           />
           {/* Center bullet dot */}
           <circle
@@ -338,9 +341,8 @@ export const _renderEdgeCurve = (
             cy={geometry.endY}
             r={3}
             fill="#4f46e5"
-            className={`transition-opacity duration-150 pointer-events-none ${
-              isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'
-            }`}
+            className={`transition-opacity duration-150 pointer-events-none ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'
+              }`}
           />
         </g>
       )}
@@ -369,9 +371,8 @@ export const _renderEdgeCurve = (
             cy={geometry.startY}
             r={isSelected ? 13 : 9}
             fill="#6366f1"
-            className={`transition-all duration-150 pointer-events-none ${
-              isSelected ? 'opacity-35 scale-100' : 'opacity-0 group-hover:opacity-25'
-            }`}
+            className={`transition-all duration-150 pointer-events-none ${isSelected ? 'opacity-35 scale-100' : 'opacity-0 group-hover:opacity-25'
+              }`}
           />
           {/* Circular handle ("buletin") */}
           <circle
@@ -381,9 +382,8 @@ export const _renderEdgeCurve = (
             fill="#ffffff"
             stroke="#6366f1"
             strokeWidth={2.5}
-            className={`transition-all duration-150 filter drop-shadow-md pointer-events-none ${
-              isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-90'
-            }`}
+            className={`transition-all duration-150 filter drop-shadow-md pointer-events-none ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-90'
+              }`}
           />
           {/* Center bullet dot */}
           <circle
@@ -391,9 +391,8 @@ export const _renderEdgeCurve = (
             cy={geometry.startY}
             r={3}
             fill="#6366f1"
-            className={`transition-opacity duration-150 pointer-events-none ${
-              isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'
-            }`}
+            className={`transition-opacity duration-150 pointer-events-none ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'
+              }`}
           />
         </g>
       )}
@@ -424,9 +423,8 @@ export const _renderEdgeCurve = (
           cy={geometry.midY}
           r={isSelected ? 10 : 8}
           fill={isSelected ? '#6366f1' : '#3b82f6'}
-          className={`transition-opacity duration-150 ${
-            isSelected || hasCustomWaypoint ? 'opacity-35' : 'opacity-0 group-hover:opacity-30'
-          }`}
+          className={`transition-opacity duration-150 ${isSelected || hasCustomWaypoint ? 'opacity-35' : 'opacity-0 group-hover:opacity-30'
+            }`}
         />
 
         {/* Drag handle diamond */}
@@ -440,9 +438,8 @@ export const _renderEdgeCurve = (
           fill={hasCustomWaypoint ? '#4f46e5' : '#ffffff'}
           stroke={isSelected ? '#4338ca' : '#64748b'}
           strokeWidth={1.5}
-          className={`filter drop-shadow-md transition-opacity duration-150 ${
-            isSelected || hasCustomWaypoint ? 'opacity-100' : 'opacity-40 group-hover:opacity-90'
-          }`}
+          className={`filter drop-shadow-md transition-opacity duration-150 ${isSelected || hasCustomWaypoint ? 'opacity-100' : 'opacity-40 group-hover:opacity-90'
+            }`}
         />
       </g>
 
@@ -453,26 +450,26 @@ export const _renderEdgeCurve = (
           y={geometry.midY - 15}
           width={180}
           height={30}
-          className="overflow-visible pointer-events-auto"
+          className="overflow-visible pointer-events-none"
         >
-          <div className="flex items-center justify-center w-full h-full">
+          <div className="flex items-center justify-center w-full h-full pointer-events-none">
             <div
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border shadow-xs transition-all select-none ${
-                edge.color === '#10b981' || (!edge.color && isBranchYes)
-                  ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
-                  : edge.color === '#f43f5e' || (!edge.color && isBranchNo)
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border shadow-xs transition-all select-none pointer-events-auto ${edge.color === '#10b981' || (!edge.color && isBranchYes)
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                : edge.color === '#f43f5e' || (!edge.color && isBranchNo)
                   ? 'bg-rose-50 border-rose-300 text-rose-800'
                   : edge.color === '#f59e0b'
-                  ? 'bg-amber-50 border-amber-300 text-amber-800'
-                  : edge.color === '#8b5cf6'
-                  ? 'bg-purple-50 border-purple-300 text-purple-800'
-                  : edge.color === '#4f46e5'
-                  ? 'bg-indigo-50 border-indigo-300 text-indigo-800'
-                  : 'bg-white border-slate-300 text-slate-800 hover:border-slate-400'
-              } ${isSelected ? 'ring-2 ring-indigo-400 border-indigo-500 shadow-md' : ''}`}
+                    ? 'bg-amber-50 border-amber-300 text-amber-800'
+                    : edge.color === '#8b5cf6'
+                      ? 'bg-purple-50 border-purple-300 text-purple-800'
+                      : edge.color === '#4f46e5'
+                        ? 'bg-indigo-50 border-indigo-300 text-indigo-800'
+                        : 'bg-white border-slate-300 text-slate-800 hover:border-slate-400'
+                } ${isSelected ? 'ring-2 ring-indigo-400 border-indigo-500 shadow-md' : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onSelectEdge?.(edge.id);
+                onClickEdgeLabel?.(edge.id);
               }}
             >
               {isBranchYes ? (
@@ -489,12 +486,27 @@ export const _renderEdgeCurve = (
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelectEdge?.(edge.id);
+                  onClickEdgeLabel?.(edge.id);
                 }}
                 placeholder="Tulis label..."
                 className="bg-transparent border-none outline-none text-xs font-bold text-center transition-all cursor-text placeholder:text-slate-400 placeholder:font-normal placeholder:text-[10px]"
                 title="Klik untuk langsung ubah teks label garis ini"
                 style={{ width: `${Math.max(48, Math.min(130, (edge.label ? edge.label.length * 8 + 8 : 64)))}px` }}
               />
+
+              {isSelected && _onDeleteEdge && (
+                <button
+                  type="button"
+                  title="Hapus Garis"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    _onDeleteEdge(edge.id);
+                  }}
+                  className="w-4 h-4 rounded-full hover:bg-rose-100 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-0.5"
+                >
+                  <Trash2 className="w-2.5 h-2.5" />
+                </button>
+              )}
             </div>
           </div>
         </foreignObject>
@@ -515,21 +527,23 @@ export const _renderSwimlaneTable = (
   tab: FlowProjectTab,
   onAddLane?: () => void,
   onDeleteLane?: (laneId: string) => void,
-  onUpdateTableWidth?: (newWidth: number) => void,
-  onUpdateLaneHeight?: (laneId: string, newHeight: number) => void,
+  _onUpdateTableWidth?: (newWidth: number) => void,
+  _onUpdateLaneHeight?: (laneId: string, newHeight: number) => void,
   onStartTableResize?: (event: React.MouseEvent) => void,
   onStartLaneResize?: (event: React.MouseEvent, laneId: string, initialHeight: number) => void,
+  onUpdateSwimlaneName?: (laneId: string, name: string) => void,
+  onUpdateMasterTitle?: (title: string) => void,
 ): React.ReactElement | null => {
   if (tab.type !== 'swimlane') return null;
 
   const swimlanes: SwimlaneLane[] = tab.swimlanes && tab.swimlanes.length > 0
     ? tab.swimlanes
     : [
-        { id: 'lane_sales', name: 'Sales Department', color: '#6366f1', height: 180 },
-        { id: 'lane_purchasing', name: 'Purchasing Department', color: '#ec4899', height: 180 },
-        { id: 'lane_production', name: 'Production Department', color: '#f59e0b', height: 180 },
-        { id: 'lane_finance', name: 'Finance Department', color: '#ef4444', height: 180 },
-      ];
+      { id: 'lane_sales', name: 'Sales Department', color: '#6366f1', height: 180 },
+      { id: 'lane_purchasing', name: 'Purchasing Department', color: '#ec4899', height: 180 },
+      { id: 'lane_production', name: 'Production Department', color: '#f59e0b', height: 180 },
+      { id: 'lane_finance', name: 'Finance Department', color: '#ef4444', height: 180 },
+    ];
 
   const masterTitle = tab.masterTitle || tab.title || 'Business Process Flow Diagram';
   const tableWidth = tab.tableWidth || 1400;
@@ -542,8 +556,20 @@ export const _renderSwimlaneTable = (
         className="rounded-2xl border-2 border-slate-300 bg-white/70 shadow-xs flex relative group/table transition-none"
       >
         {/* Leftmost Master Title Vertical Column (Purple strip) */}
-        <div className="w-14 bg-purple-100 border-r-2 border-purple-200 flex flex-col items-center justify-center py-6 shrink-0 pointer-events-auto">
-          <span className="font-extrabold text-[12px] uppercase tracking-widest text-purple-800 -rotate-90 whitespace-nowrap">
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onUpdateMasterTitle) {
+              const newTitle = window.prompt('Ubah Judul Utama Swimlane Diagram:', masterTitle);
+              if (newTitle !== null && newTitle.trim()) {
+                onUpdateMasterTitle(newTitle.trim());
+              }
+            }
+          }}
+          title={onUpdateMasterTitle ? 'Klik untuk ubah judul master diagram proses' : undefined}
+          className="w-14 bg-purple-100 hover:bg-purple-200/80 transition-colors border-r-2 border-purple-200 flex flex-col items-center justify-center py-6 shrink-0 pointer-events-auto cursor-pointer group/master"
+        >
+          <span className="font-extrabold text-[12px] uppercase tracking-widest text-purple-800 -rotate-90 whitespace-nowrap group-hover/master:underline">
             {masterTitle}
           </span>
         </div>
@@ -555,9 +581,8 @@ export const _renderSwimlaneTable = (
               <div
                 key={lane.id}
                 style={{ height: `${lane.height}px` }}
-                className={`relative flex items-stretch border-slate-200/90 ${
-                  index !== swimlanes.length - 1 ? 'border-b-2' : ''
-                }`}
+                className={`relative flex items-stretch border-slate-200/90 ${index !== swimlanes.length - 1 ? 'border-b-2' : ''
+                  }`}
               >
                 {/* Department Header Box */}
                 <div
@@ -565,39 +590,42 @@ export const _renderSwimlaneTable = (
                     backgroundColor: `${lane.color}15`,
                     borderColor: lane.color,
                   }}
-                  className="w-44 border-r-2 flex flex-col items-center justify-center p-3 text-center shrink-0 group relative pointer-events-auto"
+                  className="w-56 border-r-2 flex flex-col items-center justify-center p-3 text-center shrink-0 group relative pointer-events-auto"
                 >
-                  <span
-                    style={{ color: lane.color }}
-                    className="font-bold text-xs uppercase tracking-wider leading-snug"
-                  >
-                    {lane.name}
-                  </span>
-                  <span className="text-[10px] text-slate-400 mt-1 font-mono">
-                    Lajur #{index + 1} ({lane.height}px)
-                  </span>
+                  <div className="relative w-full flex items-center justify-center px-1">
+                    {onUpdateSwimlaneName ? (
+                      <textarea
+                        value={lane.name}
+                        onChange={(e) => onUpdateSwimlaneName(lane.id, e.target.value)}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            (e.target as HTMLTextAreaElement).blur();
+                          }
+                        }}
+                        rows={Math.min(4, Math.max(1, Math.ceil(lane.name.length / 18)))}
+                        placeholder="Nama Departemen..."
+                        title="Klik untuk langsung ubah nama departemen ini"
+                        style={{ color: lane.color }}
+                        className={`w-full bg-transparent hover:bg-white/40 focus:bg-white/95 focus:ring-1 focus:ring-indigo-400 outline-none text-center font-bold uppercase tracking-wider leading-snug rounded-md px-1.5 py-1 transition-all cursor-text resize-none overflow-hidden break-words whitespace-pre-wrap ${
+                          lane.name.length > 22 ? 'text-[11px]' : 'text-xs'
+                        }`}
+                      />
+                    ) : (
+                      <span
+                        style={{ color: lane.color }}
+                        className={`font-bold uppercase tracking-wider leading-snug break-words whitespace-pre-wrap text-center max-w-full ${
+                          lane.name.length > 22 ? 'text-[11px]' : 'text-xs'
+                        }`}
+                      >
+                        {lane.name}
+                      </span>
+                    )}
+                  </div>
 
-                  {/* Lane height adjust buttons */}
-                  {onUpdateLaneHeight ? (
-                    <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        type="button"
-                        title="Perkecil tinggi lajur (-30px)"
-                        onClick={() => onUpdateLaneHeight(lane.id, Math.max(100, lane.height - 30))}
-                        className="px-1.5 py-0.5 rounded bg-white border border-slate-300 hover:bg-slate-100 text-[9.5px] font-bold text-slate-600 cursor-pointer shadow-2xs"
-                      >
-                        -
-                      </button>
-                      <button
-                        type="button"
-                        title="Perbesar tinggi lajur (+30px)"
-                        onClick={() => onUpdateLaneHeight(lane.id, Math.min(500, lane.height + 30))}
-                        className="px-1.5 py-0.5 rounded bg-white border border-slate-300 hover:bg-slate-100 text-[9.5px] font-bold text-slate-600 cursor-pointer shadow-2xs"
-                      >
-                        +
-                      </button>
-                    </div>
-                  ) : null}
+
 
                   {/* Delete lane button if more than 1 lane */}
                   {swimlanes.length > 1 && onDeleteLane ? (
@@ -636,7 +664,6 @@ export const _renderSwimlaneTable = (
                       {/* Center grip pill */}
                       <div className="px-2.5 py-0.5 rounded-full bg-white text-slate-600 group-hover/lane-resize:bg-indigo-600 group-hover/lane-resize:text-white border border-slate-300 group-hover/lane-resize:border-indigo-600 text-[9px] font-mono font-bold shadow-xs flex items-center gap-1 transition-colors scale-90 group-hover/lane-resize:scale-100">
                         <GripHorizontal className="w-3 h-3" />
-                        <span>{lane.height}px</span>
                       </div>
                     </div>
                   </div>
@@ -678,27 +705,6 @@ export const _renderSwimlaneTable = (
           </button>
         ) : null}
 
-        {onUpdateTableWidth ? (
-          <div className="flex items-center gap-1.5 bg-white border border-slate-300 rounded-xl px-2.5 py-1 shadow-xs text-xs font-semibold text-slate-700">
-            <span className="text-[11px] text-slate-500">Lebar: {tableWidth}px</span>
-            <button
-              type="button"
-              title="Perkecil lebar tabel (-200px)"
-              onClick={() => onUpdateTableWidth(Math.max(800, tableWidth - 200))}
-              className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer"
-            >
-              -200px
-            </button>
-            <button
-              type="button"
-              title="Perpanjang lebar tabel (+200px)"
-              onClick={() => onUpdateTableWidth(Math.min(4000, tableWidth + 200))}
-              className="px-2 py-0.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold cursor-pointer"
-            >
-              +200px
-            </button>
-          </div>
-        ) : null}
       </div>
     </div>
   );
@@ -725,16 +731,16 @@ export const _renderGhostSkeleton = (
           const source: FlowNode | undefined =
             edge.sourceNodeId === 'start_node'
               ? ({
-                  id: 'start_node',
-                  type: 'start',
-                  label: 'Start',
-                  description: '',
-                  moduleCategory: 'General',
-                  position: { x: 520, y: 40 },
-                  colorTheme: 'emerald',
-                  width: 160,
-                  height: 50,
-                } as FlowNode)
+                id: 'start_node',
+                type: 'start',
+                label: 'Start',
+                description: '',
+                moduleCategory: 'General',
+                position: { x: 520, y: 40 },
+                colorTheme: 'emerald',
+                width: 160,
+                height: 50,
+              } as FlowNode)
               : template.nodes.find((n) => n.id === edge.sourceNodeId);
 
           const target = template.nodes.find((n) => n.id === edge.targetNodeId);

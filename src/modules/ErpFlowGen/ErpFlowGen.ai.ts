@@ -171,7 +171,7 @@ export async function testAiConnection(config: HermesAiConfig): Promise<{ succes
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'HTTP-Referer': window.location.origin || 'http://localhost:5173',
-      'X-Title': 'LamanKilat ERP FlowGen',
+      'X-Title': 'Want Take Flow',
     };
 
     if (config.apiKey) {
@@ -325,7 +325,7 @@ ${summary}`;
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${config.apiKey.trim()}`,
           'HTTP-Referer': window.location.origin || 'http://localhost:5173',
-          'X-Title': 'LamanKilat ERP FlowGen',
+          'X-Title': 'Want Take Flow',
         },
         body: JSON.stringify({
           model: config.model.trim() || 'nousresearch/hermes-3-llama-3.1-70b',

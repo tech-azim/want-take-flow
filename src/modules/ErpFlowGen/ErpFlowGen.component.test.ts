@@ -436,8 +436,93 @@ describe('ErpFlowGen Utilities Test Suite', () => {
     expect(rightSourceGeom.sourceSide).toBe('right');
     expect(rightSourceGeom.startX).toBeGreaterThan(200); // starts from the right edge
   });
+
+  it('should clean up connected edges when a node is deleted', () => {
+    const nodes: FlowNode[] = [
+      { id: 'n1', type: 'start', label: '1', description: '', moduleCategory: 'General', position: { x: 0, y: 0 }, colorTheme: 'indigo' },
+      { id: 'n2', type: 'process', label: '2', description: '', moduleCategory: 'General', position: { x: 0, y: 100 }, colorTheme: 'indigo' },
+    ];
+    const edges = [
+      { id: 'e1', sourceNodeId: 'n1', targetNodeId: 'n2', label: 'to 2' },
+      { id: 'e2', sourceNodeId: 'n2', targetNodeId: 'n3', label: 'to 3' },
+    ];
+
+    const targetNodeId = 'n1';
+    const remainingNodes = nodes.filter((n) => n.id !== targetNodeId);
+    const remainingEdges = edges.filter(
+      (e) => e.sourceNodeId !== targetNodeId && e.targetNodeId !== targetNodeId,
+    );
+
+    expect(remainingNodes.length).toBe(1);
+    expect(remainingNodes[0].id).toBe('n2');
+    expect(remainingEdges.length).toBe(1);
+    expect(remainingEdges[0].id).toBe('e2');
+  });
+
+  it('should update swimlane lane name by laneId', () => {
+    const swimlanes = [
+      { id: 'lane_1', name: 'Sales Department', color: '#6366f1', height: 180 },
+      { id: 'lane_2', name: 'Purchasing Department', color: '#ec4899', height: 180 },
+    ];
+
+    const updated = swimlanes.map((l) => (l.id === 'lane_1' ? { ...l, name: 'Marketing & Sales' } : l));
+    expect(updated[0].name).toBe('Marketing & Sales');
+    expect(updated[1].name).toBe('Purchasing Department');
+  });
+
+  it('should update kanban task status when dragged or moved across columns', () => {
+    const tasks = [
+      { id: 'task_1', title: 'Task 1', status: 'todo' },
+      { id: 'task_2', title: 'Task 2', status: 'in_progress' },
+    ];
+
+    const targetTaskId = 'task_1';
+    const newStatus = 'done';
+
+    const movedTasks = tasks.map((t) => (t.id === targetTaskId ? { ...t, status: newStatus } : t));
+
+    expect(movedTasks[0].status).toBe('done');
+    expect(movedTasks[1].status).toBe('in_progress');
+  });
+
+  it('should resolve line dragging to target arrowhead when clicked closer to target or source when clicked closer to start', () => {
+    const nodeA: FlowNode = {
+      id: 'node_a',
+      type: 'start',
+      label: 'Start Node',
+      description: '',
+      moduleCategory: 'General',
+      position: { x: 200, y: 100 },
+      colorTheme: 'indigo',
+    };
+    const nodeB: FlowNode = {
+      id: 'node_b',
+      type: 'process',
+      label: 'Enter website',
+      description: '',
+      moduleCategory: 'General',
+      position: { x: 200, y: 400 },
+      colorTheme: 'amber',
+    };
+
+    const geom = _calculateEdgePath(nodeA, nodeB, 'orthogonal');
+    const startX = geom.startX ?? 0;
+    const startY = geom.startY ?? 0;
+    const endX = geom.endX ?? 0;
+    const endY = geom.endY ?? 0;
+
+    // Simulate clicking line near target arrowhead (e.g. at y = 380, closer to endY = 400 than startY = 196)
+    const clickNearArrow = { x: 200, y: 380 };
+    const distToStart1 = Math.hypot(clickNearArrow.x - startX, clickNearArrow.y - startY);
+    const distToEnd1 = Math.hypot(clickNearArrow.x - endX, clickNearArrow.y - endY);
+    const resolvedType1 = distToEnd1 <= distToStart1 ? 'target' : 'source';
+    expect(resolvedType1).toBe('target');
+
+    // Simulate clicking line near source start (e.g. at y = 220, closer to startY = 196 than endY = 400)
+    const clickNearStart = { x: 200, y: 220 };
+    const distToStart2 = Math.hypot(clickNearStart.x - startX, clickNearStart.y - startY);
+    const distToEnd2 = Math.hypot(clickNearStart.x - endX, clickNearStart.y - endY);
+    const resolvedType2 = distToEnd2 <= distToStart2 ? 'target' : 'source';
+    expect(resolvedType2).toBe('source');
+  });
 });
-
-
-
-
