@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #0f172a;
+    background-color: #f8fafc;
+    overflow: hidden;
+  }
+}
+
+.canvas-dot-grid {
+  background-size: 24px 24px;
+  background-image: radial-gradient(circle, #cbd5e1 1.5px, transparent 1.5px);
+}
+
+.canvas-dot-grid-dark {
+  background-size: 24px 24px;
+  background-image: radial-gradient(circle, #334155 1.5px, transparent 1.5px);
+}
