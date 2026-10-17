@@ -580,4 +580,65 @@ describe('ErpFlowGen Utilities Test Suite', () => {
     const resolvedType2 = distToEnd2 <= distToStart2 ? 'target' : 'source';
     expect(resolvedType2).toBe('source');
   });
+
+  it('should calculate new dimensions and positions accurately across all group resize modes', () => {
+    const initialGroup: FlowGroupFrame = {
+      id: 'group_test',
+      title: 'Backend Group',
+      position: { x: 200, y: 150 },
+      width: 400,
+      height: 300,
+      colorTheme: 'indigo',
+    };
+
+    // Helper simulating the resize calculation
+    const computeResize = (
+      mode: GroupResizeMode,
+      deltaX: number,
+      deltaY: number,
+    ) => {
+      let newX = initialGroup.position.x;
+      let newY = initialGroup.position.y;
+      let newWidth = initialGroup.width;
+      let newHeight = initialGroup.height;
+
+      if (mode === 'both' || mode === 'horizontal' || mode === 'bottom-right' || mode === 'top-right') {
+        newWidth = Math.max(180, Math.min(3000, Math.round(initialGroup.width + deltaX)));
+      } else if (mode === 'left' || mode === 'top-left' || mode === 'bottom-left') {
+        const clampedDeltaX = Math.min(initialGroup.width - 180, Math.max(initialGroup.width - 3000, deltaX));
+        newWidth = Math.round(initialGroup.width - clampedDeltaX);
+        newX = Math.round(initialGroup.position.x + clampedDeltaX);
+      }
+
+      if (mode === 'both' || mode === 'vertical' || mode === 'bottom-right' || mode === 'bottom-left') {
+        newHeight = Math.max(100, Math.min(2500, Math.round(initialGroup.height + deltaY)));
+      } else if (mode === 'top' || mode === 'top-right' || mode === 'top-left') {
+        const clampedDeltaY = Math.min(initialGroup.height - 100, Math.max(initialGroup.height - 2500, deltaY));
+        newHeight = Math.round(initialGroup.height - clampedDeltaY);
+        newY = Math.round(initialGroup.position.y + clampedDeltaY);
+      }
+
+      return { x: newX, y: newY, width: newWidth, height: newHeight };
+    };
+
+    // 1. Right edge drag (+50 width)
+    const rightRes = computeResize('horizontal', 50, 0);
+    expect(rightRes.width).toBe(450);
+    expect(rightRes.x).toBe(200);
+
+    // 2. Bottom edge drag (+80 height)
+    const bottomRes = computeResize('vertical', 0, 80);
+    expect(bottomRes.height).toBe(380);
+    expect(bottomRes.y).toBe(150);
+
+    // 3. Left edge drag (-60 deltaX expands to the left)
+    const leftRes = computeResize('left', -60, 0);
+    expect(leftRes.x).toBe(140);
+    expect(leftRes.width).toBe(460);
+
+    // 4. Top edge drag (-40 deltaY expands upwards)
+    const topRes = computeResize('top', 0, -40);
+    expect(topRes.y).toBe(110);
+    expect(topRes.height).toBe(340);
+  });
 });

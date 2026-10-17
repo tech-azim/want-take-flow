@@ -76,8 +76,18 @@ export type FlowGroupFrame = {
   position: Position;
   width: number;
   height: number;
-  colorTheme: NodeColorTheme;
+  colorTheme?: NodeColorTheme;
 };
+export type GroupResizeMode =
+  | 'both'
+  | 'horizontal'
+  | 'vertical'
+  | 'top'
+  | 'left'
+  | 'top-right'
+  | 'top-left'
+  | 'bottom-left'
+  | 'bottom-right';
 
 export type FlowProjectTab = {
   id: string;
@@ -399,7 +409,7 @@ export type ErpFlowGenComponentProps = {
   onUpdateGroupColor: (groupId: string, color: NodeColorTheme) => void;
   onDeleteGroupFrame: (groupId: string) => void;
   onStartGroupDrag: (event: React.MouseEvent, groupId: string) => void;
-  onStartGroupResize: (event: React.MouseEvent, groupId: string, mode?: 'both' | 'horizontal' | 'vertical') => void;
+  onStartGroupResize: (event: React.MouseEvent, groupId: string, mode?: GroupResizeMode) => void;
   onToggleDecisionSwap: (nodeId: string) => void;
   isViewOnly: boolean;
   onToggleViewOnly: () => void;

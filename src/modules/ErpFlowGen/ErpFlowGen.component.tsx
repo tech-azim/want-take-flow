@@ -60,6 +60,7 @@ import type {
   FlowEdge,
   FlowNodeType,
   FlowGroupFrame,
+  GroupResizeMode,
   NodeColorTheme,
   CanvasTransform,
   FlowProjectTab,
@@ -1456,7 +1457,7 @@ const _renderGroupFrames = (
   onUpdateGroupColor: (groupId: string, color: NodeColorTheme) => void,
   onDeleteGroupFrame: (groupId: string) => void,
   onStartGroupDrag: (event: React.MouseEvent, groupId: string) => void,
-  onStartGroupResize: (event: React.MouseEvent, groupId: string, mode?: 'both' | 'horizontal' | 'vertical') => void,
+  onStartGroupResize: (event: React.MouseEvent, groupId: string, mode?: GroupResizeMode) => void,
 ): React.ReactElement => {
   return (
     <>
@@ -1602,27 +1603,17 @@ const _renderGroupFrames = (
                 </button>
               </div>
 
-              {/* Resize Handle: Bottom-Right Corner */}
-              <div
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                  onStartGroupResize(e, group.id, 'both');
-                }}
-                title="Drag to resize Frame"
-                className="absolute -bottom-2 -right-2 w-5 h-5 bg-white border-2 border-slate-400 hover:border-indigo-600 hover:bg-indigo-50 rounded-md shadow-xs flex items-center justify-center cursor-nwse-resize z-40 group-hover/frame:opacity-100 transition-opacity pointer-events-auto"
-              >
-                <div className="w-1.5 h-1.5 bg-slate-500 rounded-xs" />
-              </div>
-
               {/* Resize Handle: Right Edge */}
               <div
                 onMouseDown={(e) => {
                   e.stopPropagation();
                   onStartGroupResize(e, group.id, 'horizontal');
                 }}
-                title="Drag Frame width"
-                className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-3 h-8 bg-white border-2 border-slate-300 hover:border-indigo-600 rounded-sm shadow-2xs cursor-ew-resize z-40 opacity-0 group-hover/frame:opacity-100 transition-opacity pointer-events-auto"
-              />
+                title="Drag sisi kanan untuk atur lebar frame"
+                className="absolute top-1/2 -right-3 -translate-y-1/2 w-6 h-16 flex items-center justify-center cursor-ew-resize z-40 group/handle pointer-events-auto"
+              >
+                <div className="w-1.5 h-8 rounded-full bg-slate-400 group-hover/frame:bg-indigo-500 group-hover/handle:bg-indigo-600 group-hover/handle:w-2 group-hover/handle:scale-y-110 shadow-xs transition-all" />
+              </div>
 
               {/* Resize Handle: Bottom Edge */}
               <div
@@ -1630,9 +1621,71 @@ const _renderGroupFrames = (
                   e.stopPropagation();
                   onStartGroupResize(e, group.id, 'vertical');
                 }}
-                title="Drag Frame height"
-                className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-8 h-3 bg-white border-2 border-slate-300 hover:border-indigo-600 rounded-sm shadow-2xs cursor-ns-resize z-40 opacity-0 group-hover/frame:opacity-100 transition-opacity pointer-events-auto"
-              />
+                title="Drag sisi bawah untuk atur tinggi frame"
+                className="absolute -bottom-3 left-1/2 -translate-x-1/2 h-6 w-16 flex items-center justify-center cursor-ns-resize z-40 group/handle pointer-events-auto"
+              >
+                <div className="h-1.5 w-8 rounded-full bg-slate-400 group-hover/frame:bg-indigo-500 group-hover/handle:bg-indigo-600 group-hover/handle:h-2 group-hover/handle:scale-x-110 shadow-xs transition-all" />
+              </div>
+
+              {/* Resize Handle: Top Edge */}
+              <div
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  onStartGroupResize(e, group.id, 'top');
+                }}
+                title="Drag sisi atas untuk atur tinggi frame"
+                className="absolute -top-3 left-1/2 -translate-x-1/2 h-6 w-16 flex items-center justify-center cursor-ns-resize z-40 group/handle pointer-events-auto"
+              >
+                <div className="h-1.5 w-8 rounded-full bg-slate-400 group-hover/frame:bg-indigo-500 group-hover/handle:bg-indigo-600 group-hover/handle:h-2 group-hover/handle:scale-x-110 shadow-xs transition-all" />
+              </div>
+
+              {/* Resize Handle: Left Edge */}
+              <div
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  onStartGroupResize(e, group.id, 'left');
+                }}
+                title="Drag sisi kiri untuk atur lebar frame"
+                className="absolute top-1/2 -left-3 -translate-y-1/2 w-6 h-16 flex items-center justify-center cursor-ew-resize z-40 group/handle pointer-events-auto"
+              >
+                <div className="w-1.5 h-8 rounded-full bg-slate-400 group-hover/frame:bg-indigo-500 group-hover/handle:bg-indigo-600 group-hover/handle:w-2 group-hover/handle:scale-y-110 shadow-xs transition-all" />
+              </div>
+
+              {/* Resize Handle: Bottom-Right Corner */}
+              <div
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  onStartGroupResize(e, group.id, 'bottom-right');
+                }}
+                title="Drag sudut kanan-bawah untuk atur ukuran frame"
+                className="absolute -bottom-2.5 -right-2.5 w-5 h-5 bg-white border-2 border-slate-400 hover:border-indigo-600 hover:bg-indigo-50 rounded-md shadow-xs flex items-center justify-center cursor-nwse-resize z-40 pointer-events-auto transition-transform hover:scale-125"
+              >
+                <div className="w-1.5 h-1.5 bg-slate-500 rounded-xs" />
+              </div>
+
+              {/* Resize Handle: Top-Right Corner */}
+              <div
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  onStartGroupResize(e, group.id, 'top-right');
+                }}
+                title="Drag sudut kanan-atas untuk atur ukuran frame"
+                className="absolute -top-2.5 -right-2.5 w-5 h-5 bg-white border-2 border-slate-400 hover:border-indigo-600 hover:bg-indigo-50 rounded-md shadow-xs flex items-center justify-center cursor-nesw-resize z-40 pointer-events-auto transition-transform hover:scale-125"
+              >
+                <div className="w-1.5 h-1.5 bg-slate-500 rounded-xs" />
+              </div>
+
+              {/* Resize Handle: Bottom-Left Corner */}
+              <div
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  onStartGroupResize(e, group.id, 'bottom-left');
+                }}
+                title="Drag sudut kiri-bawah untuk atur ukuran frame"
+                className="absolute -bottom-2.5 -left-2.5 w-5 h-5 bg-white border-2 border-slate-400 hover:border-indigo-600 hover:bg-indigo-50 rounded-md shadow-xs flex items-center justify-center cursor-nesw-resize z-40 pointer-events-auto transition-transform hover:scale-125"
+              >
+                <div className="w-1.5 h-1.5 bg-slate-500 rounded-xs" />
+              </div>
             </div>
           );
         })}

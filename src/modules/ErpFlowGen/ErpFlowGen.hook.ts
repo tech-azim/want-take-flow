@@ -17,6 +17,7 @@ import type {
   SchemaExportData,
   Position,
   FlowGroupFrame,
+  GroupResizeMode,
   AiSettingsModalData,
   ProjectScanModalData,
   HermesAiConfig,
@@ -176,7 +177,7 @@ export type UseErpFlowGenReturn = {
   handleUpdateGroupColor: (groupId: string, color: NodeColorTheme) => void;
   handleDeleteGroupFrame: (groupId: string) => void;
   handleStartGroupDrag: (event: React.MouseEvent, groupId: string) => void;
-  handleStartGroupResize: (event: React.MouseEvent, groupId: string, mode?: 'both' | 'horizontal' | 'vertical') => void;
+  handleStartGroupResize: (event: React.MouseEvent, groupId: string, mode?: GroupResizeMode) => void;
   aiSettingsModal: AiSettingsModalData;
   projectScanModal: ProjectScanModalData;
   handleOpenAiSettings: () => void;
@@ -790,14 +791,16 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   const [groupResizingState, setGroupResizingState] = useState<{
     isResizing: boolean;
     groupId: string;
-    mode: 'both' | 'horizontal' | 'vertical';
+    mode: GroupResizeMode;
     startPos: Position;
+    initialPos: Position;
     initialDims: { width: number; height: number };
   }>({
     isResizing: false,
     groupId: '',
     mode: 'both',
     startPos: { x: 0, y: 0 },
+    initialPos: { x: 0, y: 0 },
     initialDims: { width: 380, height: 240 },
   });
 
@@ -1954,7 +1957,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   );
 
   const handleStartGroupResize = useCallback(
-    (event: React.MouseEvent, groupId: string, mode: 'both' | 'horizontal' | 'vertical' = 'both'): void => {
+    (event: React.MouseEvent, groupId: string, mode: GroupResizeMode = 'both'): void => {
       if (isViewOnly) return;
       event.preventDefault();
       event.stopPropagation();
@@ -1971,6 +1974,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         groupId,
         mode,
         startPos: { x: event.clientX, y: event.clientY },
+        initialPos: { x: targetGroup.position.x, y: targetGroup.position.y },
         initialDims: { width: targetGroup.width, height: targetGroup.height },
       });
     },
@@ -2713,6 +2717,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         groupId: '',
         mode: 'both',
         startPos: { x: 0, y: 0 },
+        initialPos: { x: 0, y: 0 },
         initialDims: { width: 380, height: 240 },
       });
     }
@@ -2822,16 +2827,54 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
           );
         });
       } else if (groupResizingState.isResizing && groupResizingState.groupId) {
-        // 3. Group Frame resizing
+        // 3. Group Frame resizing (supports right, bottom, top, left, and all 4 corners)
         const deltaX = (event.clientX - groupResizingState.startPos.x) / transform.scale;
         const deltaY = (event.clientY - groupResizingState.startPos.y) / transform.scale;
         const mode = groupResizingState.mode || 'both';
-        const newWidth = mode === 'vertical'
-          ? groupResizingState.initialDims.width
-          : Math.max(180, Math.min(2500, Math.round(groupResizingState.initialDims.width + deltaX)));
-        const newHeight = mode === 'horizontal'
-          ? groupResizingState.initialDims.height
-          : Math.max(100, Math.min(2000, Math.round(groupResizingState.initialDims.height + deltaY)));
+        const { initialDims, initialPos } = groupResizingState;
+
+        let newX = initialPos.x;
+        let newY = initialPos.y;
+        let newWidth = initialDims.width;
+        let newHeight = initialDims.height;
+
+        // Width & horizontal position calculations
+        if (
+          mode === 'both' ||
+          mode === 'horizontal' ||
+          mode === 'bottom-right' ||
+          mode === 'top-right'
+        ) {
+          // Adjust right edge
+          newWidth = Math.max(180, Math.min(3000, Math.round(initialDims.width + deltaX)));
+        } else if (mode === 'left' || mode === 'top-left' || mode === 'bottom-left') {
+          // Adjust left edge (moves x position and adjusts width)
+          const clampedDeltaX = Math.min(
+            initialDims.width - 180,
+            Math.max(initialDims.width - 3000, deltaX),
+          );
+          newWidth = Math.round(initialDims.width - clampedDeltaX);
+          newX = Math.round(initialPos.x + clampedDeltaX);
+        }
+
+        // Height & vertical position calculations
+        if (
+          mode === 'both' ||
+          mode === 'vertical' ||
+          mode === 'bottom-right' ||
+          mode === 'bottom-left'
+        ) {
+          // Adjust bottom edge
+          newHeight = Math.max(100, Math.min(2500, Math.round(initialDims.height + deltaY)));
+        } else if (mode === 'top' || mode === 'top-right' || mode === 'top-left') {
+          // Adjust top edge (moves y position and adjusts height)
+          const clampedDeltaY = Math.min(
+            initialDims.height - 100,
+            Math.max(initialDims.height - 2500, deltaY),
+          );
+          newHeight = Math.round(initialDims.height - clampedDeltaY);
+          newY = Math.round(initialPos.y + clampedDeltaY);
+        }
 
         setTabs((prevTabs) =>
           prevTabs.map((t) =>
@@ -2840,7 +2883,12 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
                   ...t,
                   groups: (t.groups || []).map((g) =>
                     g.id === groupResizingState.groupId
-                      ? { ...g, width: newWidth, height: newHeight }
+                      ? {
+                          ...g,
+                          position: { x: newX, y: newY },
+                          width: newWidth,
+                          height: newHeight,
+                        }
                       : g,
                   ),
                 }
