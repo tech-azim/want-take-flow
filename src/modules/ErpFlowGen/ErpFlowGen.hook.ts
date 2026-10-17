@@ -276,6 +276,65 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     }
   }, [activeTabId]);
 
+  // --- Live Synchronization with WTF Gateway & Hermes ---
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // 1. Fetch latest diagram schema on mount / refresh
+    fetch('/api/diagram')
+      .then((res) => {
+        if (res.ok) return res.json();
+        return null;
+      })
+      .then((data) => {
+        if (!data) return;
+        if (Array.isArray(data.tabs) && data.tabs.length > 0) {
+          setTabs(data.tabs);
+          if (data.tabs[0]?.id) setActiveTabId(data.tabs[0].id);
+        } else if (Array.isArray(data.nodes) && Array.isArray(data.edges)) {
+          setTabs((prev) =>
+            prev.map((t, idx) =>
+              idx === 0
+                ? { ...t, nodes: data.nodes, edges: data.edges, swimlanes: data.swimlanes || t.swimlanes }
+                : t,
+            ),
+          );
+        }
+      })
+      .catch(() => {});
+
+    // 2. Real-time Server-Sent Events (SSE) listener
+    if (!window.EventSource) return;
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource('/api/events');
+      eventSource.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'DIAGRAM_UPDATE' && msg.payload) {
+            const data = msg.payload;
+            if (Array.isArray(data.tabs) && data.tabs.length > 0) {
+              setTabs(data.tabs);
+              if (data.tabs[0]?.id) setActiveTabId(data.tabs[0].id);
+            } else if (Array.isArray(data.nodes) && Array.isArray(data.edges)) {
+              setTabs((prev) =>
+                prev.map((t) =>
+                  t.id === activeTabId
+                    ? { ...t, nodes: data.nodes, edges: data.edges, swimlanes: data.swimlanes || t.swimlanes }
+                    : t,
+                ),
+              );
+            }
+          }
+        } catch (_) {}
+      };
+    } catch (_) {}
+
+    return () => {
+      if (eventSource) eventSource.close();
+    };
+  }, [activeTabId]);
+
   // --- Undo & Redo History Management ---
   const [historyPast, setHistoryPast] = useState<FlowProjectTab[][]>([]);
   const [historyFuture, setHistoryFuture] = useState<FlowProjectTab[][]>([]);

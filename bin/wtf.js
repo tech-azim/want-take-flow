@@ -25,8 +25,10 @@ const DIST_DIR = path.resolve(PACKAGE_ROOT, 'dist');
 const CWD = process.cwd();
 const WTF_DIR = path.resolve(CWD, '.wtf');
 const PID_FILE = path.resolve(WTF_DIR, 'gateway.pid');
+const GLOBAL_WTF_DIR = path.resolve(os.homedir(), '.wtf');
+const GLOBAL_PID_FILE = path.resolve(GLOBAL_WTF_DIR, 'gateway.pid');
 
-const VERSION = '1.0.2';
+const VERSION = '1.0.3';
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -334,7 +336,7 @@ function handlePush(args) {
     process.exit(1);
   }
 
-  // Save to .wtf/schemas/current.json locally
+  // Save to .wtf/schemas/current.json locally and globally
   try {
     if (!fs.existsSync(path.resolve(WTF_DIR, 'schemas'))) {
       fs.mkdirSync(path.resolve(WTF_DIR, 'schemas'), { recursive: true });
@@ -342,26 +344,32 @@ function handlePush(args) {
     fs.writeFileSync(path.resolve(WTF_DIR, 'schemas', 'current.json'), content, 'utf-8');
   } catch (_) {}
 
-  // Check if gateway is running
-  let port = 5174;
-  let isGatewayRunning = false;
-  if (fs.existsSync(PID_FILE)) {
-    try {
-      const pidData = JSON.parse(fs.readFileSync(PID_FILE, 'utf-8'));
-      process.kill(pidData.pid, 0);
-      port = pidData.port || 5174;
-      isGatewayRunning = true;
-    } catch (_) {
-      isGatewayRunning = false;
+  try {
+    if (!fs.existsSync(path.resolve(GLOBAL_WTF_DIR, 'schemas'))) {
+      fs.mkdirSync(path.resolve(GLOBAL_WTF_DIR, 'schemas'), { recursive: true });
+    }
+    fs.writeFileSync(path.resolve(GLOBAL_WTF_DIR, 'schemas', 'current.json'), content, 'utf-8');
+  } catch (_) {}
+
+  // Check if gateway is running (check local PID, global PID, or probe active ports)
+  let port = null;
+  for (const pFile of [PID_FILE, GLOBAL_PID_FILE]) {
+    if (fs.existsSync(pFile)) {
+      try {
+        const pidData = JSON.parse(fs.readFileSync(pFile, 'utf-8'));
+        process.kill(pidData.pid, 0);
+        port = pidData.port;
+        break;
+      } catch (_) {}
     }
   }
 
-  if (isGatewayRunning) {
+  const sendPost = (targetPort) => {
     const postData = content;
     const req = http.request(
       {
         hostname: 'localhost',
-        port,
+        port: targetPort,
         path: '/api/diagram',
         method: 'POST',
         headers: {
@@ -374,8 +382,8 @@ function handlePush(args) {
         res.on('data', (d) => { respBody += d; });
         res.on('end', () => {
           if (res.statusCode >= 200 && res.statusCode < 300) {
-            console.log(`\n${colors.green}${colors.bold}✓ Flowchart pushed successfully to WTF Gateway (port ${port})!${colors.reset}`);
-            console.log(`  Live Browser UI updated in real-time at ${colors.cyan}http://localhost:${port}${colors.reset}\n`);
+            console.log(`\n${colors.green}${colors.bold}✓ Flowchart pushed successfully to WTF Gateway (port ${targetPort})!${colors.reset}`);
+            console.log(`  Live Browser UI updated in real-time at ${colors.cyan}http://localhost:${targetPort}${colors.reset}\n`);
           } else {
             console.error(`${colors.red}Gateway returned error (${res.statusCode}):${colors.reset}`, respBody);
           }
@@ -390,11 +398,33 @@ function handlePush(args) {
 
     req.write(postData);
     req.end();
+  };
+
+  if (port) {
+    sendPost(port);
   } else {
-    console.log(`\n${colors.green}${colors.bold}✓ Saved to .wtf/schemas/current.json${colors.reset}`);
-    console.log(`${colors.yellow}! Gateway is not currently running.${colors.reset}`);
-    console.log(`To open and view in browser, run:`);
-    console.log(`  $ ${colors.cyan}wtf gateway start${colors.reset}\n`);
+    // Probe common ports if PID file was in another directory
+    const probePorts = [5174, 5175, 5176, 5177, 3000];
+    const checkNext = (idx) => {
+      if (idx >= probePorts.length) {
+        console.log(`\n${colors.green}${colors.bold}✓ Saved to .wtf/schemas/current.json${colors.reset}`);
+        console.log(`${colors.yellow}! Gateway is not currently running.${colors.reset}`);
+        console.log(`To open and view in browser, run:`);
+        console.log(`  $ ${colors.cyan}wtf gateway start${colors.reset}\n`);
+        return;
+      }
+      const testPort = probePorts[idx];
+      const checkReq = http.get({ hostname: 'localhost', port: testPort, path: '/api/health', timeout: 400 }, (res) => {
+        if (res.statusCode === 200) {
+          sendPost(testPort);
+        } else {
+          checkNext(idx + 1);
+        }
+      });
+      checkReq.on('error', () => checkNext(idx + 1));
+      checkReq.on('timeout', () => { checkReq.destroy(); checkNext(idx + 1); });
+    };
+    checkNext(0);
   }
 }
 
@@ -607,6 +637,17 @@ function handleGatewayStart(args) {
             'utf-8'
           );
 
+          try {
+            if (!fs.existsSync(path.resolve(GLOBAL_WTF_DIR, 'schemas'))) {
+              fs.mkdirSync(path.resolve(GLOBAL_WTF_DIR, 'schemas'), { recursive: true });
+            }
+            fs.writeFileSync(
+              path.resolve(GLOBAL_WTF_DIR, 'schemas', 'current.json'),
+              JSON.stringify(parsed, null, 2),
+              'utf-8'
+            );
+          } catch (_) {}
+
           broadcastDiagramUpdate(parsed);
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -626,10 +667,12 @@ function handleGatewayStart(args) {
 
     // API Diagram GET (Fetch current diagram)
     if (pathname === '/api/diagram' && req.method === 'GET') {
-      const currentFile = path.resolve(WTF_DIR, 'schemas', 'current.json');
-      if (fs.existsSync(currentFile)) {
+      const localFile = path.resolve(WTF_DIR, 'schemas', 'current.json');
+      const globalFile = path.resolve(GLOBAL_WTF_DIR, 'schemas', 'current.json');
+      const targetFile = fs.existsSync(localFile) ? localFile : (fs.existsSync(globalFile) ? globalFile : null);
+      if (targetFile) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(fs.readFileSync(currentFile, 'utf-8'));
+        res.end(fs.readFileSync(targetFile, 'utf-8'));
       } else {
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'No active diagram found' }));
@@ -715,12 +758,12 @@ function handleGatewayStart(args) {
 
     // Record PID for status and stop commands
     try {
+      const pidStr = JSON.stringify({ pid: process.pid, port, host, startedAt: new Date().toISOString() }, null, 2);
       if (!fs.existsSync(WTF_DIR)) fs.mkdirSync(WTF_DIR, { recursive: true });
-      fs.writeFileSync(
-        PID_FILE,
-        JSON.stringify({ pid: process.pid, port, host, startedAt: new Date().toISOString() }, null, 2),
-        'utf-8',
-      );
+      fs.writeFileSync(PID_FILE, pidStr, 'utf-8');
+
+      if (!fs.existsSync(GLOBAL_WTF_DIR)) fs.mkdirSync(GLOBAL_WTF_DIR, { recursive: true });
+      fs.writeFileSync(GLOBAL_PID_FILE, pidStr, 'utf-8');
     } catch (_) {}
 
     console.log(`
@@ -744,6 +787,7 @@ ${colors.green}${colors.bold}  ✓ WTF Gateway Active & Ready!${colors.reset}
     console.log(`\n${colors.yellow}Stopping WTF Gateway...${colors.reset}`);
     try {
       if (fs.existsSync(PID_FILE)) fs.unlinkSync(PID_FILE);
+      if (fs.existsSync(GLOBAL_PID_FILE)) fs.unlinkSync(GLOBAL_PID_FILE);
     } catch (_) {}
     server.close(() => {
       console.log(`${colors.green}Gateway shut down cleanly. Goodbye!${colors.reset}`);
