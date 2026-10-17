@@ -70,7 +70,7 @@ const _loadPersistedTabs = (): FlowProjectTab[] => {
   }
   return [
     createInitialProject('userflow', 'Amazon Book Order'),
-    createInitialProject('swimlane', 'SOP Perusahaan'),
+    createInitialProject('swimlane', 'Company SOP'),
   ];
 };
 
@@ -386,7 +386,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     edgeLabel: '',
     category: 'General',
     colorTheme: 'indigo',
-    shapeCategoryFilter: 'Semua',
+    shapeCategoryFilter: 'All',
   });
 
   const [editNodeModal, setEditNodeModal] = useState<EditNodeModalData>({
@@ -1008,14 +1008,14 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         setProjectScanModal((prev) => ({
           ...prev,
           folderName: dirHandle.name,
-          generationStep: `Memindai file di folder "${dirHandle.name}"...`,
+          generationStep: `Scanning files in folder "${dirHandle.name}"...`,
           progressPercent: 35,
         }));
 
         const { folderName, files } = await scanProjectDirectory(dirHandle, (count, current) => {
           setProjectScanModal((prev) => ({
             ...prev,
-            generationStep: `Membaca: ${current.split('/').pop()} (${count} file)`,
+            generationStep: `Reading: ${current.split('/').pop()} (${count} files)`,
             progressPercent: Math.min(85, 35 + count),
           }));
         });
@@ -1026,7 +1026,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
           files,
           isScanning: false,
           isGenerating: false,
-          generationStep: `${files.length} file codingan berhasil dibaca dan siap dianalisis!`,
+          generationStep: `${files.length} code files successfully parsed and ready for analysis!`,
           progressPercent: 100,
         });
         return;
@@ -1050,18 +1050,18 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
     setProjectScanModal({
       isOpen: true,
-      folderName: 'Membaca folder...',
+      folderName: 'Reading folder...',
       files: [],
       isScanning: true,
       isGenerating: false,
-      generationStep: 'Memindai file project codingan...',
+      generationStep: 'Scanning codebase project files...',
       progressPercent: 30,
     });
 
     const { folderName, files } = await scanProjectFileList(fileList, (count, current) => {
       setProjectScanModal((prev) => ({
         ...prev,
-        generationStep: `Membaca: ${current.split('/').pop()} (${count} file)`,
+        generationStep: `Reading: ${current.split('/').pop()} (${count} files)`,
         progressPercent: Math.min(85, 30 + count),
       }));
     });
@@ -1072,7 +1072,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       files,
       isScanning: false,
       isGenerating: false,
-      generationStep: `${files.length} file codingan berhasil dibaca dan siap dianalisis!`,
+      generationStep: `${files.length} code files successfully parsed and ready for analysis!`,
       progressPercent: 100,
     });
 
@@ -1089,7 +1089,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     setProjectScanModal((prev) => ({
       ...prev,
       isGenerating: true,
-      generationStep: 'Menghubungi Hermes AI untuk analisis arsitektur multi-tab...',
+      generationStep: 'Connecting to Hermes AI for multi-tab architecture analysis...',
       progressPercent: 40,
     }));
 
@@ -1121,7 +1121,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       setProjectScanModal((prev) => ({
         ...prev,
         isGenerating: false,
-        errorMessage: (err as Error).message || 'Gagal menghasilkan flowchart dari AI.',
+        errorMessage: (err as Error).message || 'Failed to generate flowchart from AI.',
       }));
     }
   }, [projectScanModal.folderName, projectScanModal.files, aiConfig]);
@@ -1189,7 +1189,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         edgeLabel: computedEdgeLabel,
         category: src?.moduleCategory || 'General',
         colorTheme: computedColorTheme,
-        shapeCategoryFilter: 'Semua',
+        shapeCategoryFilter: 'All',
       });
     },
     [nodes, activeTabId],
@@ -3237,7 +3237,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
           const currentLanes = t.swimlanes || [];
           const newLane = {
             id: `lane_${Date.now()}`,
-            name: name.trim() || `Lajur ${currentLanes.length + 1}`,
+            name: name.trim() || `Lane ${currentLanes.length + 1}`,
             color,
             height: 180,
           };

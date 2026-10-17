@@ -40,7 +40,7 @@ export const NODE_DIMENSIONS: Record<string, { width: number; height: number }> 
 export type FlowNodeTypeOption = {
   type: FlowNodeType;
   label: string;
-  category: 'Event' | 'Proses' | 'Logika' | 'Data & Dokumen' | 'DFD';
+  category: 'Event' | 'Process' | 'Logic' | 'Data & Docs' | 'DFD';
   icon: string;
   desc: string;
   shapeName: string;
@@ -48,28 +48,28 @@ export type FlowNodeTypeOption = {
 
 export const FLOW_NODE_TYPE_OPTIONS: FlowNodeTypeOption[] = [
   // 1. Event
-  { type: 'start', label: 'Start Event', category: 'Event', icon: 'PlayCircle', desc: 'Bentuk: Kapsul / Oval', shapeName: 'Bentuk: Kapsul / Oval' },
-  { type: 'end', label: 'End Event', category: 'Event', icon: 'CheckCircle2', desc: 'Bentuk: Kapsul / Oval Bulat', shapeName: 'Bentuk: Kapsul / Oval Bulat' },
+  { type: 'start', label: 'Start Event', category: 'Event', icon: 'PlayCircle', desc: 'Shape: Capsule / Oval', shapeName: 'Shape: Capsule / Oval' },
+  { type: 'end', label: 'End Event', category: 'Event', icon: 'CheckCircle2', desc: 'Shape: Capsule / Round Oval', shapeName: 'Shape: Capsule / Round Oval' },
 
-  // 2. Proses & Operasi
-  { type: 'process', label: 'Task / Proses', category: 'Proses', icon: 'SquareCode', desc: 'Bentuk: Kotak Persegi Panjang', shapeName: 'Bentuk: Kotak Persegi Panjang' },
-  { type: 'subprocess', label: 'Sub-proses', category: 'Proses', icon: 'Layers', desc: 'Bentuk: Kotak Garis Ganda', shapeName: 'Bentuk: Kotak Garis Ganda' },
-  { type: 'inspection', label: 'Inspeksi QC', category: 'Proses', icon: 'Search', desc: 'Bentuk: Hexagon (Segi Enam)', shapeName: 'Bentuk: Hexagon (Segi Enam)' },
-  { type: 'delay', label: 'Delay / Antrean', category: 'Proses', icon: 'Clock', desc: 'Bentuk: Huruf D (Setengah Lingkaran)', shapeName: 'Bentuk: Huruf D (Setengah Lingkaran)' },
+  // 2. Process & Operations
+  { type: 'process', label: 'Task / Process', category: 'Process', icon: 'SquareCode', desc: 'Shape: Rectangle Box', shapeName: 'Shape: Rectangle Box' },
+  { type: 'subprocess', label: 'Sub-process', category: 'Process', icon: 'Layers', desc: 'Shape: Double-Line Box', shapeName: 'Shape: Double-Line Box' },
+  { type: 'inspection', label: 'QC Inspection', category: 'Process', icon: 'Search', desc: 'Shape: Hexagon (6-Sided)', shapeName: 'Shape: Hexagon' },
+  { type: 'delay', label: 'Delay / Queue', category: 'Process', icon: 'Clock', desc: 'Shape: Letter D (Semicircle)', shapeName: 'Shape: Letter D' },
 
-  // 3. Logika & Keputusan
-  { type: 'decision', label: 'Decision (If / Else)', category: 'Logika', icon: 'GitFork', desc: 'Bentuk: Belah Ketupat (Diamond)', shapeName: 'Bentuk: Belah Ketupat (Diamond)' },
+  // 3. Logic & Decision
+  { type: 'decision', label: 'Decision (If / Else)', category: 'Logic', icon: 'GitFork', desc: 'Shape: Diamond (Rhombus)', shapeName: 'Shape: Diamond' },
 
-  // 4. Data & Dokumen
-  { type: 'document', label: 'Dokumen', category: 'Data & Dokumen', icon: 'FileText', desc: 'Bentuk: Dokumen Wave Bawah', shapeName: 'Bentuk: Dokumen Wave Bawah' },
-  { type: 'multidocument', label: 'Multi-Dokumen', category: 'Data & Dokumen', icon: 'Files', desc: 'Bentuk: Dokumen Rangkap (Tumpuk)', shapeName: 'Bentuk: Dokumen Rangkap (Tumpuk)' },
-  { type: 'inputOutput', label: 'Data I/O', category: 'Data & Dokumen', icon: 'FileSpreadsheet', desc: 'Bentuk: Jajar Genjang (Parallelogram)', shapeName: 'Bentuk: Jajar Genjang' },
-  { type: 'database', label: 'Database Storage', category: 'Data & Dokumen', icon: 'Database', desc: 'Bentuk: Silinder Vertikal', shapeName: 'Bentuk: Silinder Vertikal' },
+  // 4. Data & Documents
+  { type: 'document', label: 'Document', category: 'Data & Docs', icon: 'FileText', desc: 'Shape: Bottom Wave Document', shapeName: 'Shape: Wave Document' },
+  { type: 'multidocument', label: 'Multi-Document', category: 'Data & Docs', icon: 'Files', desc: 'Shape: Stacked Document', shapeName: 'Shape: Stacked Document' },
+  { type: 'inputOutput', label: 'Data I/O', category: 'Data & Docs', icon: 'FileSpreadsheet', desc: 'Shape: Parallelogram', shapeName: 'Shape: Parallelogram' },
+  { type: 'database', label: 'Database Storage', category: 'Data & Docs', icon: 'Database', desc: 'Shape: Vertical Cylinder', shapeName: 'Shape: Cylinder' },
 
   // 5. DFD (Data Flow Diagram)
-  { type: 'dfdProcess', label: 'DFD Proses', category: 'DFD', icon: 'Circle', desc: 'Bentuk: Lingkaran Bulat', shapeName: 'Bentuk: Lingkaran Bulat' },
-  { type: 'datastore', label: 'DFD Data Store', category: 'DFD', icon: 'Archive', desc: 'Bentuk: Garis Terbuka [ = ]', shapeName: 'Bentuk: Garis Terbuka [ = ]' },
-  { type: 'entity', label: 'DFD External Entity', category: 'DFD', icon: 'UserCheck', desc: 'Bentuk: Kotak Entitas Luar', shapeName: 'Bentuk: Kotak Entitas Luar' },
+  { type: 'dfdProcess', label: 'DFD Process', category: 'DFD', icon: 'Circle', desc: 'Shape: Round Circle', shapeName: 'Shape: Round Circle' },
+  { type: 'datastore', label: 'DFD Data Store', category: 'DFD', icon: 'Archive', desc: 'Shape: Open Line Box [ = ]', shapeName: 'Shape: Open Line Box' },
+  { type: 'entity', label: 'DFD External Entity', category: 'DFD', icon: 'UserCheck', desc: 'Shape: External Entity Box', shapeName: 'Shape: External Entity' },
 ];
 
 export type FlowchartTypeMeta = {
@@ -85,49 +85,49 @@ export const FLOWCHART_TYPES_METADATA: FlowchartTypeMeta[] = [
   {
     type: 'userflow',
     title: 'User Flow / E-Commerce',
-    subtitle: 'Alur Pengguna (Contoh: Amazon Book Order)',
+    subtitle: 'User Journey (e.g. Amazon Book Order)',
     badge: 'Product & UX',
-    description: 'Pencarian buku, login/register, keranjang, input shipping, pembayaran, hingga order.',
+    description: 'Book lookup, login/register, cart, shipping info, payment gateway, and order fulfillment.',
     iconName: 'Workflow',
   },
   {
     type: 'swimlane',
     title: 'Swimlane / Cross-Functional',
-    subtitle: 'Bagan Alir Lintas Departemen (Contoh: SOP Perusahaan)',
-    badge: 'ERP & Bisnis',
-    description: 'Terbagi dalam lajur Sales, Purchasing, Production, dan Finance Department.',
+    subtitle: 'Cross-Department Process (e.g. Enterprise SOP)',
+    badge: 'ERP & Business',
+    description: 'Structured across Sales, Purchasing, Production, and Finance Department swimlanes.',
     iconName: 'Columns',
   },
   {
     type: 'sop',
     title: 'Operational SOP Flow',
-    subtitle: 'Alur Layanan & Antrean (Contoh: Pasien Klinik RS)',
+    subtitle: 'Service & Triage Workflow (e.g. Hospital Clinic Patient)',
     badge: 'Operations',
-    description: 'Pemeriksaan ketersediaan dokter/perawat, resep obat, jadwal kontrol, dan triase.',
+    description: 'Doctor & nurse availability verification, pharmacy prescription, follow-up calendar, and triage.',
     iconName: 'PlayCircle',
   },
   {
     type: 'dfd',
     title: 'Data Flow Diagram (DFD)',
-    subtitle: 'Diagram Alir Data Sistem (Contoh: Order Resto)',
+    subtitle: 'System Data Flow Diagram (e.g. Restaurant POS Order)',
     badge: 'System Analyst',
-    description: 'Relasi entitas eksternal, proses lingkaran, database inventory/order, dan data flow.',
+    description: 'External entities, process circles, database stores for inventory and customer orders, and data flows.',
     iconName: 'Database',
   },
   {
     type: 'algorithm',
     title: 'Program / Algorithm Flow',
-    subtitle: 'Logika Algoritma (Contoh: Seleksi Variabel a, b, c)',
+    subtitle: 'Algorithmic Logic (e.g. Variable Selection a, b, c)',
     badge: 'Engineering',
-    description: 'Deklarasi variabel, seleksi percabangan kondisi if/else, dan cetak nilai output.',
+    description: 'Variable declaration, conditional if/else branching, and output value printing.',
     iconName: 'SquareCode',
   },
   {
     type: 'kanban',
     title: 'Jira / Kanban Task Board',
-    subtitle: 'Todo List & Issue Tracker terhubung Workflow Node',
+    subtitle: 'Todo List & Issue Tracker linked to workflow nodes',
     badge: 'Agile & Sprint',
-    description: 'Kelola tiket To Do, In Progress, Review, dan Done yang terkoneksi langsung ke alur node/transisi workflow.',
+    description: 'Manage To Do, In Progress, Review, and Done tickets connected directly to workflow nodes.',
     iconName: 'LayoutDashboard',
   },
 ];
@@ -305,7 +305,7 @@ export const SAMPLE_ERP_NODES: FlowNode[] = [
     position: { x: 340, y: 145 },
     colorTheme: 'indigo',
     previewImageUrl: MOCKUP_CHECKOUT_FORM_SVG,
-    previewImageCaption: 'Form Input Sales Order VA01 & Validasi Credit Limit',
+    previewImageCaption: 'Sales Order VA01 Input Form & Credit Limit Validation',
   },
   {
     id: 'node_sample_3',
@@ -334,7 +334,7 @@ export const SAMPLE_ERP_NODES: FlowNode[] = [
     position: { x: 960, y: 260 },
     colorTheme: 'rose',
     previewImageUrl: MOCKUP_LOGIN_FAILED_SVG,
-    previewImageCaption: 'Alert Layar Out of Stock / Backorder Warning',
+    previewImageCaption: 'Out of Stock Alert & Backorder Warning Screen',
   },
   {
     id: 'node_sample_6',
@@ -360,7 +360,7 @@ export const SAMPLE_ERP_NODES: FlowNode[] = [
     position: { x: 1280, y: 65 },
     colorTheme: 'violet',
     previewImageUrl: MOCKUP_LOGIN_SUCCESS_SVG,
-    previewImageCaption: 'Dashboard Billing & Salinan Dokumen Faktur Pajak',
+    previewImageCaption: 'Billing Dashboard & Electronic Tax Invoice Copy',
   },
 ];
 
@@ -418,8 +418,8 @@ export const SKELETON_TEMPLATES: Record<FlowchartProjectType, GhostSkeletonTempl
       { id: 'sk_u1', type: 'process', label: 'Enter the website from the browser', description: 'User opens homepage', moduleCategory: 'Navigation', position: { x: 490, y: 130 }, colorTheme: 'slate' },
       // Row 2: Middle Diamond (X_MID = 600, Y = 245), Left Column (X_LEFT = 200, Y = 260), Right Column (X_RIGHT = 1000, Y = 260)
       { id: 'sk_u2', type: 'decision', label: 'Registered ?', description: 'Check account existence', moduleCategory: 'Auth', position: { x: 505, y: 245 }, colorTheme: 'amber' },
-      { id: 'sk_u3', type: 'process', label: 'Sign in', description: 'Authenticate user', moduleCategory: 'Auth', position: { x: 90, y: 260 }, colorTheme: 'indigo', previewImageUrl: MOCKUP_LOGIN_SUCCESS_SVG, previewImageCaption: 'Tampilan Form Sign In & Session Berhasil' },
-      { id: 'sk_u4', type: 'process', label: 'Sign up', description: 'Register new profile', moduleCategory: 'Auth', position: { x: 890, y: 260 }, colorTheme: 'indigo', previewImageUrl: MOCKUP_LOGIN_FAILED_SVG, previewImageCaption: 'Tampilan Error Registrasi / Password Kurang Aman' },
+      { id: 'sk_u3', type: 'process', label: 'Sign in', description: 'Authenticate user', moduleCategory: 'Auth', position: { x: 90, y: 260 }, colorTheme: 'indigo', previewImageUrl: MOCKUP_LOGIN_SUCCESS_SVG, previewImageCaption: 'Sign In Form & Active Session View' },
+      { id: 'sk_u4', type: 'process', label: 'Sign up', description: 'Register new profile', moduleCategory: 'Auth', position: { x: 890, y: 260 }, colorTheme: 'indigo', previewImageUrl: MOCKUP_LOGIN_FAILED_SVG, previewImageCaption: 'Registration Error / Insecure Password View' },
       // Row 3: Middle Column (X_MID = 600, Y = 400)
       { id: 'sk_u5', type: 'process', label: 'On home page search for book of your choice', description: 'Keyword lookup', moduleCategory: 'Catalog', position: { x: 490, y: 400 }, colorTheme: 'cyan' },
       // Row 4: Middle Column (X_MID = 600, Y = 520)
@@ -431,7 +431,7 @@ export const SKELETON_TEMPLATES: Record<FlowchartProjectType, GhostSkeletonTempl
       // Row 6: Left Column (X_LEFT = 200, Y = 800), Middle Column (X_MID = 600, Y = 800), Right Column (X_RIGHT = 1000, Y = 800)
       { id: 'sk_u10', type: 'process', label: 'Add to cart', description: 'Basket update', moduleCategory: 'Checkout', position: { x: 90, y: 800 }, colorTheme: 'violet' },
       { id: 'sk_u11', type: 'process', label: 'Review order', description: 'Order summary items', moduleCategory: 'Checkout', position: { x: 490, y: 800 }, colorTheme: 'violet' },
-      { id: 'sk_u12', type: 'inputOutput', label: 'Enter shipping information', description: 'Courier destination', moduleCategory: 'Logistics', position: { x: 890, y: 800 }, colorTheme: 'violet', previewImageUrl: MOCKUP_CHECKOUT_FORM_SVG, previewImageCaption: 'Tampilan Input Alamat Pengiriman & Kurir' },
+      { id: 'sk_u12', type: 'inputOutput', label: 'Enter shipping information', description: 'Courier destination', moduleCategory: 'Logistics', position: { x: 890, y: 800 }, colorTheme: 'violet', previewImageUrl: MOCKUP_CHECKOUT_FORM_SVG, previewImageCaption: 'Shipping Address & Courier Selection View' },
       // Row 7: Left Column (X_LEFT = 200, Y = 940), Middle Diamond (X_MID = 600, Y = 925), Right Column (X_RIGHT = 1000, Y = 940)
       { id: 'sk_u13_change', type: 'process', label: 'Change information', description: 'Edit address / cart', moduleCategory: 'Checkout', position: { x: 90, y: 940 }, colorTheme: 'rose' },
       { id: 'sk_u14', type: 'decision', label: 'Is information correct ?', description: 'Final confirmation', moduleCategory: 'Checkout', position: { x: 505, y: 925 }, colorTheme: 'amber' },
@@ -667,18 +667,18 @@ export const createInitialProject = (
         {
           id: 'task_sample_1',
           key: 'ERP-101',
-          title: 'Implementasi Validasi Kredensial & Screen Error Login',
-          description: 'Pastikan status HTTP 401 mengembalikan UI mockup alert error dan memblokir sesi user yang tidak sah.',
+          title: 'Implement Credential Validation & Login Error Screen',
+          description: 'Ensure HTTP 401 status returns mockup error alert UI and blocks unauthorized user sessions.',
           status: 'in_progress',
           priority: 'high',
           issueType: 'story',
           sprint: 'Sprint 1',
-          duration: '3 Hari',
+          duration: '3 Days',
           storyPoints: 5,
           startDate: '2026-10-15',
           dueDate: '2026-10-18',
-          acceptanceCriteria: '• Token JWT tersimpan di HttpOnly cookie\n• Error visual toast muncul jika username/password salah\n• Unit test validasi 100% pass',
-          assignee: 'Budi Santoso (Frontend)',
+          acceptanceCriteria: '• JWT token stored in HttpOnly cookie\n• Visual error toast appears when username/password is incorrect\n• Validation unit tests 100% pass',
+          assignee: 'Alex Turner (Frontend)',
           linkedWorkflowTabTitle: 'Amazon Book Order',
           linkedSourceNodeId: 'sk_u3',
           linkedSourceNodeLabel: 'Log In / Credentials',
@@ -691,18 +691,18 @@ export const createInitialProject = (
         {
           id: 'task_sample_2',
           key: 'ERP-102',
-          title: 'Integrasi Payment Gateway & Webhook Notifikasi Pembayaran',
-          description: 'Hubungkan endpoint callback pembayaran otomatis untuk merubah status order dari pending menjadi paid.',
+          title: 'Integrate Payment Gateway & Payment Notification Webhook',
+          description: 'Connect automated payment callback endpoint to transition order status from pending to paid.',
           status: 'todo',
           priority: 'urgent',
           issueType: 'task',
           sprint: 'Sprint 1',
-          duration: '5 Hari',
+          duration: '5 Days',
           storyPoints: 8,
           startDate: '2026-10-18',
           dueDate: '2026-10-23',
-          acceptanceCriteria: '• Webhook signature verification aktif\n• Idempotency key dicegah dari double charge\n• Retry mechanism bila timeout',
-          assignee: 'Siti Rahma (Backend)',
+          acceptanceCriteria: '• Webhook signature verification enabled\n• Idempotency key prevents double charges\n• Exponential backoff retry mechanism on timeout',
+          assignee: 'Sarah Jenkins (Backend)',
           linkedWorkflowTabTitle: 'Amazon Book Order',
           linkedSourceNodeId: 'sk_u13',
           linkedSourceNodeLabel: 'Select payment method',
@@ -715,19 +715,19 @@ export const createInitialProject = (
         {
           id: 'task_sample_3',
           key: 'ERP-103',
-          title: 'QC & Pengujian Alur Signing Kontrak Penjualan',
-          description: 'Verifikasi validitas klausa termin pembayaran sebelum diserahkan ke Purchasing Department.',
+          title: 'QC & Verification for Sales Contract Signing Flow',
+          description: 'Verify payment terms and clause compliance before handing over to Purchasing Department.',
           status: 'review',
           priority: 'medium',
           issueType: 'task',
           sprint: 'Sprint 2',
-          duration: '2 Hari',
+          duration: '2 Days',
           storyPoints: 3,
           startDate: '2026-10-24',
           dueDate: '2026-10-26',
-          acceptanceCriteria: '• Tanda tangan digital valid\n• Log approval audit trail tercatat di sistem',
-          assignee: 'Fajar Pratama (QA)',
-          linkedWorkflowTabTitle: 'SOP Perusahaan',
+          acceptanceCriteria: '• Digital signature validation passes\n• Approval audit trail log recorded in system',
+          assignee: 'Felix Cooper (QA)',
+          linkedWorkflowTabTitle: 'Company SOP',
           linkedSourceNodeId: 'sk_s1',
           linkedSourceNodeLabel: 'Sales contract signing',
           linkedTargetNodeId: 'sk_s2',
@@ -739,18 +739,18 @@ export const createInitialProject = (
         {
           id: 'task_sample_4',
           key: 'ERP-104',
-          title: 'Migrasi & Pembuatan Tabel Master Ledger PostgreSQL / SAP',
-          description: 'DDL skema tabel VBAK/VBAP untuk persistensi data invoice dan pajak.',
+          title: 'PostgreSQL / SAP Master Ledger Table Migration & Schema Creation',
+          description: 'DDL schema for VBAK/VBAP tables for invoice and tax persistence.',
           status: 'done',
           priority: 'low',
           issueType: 'task',
           sprint: 'Sprint 1',
-          duration: '1 Hari',
+          duration: '1 Day',
           storyPoints: 2,
           startDate: '2026-10-14',
           dueDate: '2026-10-15',
-          acceptanceCriteria: '• Foreign keys dan indeks terpasang\n• Data seed terisi untuk demo',
-          assignee: 'Andi Wijaya (DBA)',
+          acceptanceCriteria: '• Foreign keys and indices created\n• Seed data loaded for demo',
+          assignee: 'Andrew Miller (DBA)',
           linkedWorkflowTabTitle: 'Amazon Book Order',
           linkedSourceNodeId: 'node_sample_6',
           linkedSourceNodeLabel: 'VBAK / VBAP Sales Ledger',

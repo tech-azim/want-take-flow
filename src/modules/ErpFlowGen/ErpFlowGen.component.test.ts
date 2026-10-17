@@ -212,7 +212,7 @@ describe('ErpFlowGen Utilities Test Suite', () => {
     const loginFailedPreset = SCREEN_MOCKUP_PRESETS.find((p) => p.id === 'preset_login_failed');
     expect(loginFailedPreset).toBeDefined();
     expect(loginFailedPreset?.dataUrl.startsWith('data:image/svg+xml')).toBe(true);
-    expect(loginFailedPreset?.name).toContain('Login Gagal');
+    expect(loginFailedPreset?.name).toContain('Login Failed');
   });
 
   it('should have previewImageUrl configured for sample flowchart nodes', () => {

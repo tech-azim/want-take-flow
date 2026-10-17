@@ -161,7 +161,7 @@ export async function scanProjectFileList(
  */
 export async function testAiConnection(config: HermesAiConfig): Promise<{ success: boolean; message: string }> {
   if (!config.endpoint) {
-    return { success: false, message: 'URL Endpoint API belum diisi!' };
+    return { success: false, message: 'API Endpoint URL is required!' };
   }
 
   const endpointUrl = config.endpoint.replace(/\/+$/, '');
@@ -189,7 +189,7 @@ export async function testAiConnection(config: HermesAiConfig): Promise<{ succes
     });
 
     if (res.ok) {
-      return { success: true, message: `Koneksi ke ${config.model} berhasil!` };
+      return { success: true, message: `Connected to ${config.model} successfully!` };
     }
 
     const errText = await res.text();
@@ -201,11 +201,11 @@ export async function testAiConnection(config: HermesAiConfig): Promise<{ succes
       // Keep errText
     }
 
-    return { success: false, message: `Gagal (${res.status}): ${detail.slice(0, 150)}` };
+    return { success: false, message: `Failed (${res.status}): ${detail.slice(0, 150)}` };
   } catch (err: unknown) {
     return {
       success: false,
-      message: `Koneksi gagal: ${(err as Error).message || 'Periksa URL dan koneksi internet.'}`,
+      message: `Connection failed: ${(err as Error).message || 'Please check URL and internet connection.'}`,
     };
   }
 }
@@ -225,7 +225,7 @@ export async function generateFlowFromCodebase(
   // If API key is provided and endpoint is configured, attempt Hermes AI Generation
   if (config.apiKey.trim() && config.endpoint.trim()) {
     try {
-      onStepChange?.('Menyiapkan prompt arsitektur untuk Hermes AI...');
+      onStepChange?.('Preparing architecture analysis prompt for Hermes AI...');
       const summary = _buildCodebaseSummary(folderName, files);
 
       const endpointUrl = config.endpoint.replace(/\/+$/, '');
@@ -317,7 +317,7 @@ Return ONLY a strict JSON object with NO markdown formatting, NO backticks, NO e
 Codebase summary:
 ${summary}`;
 
-      onStepChange?.(`Menghubungi Hermes 3 (${config.model})...`);
+      onStepChange?.(`Connecting to Hermes 3 (${config.model})...`);
 
       const res = await fetch(url, {
         method: 'POST',
@@ -339,7 +339,7 @@ ${summary}`;
         throw new Error(`Hermes API error: ${res.statusText}`);
       }
 
-      onStepChange?.('Memproses respons JSON arsitektur dari Hermes AI...');
+      onStepChange?.('Parsing architecture JSON response from Hermes AI...');
       const data = await res.json();
       const content = data.choices?.[0]?.message?.content || '';
 
@@ -384,7 +384,7 @@ ${summary}`;
   }
 
   // Deterministic Smart Fallback Analyzer (Never fails)
-  onStepChange?.('Menganalisis struktur file project secara lokal...');
+  onStepChange?.('Analyzing project file structure locally...');
   return _generateSmartLocalFlowTabs(folderName, files);
 }
 

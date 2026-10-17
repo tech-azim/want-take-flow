@@ -272,7 +272,7 @@ export const _renderEdgeCurve = (
           onStartEdgeEndpointDrag?.(e, edge.id, 'auto');
         }}
       >
-        <title>Geser garis untuk memindahkan panah atau titik pangkal (Drag line to move arrow or start)</title>
+        <title>Drag line to move arrow or starting point</title>
       </path>
 
       {/* Selection outer glow */}
@@ -306,7 +306,7 @@ export const _renderEdgeCurve = (
             onStartEdgeEndpointDrag?.(e, edge.id, 'target');
           }}
         >
-          <title>Tarik titik bulat ini untuk memindahkan ujung panah ke sisi atau kotak lain</title>
+          <title>Drag this handle to move the arrow endpoint</title>
           {/* Large hit area for easy grabbing */}
           <circle
             cx={geometry.endX}
@@ -356,7 +356,7 @@ export const _renderEdgeCurve = (
             onStartEdgeEndpointDrag?.(e, edge.id, 'source');
           }}
         >
-          <title>Tarik titik bulat ini untuk memindahkan pangkal garis ke sisi atau kotak lain</title>
+          <title>Drag this handle to move the line starting point</title>
           {/* Large hit area */}
           <circle
             cx={geometry.startX}
@@ -488,16 +488,16 @@ export const _renderEdgeCurve = (
                   onSelectEdge?.(edge.id);
                   onClickEdgeLabel?.(edge.id);
                 }}
-                placeholder="Tulis label..."
+                placeholder="Label..."
                 className="bg-transparent border-none outline-none text-xs font-bold text-center transition-all cursor-text placeholder:text-slate-400 placeholder:font-normal placeholder:text-[10px]"
-                title="Klik untuk langsung ubah teks label garis ini"
+                title="Click to edit edge label"
                 style={{ width: `${Math.max(48, Math.min(130, (edge.label ? edge.label.length * 8 + 8 : 64)))}px` }}
               />
 
               {isSelected && _onDeleteEdge && (
                 <button
                   type="button"
-                  title="Hapus Garis"
+                  title="Delete Line"
                   onClick={(e) => {
                     e.stopPropagation();
                     _onDeleteEdge(edge.id);
@@ -560,13 +560,13 @@ export const _renderSwimlaneTable = (
           onClick={(e) => {
             e.stopPropagation();
             if (onUpdateMasterTitle) {
-              const newTitle = window.prompt('Ubah Judul Utama Swimlane Diagram:', masterTitle);
+              const newTitle = window.prompt('Edit Master Swimlane Diagram Title:', masterTitle);
               if (newTitle !== null && newTitle.trim()) {
                 onUpdateMasterTitle(newTitle.trim());
               }
             }
           }}
-          title={onUpdateMasterTitle ? 'Klik untuk ubah judul master diagram proses' : undefined}
+          title={onUpdateMasterTitle ? 'Click to edit master process diagram title' : undefined}
           className="w-14 bg-purple-100 hover:bg-purple-200/80 transition-colors border-r-2 border-purple-200 flex flex-col items-center justify-center py-6 shrink-0 pointer-events-auto cursor-pointer group/master"
         >
           <span className="font-extrabold text-[12px] uppercase tracking-widest text-purple-800 -rotate-90 whitespace-nowrap group-hover/master:underline">
@@ -606,19 +606,17 @@ export const _renderSwimlaneTable = (
                           }
                         }}
                         rows={Math.min(4, Math.max(1, Math.ceil(lane.name.length / 18)))}
-                        placeholder="Nama Departemen..."
-                        title="Klik untuk langsung ubah nama departemen ini"
+                        placeholder="Department Name..."
+                        title="Click to edit department name"
                         style={{ color: lane.color }}
-                        className={`w-full bg-transparent hover:bg-white/40 focus:bg-white/95 focus:ring-1 focus:ring-indigo-400 outline-none text-center font-bold uppercase tracking-wider leading-snug rounded-md px-1.5 py-1 transition-all cursor-text resize-none overflow-hidden break-words whitespace-pre-wrap ${
-                          lane.name.length > 22 ? 'text-[11px]' : 'text-xs'
-                        }`}
+                        className={`w-full bg-transparent hover:bg-white/40 focus:bg-white/95 focus:ring-1 focus:ring-indigo-400 outline-none text-center font-bold uppercase tracking-wider leading-snug rounded-md px-1.5 py-1 transition-all cursor-text resize-none overflow-hidden break-words whitespace-pre-wrap ${lane.name.length > 22 ? 'text-[11px]' : 'text-xs'
+                          }`}
                       />
                     ) : (
                       <span
                         style={{ color: lane.color }}
-                        className={`font-bold uppercase tracking-wider leading-snug break-words whitespace-pre-wrap text-center max-w-full ${
-                          lane.name.length > 22 ? 'text-[11px]' : 'text-xs'
-                        }`}
+                        className={`font-bold uppercase tracking-wider leading-snug break-words whitespace-pre-wrap text-center max-w-full ${lane.name.length > 22 ? 'text-[11px]' : 'text-xs'
+                          }`}
                       >
                         {lane.name}
                       </span>
@@ -631,7 +629,7 @@ export const _renderSwimlaneTable = (
                   {swimlanes.length > 1 && onDeleteLane ? (
                     <button
                       type="button"
-                      title={`Hapus lajur ${lane.name}`}
+                      title={`Delete lane ${lane.name}`}
                       onClick={() => onDeleteLane(lane.id)}
                       className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-rose-600 hover:bg-white rounded cursor-pointer"
                     >
@@ -651,7 +649,7 @@ export const _renderSwimlaneTable = (
                 {/* Interactive Drag & Drop Lane Height Resize Handle on Bottom Border */}
                 {onStartLaneResize && (
                   <div
-                    title={`Tarik ke bawah / ke atas untuk ubah tinggi lajur ${lane.name} (Drag to adjust height)`}
+                    title={`Drag up or down to adjust ${lane.name} lane height`}
                     onMouseDown={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -676,7 +674,7 @@ export const _renderSwimlaneTable = (
         {/* Right-edge Interactive Table Width Resize Handle */}
         {onStartTableResize ? (
           <div
-            title="Tarik ke samping untuk ubah lebar tabel (Drag to adjust table width)"
+            title="Drag sideways to adjust table width"
             onMouseDown={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -701,7 +699,7 @@ export const _renderSwimlaneTable = (
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white border border-slate-300 hover:border-indigo-500 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 text-xs font-semibold shadow-xs transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4 text-indigo-600" />
-            <span>+ Tambah Lajur Baru</span>
+            <span>Add New Lane</span>
           </button>
         ) : null}
 

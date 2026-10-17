@@ -1,8 +1,16 @@
 {
-  "name": "want-take-flow",
-  "private": true,
-  "version": "0.0.0",
+  "name": "@wtf/cli",
+  "version": "1.0.0",
+  "description": "WTF (Want Take Flow) - Visual Architecture & Process Diagram Gateway CLI",
   "type": "module",
+  "bin": {
+    "wtf": "./bin/wtf.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

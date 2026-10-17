@@ -1,0 +1,78 @@
+{
+  "name": "Starter Workflow Process",
+  "version": "1.0.0",
+  "exportedAt": "2026-10-17T12:38:07.812Z",
+  "tabs": [
+    {
+      "id": "tab_starter",
+      "title": "Customer Order Flow",
+      "type": "userflow",
+      "nodes": [
+        {
+          "id": "n_start",
+          "type": "start",
+          "label": "Kunjungi Website",
+          "description": "User membuka portal web e-commerce",
+          "position": {
+            "x": 260,
+            "y": 80
+          },
+          "colorTheme": "indigo"
+        },
+        {
+          "id": "n_browse",
+          "type": "process",
+          "label": "Pilih Produk & Checkout",
+          "description": "Memilih katalog dan memasukkan ke keranjang belanja",
+          "position": {
+            "x": 260,
+            "y": 220
+          },
+          "colorTheme": "blue"
+        },
+        {
+          "id": "n_pay",
+          "type": "decision",
+          "label": "Pembayaran Berhasil?",
+          "description": "Verifikasi konfirmasi payment gateway",
+          "position": {
+            "x": 260,
+            "y": 380
+          },
+          "colorTheme": "amber"
+        },
+        {
+          "id": "n_success",
+          "type": "end",
+          "label": "Pesanan Diproses",
+          "description": "Kirim notifikasi email invoice & kirim barang",
+          "position": {
+            "x": 260,
+            "y": 560
+          },
+          "colorTheme": "emerald"
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "sourceNodeId": "n_start",
+          "targetNodeId": "n_browse",
+          "label": "Buka Web"
+        },
+        {
+          "id": "e2",
+          "sourceNodeId": "n_browse",
+          "targetNodeId": "n_pay",
+          "label": "Klik Bayar"
+        },
+        {
+          "id": "e3",
+          "sourceNodeId": "n_pay",
+          "targetNodeId": "n_success",
+          "label": "Ya / Sukses"
+        }
+      ]
+    }
+  ]
+}

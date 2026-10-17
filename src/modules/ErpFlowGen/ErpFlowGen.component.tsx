@@ -387,7 +387,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
     if (!node.previewImageUrl) return null;
     return (
       <div
-        title="Screen Mockup tersedia (Arahkan kursor/hover untuk melihat)"
+        title="Screen Mockup available (Hover to preview)"
         className="absolute -top-2 left-2 z-30 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-600 text-white text-[9px] font-bold shadow-xs pointer-events-none"
       >
         <Camera className="w-2.5 h-2.5 stroke-[2.5]" />
@@ -396,7 +396,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
     );
   };
 
-  // Quick Node Action Buttons (Tarik Garis, Task Jira, Buka Modal Edit) at Top-Right Corner Outside Node
+  // Quick Node Action Buttons (Connect Line, Jira Task, Open Edit Modal) at Top-Right Corner Outside Node
   const _renderEditButton = (extraButtons?: React.ReactNode): React.ReactElement | null => {
     if (isViewOnly) return null;
     return (
@@ -408,7 +408,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
         {onStartConnection && (
           <button
             type="button"
-            title="Tarik Garis Penghubung (Drag or click to connect to another node)"
+            title="Connect Line (Drag or click to connect to another node)"
             onMouseDown={(e) => {
               e.stopPropagation();
               onStartConnection(e, node.id);
@@ -421,7 +421,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
         {onOpenCreateKanbanTask && (
           <button
             type="button"
-            title="Buat Tiket Task Jira untuk node ini"
+            title="Create Jira task ticket for this node"
             onClick={(e) => {
               e.stopPropagation();
               onOpenCreateKanbanTask('todo', node.id);
@@ -433,7 +433,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
         )}
         <button
           type="button"
-          title="Buka Modal Edit Node"
+          title="Open Edit Node Modal"
           onClick={(e) => {
             e.stopPropagation();
             onOpenEditModal(node.id);
@@ -445,7 +445,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
         {onDeleteNode && (
           <button
             type="button"
-            title="Hapus Node (Delete)"
+            title="Delete Node (Delete)"
             onClick={(e) => {
               e.stopPropagation();
               onDeleteNode(node.id);
@@ -502,7 +502,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
           <>
             {/* 1. Top Connection Port (Always available to drag new lines) */}
             <div
-              title="Tarik untuk buat garis baru dari Atas (Drag to connect)"
+              title="Drag to create new line from Top"
               onMouseDown={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -515,7 +515,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
 
             {/* 2. Left Connection Port (Always available to drag new lines) */}
             <div
-              title="Tarik untuk buat garis baru dari Kiri (Drag to connect)"
+              title="Drag to create new line from Left"
               onMouseDown={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -528,7 +528,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
 
             {/* 3. Right Connection Port (Always available to drag new lines) */}
             <div
-              title="Tarik untuk buat garis baru dari Kanan (Drag to connect)"
+              title="Drag to create new line from Right"
               onMouseDown={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -541,7 +541,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
 
             {/* 4. Bottom Connection Port (Always available to drag new lines) */}
             <div
-              title="Tarik untuk buat garis baru dari Bawah (Drag to connect)"
+              title="Drag to create new line from Bottom"
               onMouseDown={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -555,12 +555,12 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
             {/* 5. Quick Add Node (+) Button at Bottom-Right Corner Outside Node */}
             <button
               type="button"
-              title="Tambah langkah / node baru (Quick Add Node)"
+              title="Add next step / node (Quick Add Node)"
               onClick={(e) => {
                 e.stopPropagation();
                 onOpenAddModal(node.id, flowType === 'swimlane' ? 'right' : 'bottom');
               }}
-              className={`absolute -bottom-3.5 -right-3.5 w-6 h-6 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center justify-center cursor-pointer hover:scale-115 transition-transform z-45 pointer-events-auto ${isSelected ? 'opacity-100' : isPortVisible
+              className={`absolute -bottom-8 -right-8 w-6 h-6 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center justify-center cursor-pointer hover:scale-115 transition-transform z-45 pointer-events-auto ${isSelected ? 'opacity-100' : isPortVisible
                 } transition-opacity`}
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5] pointer-events-none" />
@@ -583,16 +583,10 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
 
     return (
       <>
-        {/* Live Dimension Indicator Badge when selected */}
-        {isSelected && (
-          <div className="absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-slate-900/90 text-white text-[9.5px] font-mono font-bold rounded-md shadow-md pointer-events-none z-50 whitespace-nowrap">
-            {dims.width} × {dims.height} px
-          </div>
-        )}
 
         {/* 1. Primary Bottom-Right Corner Resize Handle (Width & Height) */}
         <div
-          title="Tarik sudut ini untuk ubah lebar & tinggi bebas"
+          title="Drag corner to freely resize width & height"
           onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -605,7 +599,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
         {/* 2. Right-Edge Center Resize Handle (Width Only - Hover only) */}
         {!isHorizontal && !isDecision && (
           <div
-            title="Tarik ke samping untuk ubah lebar node"
+            title="Drag sideways to adjust node width"
             onMouseDown={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -618,7 +612,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
         {/* 3. Bottom-Edge Center Resize Handle (Height Only - Hover only) */}
         {isHorizontal && !isDecision && (
           <div
-            title="Tarik ke bawah untuk ubah tinggi node"
+            title="Drag down to adjust node height"
             onMouseDown={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -741,12 +735,12 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
                 type="button"
                 title={
                   rightIsPositive
-                    ? 'Cabang Positif / Ya (Lanjut ke Kanan)'
-                    : 'Cabang Negatif / Tidak (Alternatif ke Kanan)'
+                    ? 'Positive Branch / Yes (Proceed to Right)'
+                    : 'Negative Branch / No (Alternative to Right)'
                 }
                 onClick={(e) => {
                   e.stopPropagation();
-                  onOpenAddModal(node.id, 'right', rightIsPositive ? 'Ya' : 'Tidak');
+                  onOpenAddModal(node.id, 'right', rightIsPositive ? 'Yes' : 'No');
                 }}
                 className={`w-6 h-6 rounded-full text-white shadow-md flex items-center justify-center cursor-pointer hover:scale-115 transition-transform ${rightIsPositive
                   ? 'bg-emerald-600 hover:bg-emerald-700 ring-2 ring-emerald-200'
@@ -766,7 +760,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
                   : 'bg-rose-50 text-rose-700 border border-rose-300'
                   }`}
               >
-                {rightIsPositive ? '✓ Ya' : '✕ Tidak'}
+                {rightIsPositive ? '✓ Yes' : '✕ No'}
               </span>
             </div>
           )}
@@ -778,12 +772,12 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
                 type="button"
                 title={
                   bottomIsPositive
-                    ? 'Cabang Positif / Ya (Lanjut ke Bawah)'
-                    : 'Cabang Negatif / Tidak (Alternatif ke Bawah)'
+                    ? 'Positive Branch / Yes (Proceed to Bottom)'
+                    : 'Negative Branch / No (Alternative to Bottom)'
                 }
                 onClick={(e) => {
                   e.stopPropagation();
-                  onOpenAddModal(node.id, 'bottom', bottomIsPositive ? 'Ya' : 'Tidak');
+                  onOpenAddModal(node.id, 'bottom', bottomIsPositive ? 'Yes' : 'No');
                 }}
                 className={`w-6 h-6 rounded-full text-white shadow-md flex items-center justify-center cursor-pointer hover:scale-115 transition-transform ${bottomIsPositive
                   ? 'bg-emerald-600 hover:bg-emerald-700 ring-2 ring-emerald-200'
@@ -803,7 +797,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
                   : 'bg-rose-50 text-rose-700 border border-rose-300'
                   }`}
               >
-                {bottomIsPositive ? '✓ Ya' : '✕ Tidak'}
+                {bottomIsPositive ? '✓ Yes' : '✕ No'}
               </span>
             </div>
           )}
@@ -813,7 +807,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
             !isViewOnly && onToggleDecisionSwap && (
               <button
                 type="button"
-                title="Tukar Arah Cabang (Positif ⇄ Negatif)"
+                title="Swap Branch Direction (Positive ⇄ Negative)"
                 onClick={(e) => {
                   e.stopPropagation();
                   onToggleDecisionSwap(node.id);
@@ -829,7 +823,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
           {!isViewOnly && (
             <button
               type="button"
-              title="Tambah langkah / node baru (Quick Add Node)"
+              title="Add next step / node (Quick Add Node)"
               onClick={(e) => {
                 e.stopPropagation();
                 onOpenAddModal(node.id, flowType === 'swimlane' ? 'right' : 'bottom');
@@ -1656,7 +1650,7 @@ const _renderGroupFrames = (
                   onSelectGroup(group.id);
                 }}
                 onMouseDown={(e) => onStartGroupDrag(e, group.id)}
-                title="Tarik tab ini untuk memindahkan Frame Group dan semua node di dalamnya"
+                title="Drag this tab to move the Group Frame and all enclosed nodes"
                 className={`absolute -top-8 left-3 flex items-center gap-1.5 px-3 py-1.5 rounded-t-xl text-xs font-semibold shadow-md cursor-grab active:cursor-grabbing select-none transition-transform hover:-translate-y-0.5 z-40 pointer-events-auto ${theme.tagBg} ${theme.tagText}`}
               >
                 <GripHorizontal className="w-4 h-4 opacity-90 shrink-0" />
@@ -1669,22 +1663,22 @@ const _renderGroupFrames = (
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                   className="bg-transparent border-b border-transparent hover:border-white/40 focus:border-white focus:bg-white/10 outline-none px-1 text-xs font-bold text-white rounded-xs w-28 sm:w-36 truncate transition-colors"
-                  placeholder="Nama Group Frame..."
+                  placeholder="Group Frame Title..."
                 />
 
                 {/* Node Count Pill with Move icon */}
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold flex items-center gap-1 ${theme.badgeBg}`}
-                  title={`${insideCount} node berada di dalam frame ini. Tarik frame untuk memindahkan seluruh grup sekaligus.`}
+                  title={`${insideCount} nodes enclosed in this frame. Drag frame to move group together.`}
                 >
                   <Move className="w-2.5 h-2.5" />
-                  {insideCount} node
+                  {insideCount} nodes
                 </span>
 
                 {/* Cycle Color Button */}
                 <button
                   type="button"
-                  title="Ganti warna Frame"
+                  title="Change Frame Color"
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1700,7 +1694,7 @@ const _renderGroupFrames = (
                 {/* Delete Frame Button */}
                 <button
                   type="button"
-                  title="Hapus Frame Group (Node tidak ikut terhapus)"
+                  title="Delete Group Frame (Nodes are preserved)"
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1718,7 +1712,7 @@ const _renderGroupFrames = (
                   e.stopPropagation();
                   onStartGroupResize(e, group.id, 'both');
                 }}
-                title="Tarik untuk perbesar / perkecil Frame"
+                title="Drag to resize Frame"
                 className="absolute -bottom-2 -right-2 w-5 h-5 bg-white border-2 border-slate-400 hover:border-indigo-600 hover:bg-indigo-50 rounded-md shadow-xs flex items-center justify-center cursor-nwse-resize z-40 group-hover/frame:opacity-100 transition-opacity pointer-events-auto"
               >
                 <div className="w-1.5 h-1.5 bg-slate-500 rounded-xs" />
@@ -1730,7 +1724,7 @@ const _renderGroupFrames = (
                   e.stopPropagation();
                   onStartGroupResize(e, group.id, 'horizontal');
                 }}
-                title="Tarik lebar Frame"
+                title="Drag Frame width"
                 className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-3 h-8 bg-white border-2 border-slate-300 hover:border-indigo-600 rounded-sm shadow-2xs cursor-ew-resize z-40 opacity-0 group-hover/frame:opacity-100 transition-opacity pointer-events-auto"
               />
 
@@ -1740,7 +1734,7 @@ const _renderGroupFrames = (
                   e.stopPropagation();
                   onStartGroupResize(e, group.id, 'vertical');
                 }}
-                title="Tarik tinggi Frame"
+                title="Drag Frame height"
                 className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-8 h-3 bg-white border-2 border-slate-300 hover:border-indigo-600 rounded-sm shadow-2xs cursor-ns-resize z-40 opacity-0 group-hover/frame:opacity-100 transition-opacity pointer-events-auto"
               />
             </div>
@@ -1770,7 +1764,7 @@ const _renderMinimap = (
         <button
           type="button"
           onClick={onToggle}
-          title="Buka Minimap"
+          title="Open Minimap"
           className="flex items-center gap-2 px-3 py-2 bg-white/95 backdrop-blur-md rounded-xl border border-slate-200 shadow-md hover:shadow-lg text-slate-700 hover:text-indigo-600 text-xs font-semibold transition-all cursor-pointer"
         >
           <Map className="w-4 h-4 text-indigo-600" />
@@ -1858,7 +1852,7 @@ const _renderMinimap = (
         <button
           type="button"
           onClick={onToggle}
-          title="Tutup Minimap"
+          title="Close Minimap"
           className="w-5 h-5 rounded-md hover:bg-slate-200 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
         >
           <X className="w-3 h-3" />
@@ -2124,7 +2118,8 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
   }, [selectedEdgeId]);
 
   // Filtered shape options in modal
-  const filteredShapes = addNodeModal.shapeCategoryFilter === 'Semua'
+  // Filtered shape options in modal
+  const filteredShapes = addNodeModal.shapeCategoryFilter === 'All'
     ? FLOW_NODE_TYPE_OPTIONS
     : FLOW_NODE_TYPE_OPTIONS.filter((s) => s.category === addNodeModal.shapeCategoryFilter);
 
@@ -2185,14 +2180,14 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 ) : (
                   <div className="flex items-center gap-1.5 max-w-[160px]">
                     <span
-                      title="Klik 2x untuk ganti nama tab"
+                      title="Double-click to rename tab"
                       className="truncate"
                     >
                       {tab.title}
                     </span>
                     <button
                       type="button"
-                      title="Ganti nama tab"
+                      title="Rename tab"
                       onClick={(e) => {
                         e.stopPropagation();
                         onStartRenameTab(tab.id, tab.title);
@@ -2203,7 +2198,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     </button>
                     <button
                       type="button"
-                      title="Clone / Duplikat tab ini"
+                      title="Clone / Duplicate this tab"
                       onClick={(e) => {
                         e.stopPropagation();
                         onCloneTab(tab.id);
@@ -2221,7 +2216,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
 
                 <button
                   type="button"
-                  title="Tutup tab"
+                  title="Close tab"
                   onClick={(e) => onCloseTab(tab.id, e)}
                   className="w-4 h-4 rounded-full hover:bg-slate-300 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors ml-1 cursor-pointer"
                 >
@@ -2233,7 +2228,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
 
           <button
             type="button"
-            title="Tambah Project / Flowchart Baru (+)"
+            title="Add New Project / Flowchart (+)"
             onClick={onAddTabClick}
             className="w-7 h-7 rounded-full bg-slate-300/80 hover:bg-white text-slate-700 flex items-center justify-center transition-all ml-1.5 cursor-pointer shadow-xs hover:shadow"
           >
@@ -2262,18 +2257,20 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
       <header className="h-12 bg-white border-b border-slate-200 px-3 sm:px-4 flex items-center justify-between gap-3 shrink-0 z-20 overflow-x-auto no-scrollbar">
         {/* Left Section: Logo, Title, Tab Stats, and Undo / Redo */}
         <div className="flex items-center gap-2.5 min-w-0 shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <img
-              src="/logo.png"
-              alt="LamanKilat Flow Logo"
-              className="w-7 h-7 object-contain drop-shadow-xs shrink-0 select-none hover:scale-105 transition-transform"
-            />
-            <div className="min-w-0 max-w-[160px] sm:max-w-[220px]">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-slate-950 border border-slate-800 p-1 flex items-center justify-center shadow-xs shrink-0 hover:scale-105 transition-all">
+              <img
+                src="/favicon.svg"
+                alt="Want Take Flow Logo"
+                className="w-full h-full object-contain select-none"
+              />
+            </div>
+            <div className="min-w-0 max-w-[180px] sm:max-w-[240px]">
               <div className="font-bold text-xs text-slate-900 leading-tight flex items-center gap-1.5">
                 <span className="truncate" title={activeTab.title}>{activeTab.title}</span>
                 <button
                   type="button"
-                  title="Ganti nama project / tab ini"
+                  title="Rename active project / tab"
                   onClick={() => onStartRenameTab(activeTab.id, activeTab.title)}
                   className="w-4 h-4 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer transition-colors shrink-0"
                 >
@@ -2281,7 +2278,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 </button>
                 <button
                   type="button"
-                  title="Clone / Duplikat tab aktif ini"
+                  title="Clone / Duplicate active tab"
                   onClick={() => onCloneTab(activeTab.id)}
                   className="w-4 h-4 rounded text-slate-400 hover:text-emerald-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer transition-colors shrink-0"
                 >
@@ -2336,14 +2333,14 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             <button
               type="button"
               onClick={onZoomOut}
-              title="Perkecil Kanvas"
+              title="Zoom Out"
               className="w-7 h-7 rounded-md hover:bg-white text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
             <span
               onClick={onResetZoom}
-              title="Reset Zoom ke 100%"
+              title="Reset Zoom to 100%"
               className="text-[11px] font-mono px-1.5 text-slate-600 cursor-pointer hover:text-indigo-600 font-semibold select-none"
             >
               {Math.round(transform.scale * 100)}%
@@ -2351,7 +2348,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             <button
               type="button"
               onClick={onZoomIn}
-              title="Perbesar Kanvas"
+              title="Zoom In"
               className="w-7 h-7 rounded-md hover:bg-white text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer"
             >
               <ZoomIn className="w-3.5 h-3.5" />
@@ -2359,22 +2356,22 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
           </div>
 
 
-          {/* + Tambah Node */}
+          {/* + Add Node */}
           <button
             type="button"
             onClick={() => onOpenAddNodeModal(selectedNodeId || (nodes[nodes.length - 1]?.id ?? ''))}
-            title="Tambah Langkah / Node Baru ke Alur Diagram"
+            title="Add New Step / Node to Flowchart"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all cursor-pointer shadow-xs active:scale-95 shrink-0"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>Tambah Node</span>
+            <span>Add Node</span>
           </button>
 
           {/* + Frame Group */}
           <button
             type="button"
             onClick={onAddGroupFrame}
-            title="Kelompokkan Node ke dalam Frame (Group Box)"
+            title="Group Nodes into Frame (Group Box)"
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:text-indigo-600 hover:border-indigo-300 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
           >
             <FolderPlus className="w-3.5 h-3.5 text-indigo-600" />
@@ -2388,7 +2385,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             <button
               type="button"
               onClick={onLoadTemplate}
-              title="Reset ke template awal"
+              title="Reset to initial template"
               className="w-7 h-7 rounded-md hover:bg-white text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -2396,7 +2393,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             <button
               type="button"
               onClick={onClearCanvas}
-              title="Kosongkan alur di kanvas"
+              title="Clear canvas diagram"
               className="w-7 h-7 rounded-md hover:bg-white text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -2405,7 +2402,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             <button
               type="button"
               onClick={onImportJsonClick}
-              title="Import diagram JSON"
+              title="Import JSON diagram"
               className="w-7 h-7 rounded-md hover:bg-white text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer"
             >
               <Upload className="w-3.5 h-3.5" />
@@ -2413,7 +2410,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             <button
               type="button"
               onClick={onExportJson}
-              title="Download diagram JSON file"
+              title="Download JSON diagram file"
               className="w-7 h-7 rounded-md hover:bg-white text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
@@ -2434,7 +2431,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             <button
               type="button"
               onClick={() => onSetProjectSubView('flowchart')}
-              title="Tampilkan Diagram Alur / Node"
+              title="Show Flowchart Diagram / Nodes"
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${projectSubView === 'flowchart' && activeTab.type !== 'kanban'
                 ? 'bg-white text-indigo-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -2446,7 +2443,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             <button
               type="button"
               onClick={() => onSetProjectSubView('kanban')}
-              title="Tampilkan Task Board (Tiket Alur)"
+              title="Show Task Board (Workflow Tickets)"
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${projectSubView === 'kanban' || activeTab.type === 'kanban'
                 ? 'bg-white text-indigo-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -2465,28 +2462,28 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
           <div className="h-5 w-[1px] bg-slate-200 mx-0.5 shrink-0" />
 
           {/* Connector Line Style Switcher */}
-          <div className="flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200 shrink-0" title="Bentuk Garis Alur (Siku-Siku Tegas / Melengkung)">
+          <div className="flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200 shrink-0" title="Connector Line Style (Orthogonal / Curved)">
             <button
               type="button"
               onClick={() => onSetConnectorStyle('orthogonal')}
-              title="Garis Siku-Siku Tegas (Standar Flowchart)"
+              title="Orthogonal Right-Angle Lines (Flowchart Standard)"
               className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${connectorStyle === 'orthogonal'
                 ? 'bg-white text-indigo-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
-              <span>⏞ Siku Tegas</span>
+              <span>⏞ Orthogonal</span>
             </button>
             <button
               type="button"
               onClick={() => onSetConnectorStyle('curved')}
-              title="Garis Melengkung Halus (Smooth Curve)"
+              title="Smooth Curved Lines"
               className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${connectorStyle === 'curved'
                 ? 'bg-white text-indigo-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
-              <span>∿ Lengkung</span>
+              <span>∿ Curved</span>
             </button>
           </div>
 
@@ -2495,7 +2492,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             type="button"
             onClick={onExportPng}
             disabled={isExportingPng}
-            title="Export ke gambar PNG"
+            title="Export to PNG image"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-2xs cursor-pointer disabled:opacity-50 shrink-0"
           >
             <ImageIcon className="w-3.5 h-3.5" />
@@ -2506,7 +2503,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
           <button
             type="button"
             onClick={onOpenShareModal}
-            title="Bagikan Flowchart ini (Mode View-Only)"
+            title="Share Flowchart (View-Only Mode)"
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
           >
             <Share2 className="w-3.5 h-3.5 text-purple-600" />
@@ -2517,7 +2514,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
           <button
             type="button"
             onClick={onToggleHelpModal}
-            title="Bantuan & Petunjuk"
+            title="Help & Shortcuts"
             className="w-7 h-7 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer shrink-0"
           >
             <HelpCircle className="w-4 h-4" />
@@ -2622,7 +2619,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                       </span>
                       <span className="text-xs text-slate-400">•</span>
                       <span className="text-xs font-semibold text-slate-500">
-                        {tasks.length} Tiket ({doneCount} Selesai • {progressPercent}%)
+                        {tasks.length} Tickets ({doneCount} Done • {progressPercent}%)
                         {totalStoryPoints > 0 && ` • ${totalStoryPoints} Story Points`}
                       </span>
                     </div>
@@ -2640,14 +2637,14 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer border border-slate-200"
                   >
                     <Workflow className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Kembali ke Flowchart</span>
+                    <span>Back to Flowchart</span>
                   </button>
 
                   <div className="relative">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="Cari tiket, key, sprint, atau node..."
+                      placeholder="Search tickets, keys, sprints, or nodes..."
                       value={kanbanSearchQuery}
                       onChange={(e) => onSetKanbanSearchQuery(e.target.value)}
                       className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 w-48 transition-all"
@@ -2660,7 +2657,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     onChange={(e) => onSetKanbanSprintFilter(e.target.value)}
                     className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                   >
-                    <option value="all">Semua Sprint</option>
+                    <option value="all">All Sprints</option>
                     {availableSprints.map((sp) => (
                       <option key={sp} value={sp}>
                         {sp}
@@ -2674,7 +2671,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     onChange={(e) => onSetKanbanPriorityFilter(e.target.value)}
                     className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                   >
-                    <option value="all">Semua Prioritas</option>
+                    <option value="all">All Priorities</option>
                     <option value="urgent">Urgent (P1)</option>
                     <option value="high">High (P2)</option>
                     <option value="medium">Medium (P3)</option>
@@ -2690,18 +2687,18 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                       }`}
                   >
                     <Workflow className="w-3.5 h-3.5" />
-                    <span>Hanya Terkoneksi Node</span>
+                    <span>Only Linked Nodes</span>
                   </button>
 
                   {!isViewOnly && nodes.length > 0 && (
                     <button
                       type="button"
                       onClick={onGenerateTasksFromNodes}
-                      title="Generate tiket otomatis dari setiap node di flowchart ini"
+                      title="Automatically generate tickets from each node in this flowchart"
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors cursor-pointer"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>Sync Node ke Tiket</span>
+                      <span>Sync Nodes to Tickets</span>
                     </button>
                   )}
 
@@ -2712,7 +2709,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                       className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm cursor-pointer hover:scale-102 transition-all active:scale-98"
                     >
                       <Plus className="w-4 h-4 stroke-[2.5]" />
-                      <span>Buat Tiket Baru</span>
+                      <span>Create New Ticket</span>
                     </button>
                   )}
                 </div>
@@ -2771,7 +2768,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                         {!isViewOnly && (
                           <button
                             type="button"
-                            title={`Tambah tiket ke ${col.title}`}
+                            title={`Add ticket to ${col.title}`}
                             onClick={() => onOpenCreateKanbanTask(col.id)}
                             className="w-6 h-6 rounded-lg hover:bg-slate-300/60 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
                           >
@@ -2791,7 +2788,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                           >
                             <ListTodo className="w-6 h-6 mb-1 opacity-70" />
                             <span className="text-xs font-medium">
-                              {dragOverKanbanColId === col.id ? 'Lepaskan tiket di sini' : 'Tidak ada tiket'}
+                              {dragOverKanbanColId === col.id ? 'Drop ticket here' : 'No tickets'}
                             </span>
                           </div>
                         ) : (
@@ -2857,7 +2854,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                                         <button
                                           type="button"
-                                          title="Edit Tiket"
+                                          title="Edit Ticket"
                                           onClick={() => onOpenEditKanbanTask(task.id)}
                                           className="w-5 h-5 rounded hover:bg-slate-100 text-slate-400 hover:text-indigo-600 flex items-center justify-center cursor-pointer"
                                         >
@@ -2865,7 +2862,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                                         </button>
                                         <button
                                           type="button"
-                                          title="Hapus Tiket"
+                                          title="Delete Ticket"
                                           onClick={() => onDeleteKanbanTask(task.id)}
                                           className="w-5 h-5 rounded hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center cursor-pointer"
                                         >
@@ -2951,7 +2948,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                                       </span>
                                       <button
                                         type="button"
-                                        title="Buka tab ini dan sorot node di flowchart"
+                                        title="Open this tab and highlight node in flowchart"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           onJumpToLinkedWorkflow(
@@ -2962,14 +2959,14 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                                         }}
                                         className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors shadow-2xs cursor-pointer shrink-0"
                                       >
-                                        <span>Lihat Alur</span>
+                                        <span>View Flow</span>
                                         <ArrowRight className="w-2.5 h-2.5 text-slate-400" />
                                       </button>
                                     </div>
 
                                     <div className="text-[10px] font-medium text-slate-700 flex items-center gap-1 flex-wrap">
                                       <span className="px-1.5 py-0.5 rounded bg-white font-medium text-slate-800 border border-slate-200 shadow-2xs">
-                                        {task.linkedSourceNodeLabel || 'Node Asal'}
+                                        {task.linkedSourceNodeLabel || 'Source Node'}
                                       </span>
                                       {task.linkedTargetNodeLabel && (
                                         <>
@@ -3007,7 +3004,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                                           onClick={() => onMoveKanbanTaskStatus(task.id, 'in_progress')}
                                           className="px-2 py-0.5 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold transition-colors cursor-pointer"
                                         >
-                                          Mulai ➔
+                                          Start ➔
                                         </button>
                                       )}
                                       {col.id === 'in_progress' && (
@@ -3025,7 +3022,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                                           onClick={() => onMoveKanbanTaskStatus(task.id, 'done')}
                                           className="px-2 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-bold transition-colors cursor-pointer"
                                         >
-                                          Selesai ✓
+                                          Done ✓
                                         </button>
                                       )}
                                       {col.id === 'done' && (
@@ -3033,7 +3030,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                                           type="button"
                                           onClick={() => onMoveKanbanTaskStatus(task.id, 'todo')}
                                           className="px-1.5 py-0.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 text-[10px] transition-colors cursor-pointer"
-                                          title="Pindahkan kembali ke Todo"
+                                          title="Move back to Todo"
                                         >
                                           ↩ Todo
                                         </button>
@@ -3050,7 +3047,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                         {dragOverKanbanColId === col.id && draggingKanbanTaskId && colTasks.length > 0 && (
                           <div className="py-3 px-4 rounded-xl border-2 border-dashed border-indigo-400 bg-indigo-50/70 text-indigo-700 text-xs font-semibold text-center flex items-center justify-center gap-1.5 animate-in fade-in transition-all">
                             <Plus className="w-4 h-4 stroke-[2.5]" />
-                            <span>Lepaskan tiket di sini untuk pindah ke {col.title}</span>
+                            <span>Drop ticket here to move to {col.title}</span>
                           </div>
                         )}
                       </div>
@@ -3348,11 +3345,11 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     <div className="flex items-center gap-1.5 px-0.5">
                       {[
                         { name: 'Indigo (Default)', color: '#4f46e5' },
-                        { name: 'Hijau', color: '#10b981' },
-                        { name: 'Merah', color: '#f43f5e' },
-                        { name: 'Kuning', color: '#f59e0b' },
-                        { name: 'Ungu', color: '#8b5cf6' },
-                        { name: 'Abu-abu', color: '#64748b' },
+                        { name: 'Green', color: '#10b981' },
+                        { name: 'Red', color: '#f43f5e' },
+                        { name: 'Yellow', color: '#f59e0b' },
+                        { name: 'Purple', color: '#8b5cf6' },
+                        { name: 'Gray', color: '#64748b' },
                       ].map((swatch) => {
                         const isCurrentColor = (edge.color || '#4f46e5') === swatch.color;
                         return (
@@ -3378,7 +3375,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     <div className="h-3 w-px bg-slate-700 mx-1 shrink-0" />
                     <button
                       type="button"
-                      title="Hapus Garis"
+                      title="Delete Connection Line"
                       onClick={(e) => {
                         e.stopPropagation();
                         onDeleteEdgeById(edge.id);
@@ -3406,26 +3403,26 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   className="flex items-center gap-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-full shadow-xs transition-all cursor-pointer hover:scale-105 active:scale-95"
                 >
                   <Target className="w-3.5 h-3.5" />
-                  <span>Fokus ke Start</span>
+                  <span>Focus on Start</span>
                 </button>
               </div>
             )}
 
-            {/* Floating Mode Switcher: Mode Edit vs Preview Only */}
+            {/* Floating Mode Switcher: Edit Mode vs Preview Mode */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl shadow-2xl border border-slate-700/80 pointer-events-auto select-none gap-1.5">
               <button
                 type="button"
                 onClick={() => {
                   if (isViewOnly) onToggleViewOnly();
                 }}
-                title="Beralih ke Mode Edit (Tambah, ubah, dan susun diagram)"
+                title="Switch to Edit Mode (Add, edit, and organize diagram)"
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${!isViewOnly
                   ? 'bg-indigo-600 text-white shadow-md active:scale-95'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
                   }`}
               >
                 <Edit3 className="w-3.5 h-3.5" />
-                <span>Mode Edit</span>
+                <span>Edit Mode</span>
               </button>
 
               <button
@@ -3433,14 +3430,14 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 onClick={() => {
                   if (!isViewOnly) onToggleViewOnly();
                 }}
-                title="Beralih ke Mode Preview Only (Lihat alur & preview mockup bersih)"
+                title="Switch to Preview Mode (Clean diagram and screen mockup preview)"
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${isViewOnly
                   ? 'bg-purple-600 text-white shadow-md active:scale-95'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
                   }`}
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>Preview Only</span>
+                <span>Preview Mode</span>
               </button>
             </div>
 
@@ -3458,7 +3455,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
         );
       })()}
 
-      {/* 4. Complete "Tambah Langkah Alur (Add Node)" Modal with Direct Shape Names */}
+      {/* 4. Complete "Add Workflow Step" Modal with Direct Shape Names */}
       {addNodeModal.isOpen ? (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
@@ -3470,19 +3467,19 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">
-                    Tambah Langkah Alur
+                    Add Workflow Step
                   </h3>
                   <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
-                    <span>Lanjutan dari: <strong>{addNodeModal.sourceNodeLabel || 'Node Sebelumnya'}</strong></span>
+                    <span>Continuing from: <strong>{addNodeModal.sourceNodeLabel || 'Previous Node'}</strong></span>
                     <span className="text-slate-300">•</span>
                     <span className="text-indigo-600 font-semibold flex items-center gap-0.5">
                       {addNodeModal.direction === 'bottom' ? (
                         <>
-                          <ArrowDown className="w-3 h-3" /> Arah Bawah
+                          <ArrowDown className="w-3 h-3" /> Downward
                         </>
                       ) : (
                         <>
-                          <ArrowRight className="w-3 h-3" /> Arah Kanan
+                          <ArrowRight className="w-3 h-3" /> Rightward
                         </>
                       )}
                     </span>
@@ -3504,12 +3501,12 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               {/* Form Input: Label */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Nama / Label Langkah <span className="text-rose-500">*</span>
+                  Step Name / Label <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Verifikasi Pembayaran Customer"
+                  placeholder="e.g. Verify Customer Payment"
                   value={addNodeModal.label}
                   onChange={(e) => onUpdateAddNodeField('label', e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all"
@@ -3521,11 +3518,11 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Label Garis Penghubung
+                    Connection Line Label
                   </label>
                   <input
                     type="text"
-                    placeholder="Contoh: Ya / Valid / Disetujui"
+                    placeholder="e.g. Yes / Valid / Approved"
                     value={addNodeModal.edgeLabel}
                     onChange={(e) => onUpdateAddNodeField('edgeLabel', e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all"
@@ -3534,11 +3531,11 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Kategori / Lajur Departemen
+                    Department / Category Lane
                   </label>
                   <input
                     type="text"
-                    placeholder="Contoh: Finance / Sales"
+                    placeholder="e.g. Finance / Sales"
                     value={addNodeModal.category}
                     onChange={(e) => onUpdateAddNodeField('category', e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all"
@@ -3549,11 +3546,11 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               {/* Form Input: Deskripsi */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Deskripsi Tambahan (Opsional)
+                  Additional Description (Optional)
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Instruksi kerja singkat atau catatan parameter..."
+                  placeholder="Brief work instructions or parameter notes..."
                   value={addNodeModal.description}
                   onChange={(e) => onUpdateAddNodeField('description', e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all resize-none"
@@ -3564,12 +3561,12 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-bold text-slate-800">
-                    Pilih Jenis Shape / Bentuk
+                    Select Shape / Node Type
                   </label>
 
                   {/* Filter tabs */}
                   <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px]">
-                    {['Semua', 'Event', 'Proses', 'Logika', 'Data & Dokumen', 'DFD'].map((cat) => (
+                    {['All', 'Event', 'Process', 'Logic', 'Data & Docs', 'DFD'].map((cat) => (
                       <button
                         key={cat}
                         type="button"
@@ -3620,7 +3617,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               {/* Form Input: Color Theme */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Warna Tema Node
+                  Node Theme Color
                 </label>
                 <div className="flex items-center gap-2">
                   {(['indigo', 'emerald', 'amber', 'rose', 'cyan', 'slate', 'violet'] as NodeColorTheme[]).map(
@@ -3666,14 +3663,14 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   onClick={onCloseAddNodeModal}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm hover:shadow transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   <Plus className="w-4 h-4 stroke-[2.5]" />
-                  <span>Tambahkan Langkah</span>
+                  <span>Add Step</span>
                 </button>
               </div>
             </form>
@@ -3715,7 +3712,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               {/* Nama / Label Node */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Nama / Label Langkah <span className="text-rose-500">*</span>
+                  Step Name / Label <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -3731,10 +3728,10 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-bold text-slate-800">
-                    Bentuk Shape Flowchart
+                    Flowchart Shape Type
                   </label>
                   <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
-                    {FLOW_NODE_TYPE_OPTIONS.find((s) => s.type === editNodeModal.type)?.label || 'Bentuk Standar'}
+                    {FLOW_NODE_TYPE_OPTIONS.find((s) => s.type === editNodeModal.type)?.label || 'Standard Shape'}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/70">
@@ -3770,7 +3767,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               {/* Kategori / Lajur Departemen */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Kategori / Lajur Departemen
+                  Department / Category Lane
                 </label>
                 <input
                   type="text"
@@ -3783,7 +3780,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               {/* Deskripsi */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Deskripsi Singkat
+                  Short Description
                 </label>
                 <textarea
                   rows={2}
@@ -3796,7 +3793,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               {/* Warna Tema Node */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Warna Tema
+                  Theme Color
                 </label>
                 <div className="flex items-center gap-2">
                   {(['indigo', 'emerald', 'amber', 'rose', 'cyan', 'slate', 'violet'] as NodeColorTheme[]).map(
@@ -3840,7 +3837,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                     <Camera className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Upload Gambar Layar (Tampil Saat Preview)</span>
+                    <span>Upload Screen Image (Shown During Preview)</span>
                   </label>
                   {editNodeModal.previewImageUrl ? (
                     <button
@@ -3848,7 +3845,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                       onClick={onClearMockupImage}
                       className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer"
                     >
-                      Hapus Gambar
+                      Remove Image
                     </button>
                   ) : null}
                 </div>
@@ -3857,24 +3854,24 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2.5 flex items-center justify-between gap-3 shadow-2xs">
                     <img
                       src={editNodeModal.previewImageUrl}
-                      alt="Pratinjau Gambar"
+                      alt="Image Preview"
                       className="w-24 h-16 object-cover rounded-xl border border-slate-200 bg-white shrink-0 shadow-2xs"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-bold text-slate-800">
-                        Gambar Terunggah
+                        Uploaded Image
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <label className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-xs font-semibold text-slate-700 cursor-pointer transition-colors shadow-2xs">
-                        Ganti Gambar
+                        Change Image
                         <input
                           type="file"
                           accept="image/*"
                           className="hidden"
                           onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) onUploadMockupImage(file);
+                              const file = e.target.files?.[0];
+                              if (file) onUploadMockupImage(file);
                           }}
                         />
                       </label>
@@ -3883,7 +3880,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                         onClick={onClearMockupImage}
                         className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 text-xs font-semibold cursor-pointer transition-colors"
                       >
-                        Hapus
+                        Remove
                       </button>
                     </div>
                   </div>
@@ -3893,7 +3890,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                       <Upload className="w-4 h-4" />
                     </div>
                     <div className="text-center">
-                      <span className="font-semibold text-indigo-600 group-hover:underline">Klik untuk upload gambar</span>
+                      <span className="font-semibold text-indigo-600 group-hover:underline">Click to upload image</span>
                       <span className="text-slate-500"> (PNG, JPG, WebP)</span>
                     </div>
                     <input
@@ -3901,8 +3898,8 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                       accept="image/*"
                       className="hidden"
                       onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) onUploadMockupImage(file);
+                          const file = e.target.files?.[0];
+                          if (file) onUploadMockupImage(file);
                       }}
                     />
                   </label>
@@ -3918,12 +3915,12 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     className="px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer flex items-center gap-1.5"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Hapus Node</span>
+                    <span>Delete Node</span>
                   </button>
 
                   <button
                     type="button"
-                    title="Buat tiket task di Task Board untuk node ini"
+                    title="Create task ticket on Task Board for this node"
                     onClick={() => {
                       onOpenCreateKanbanTask('todo', editNodeModal.nodeId);
                       onCloseEditNodeModal();
@@ -3931,7 +3928,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     className="px-3 py-2 rounded-xl text-xs font-semibold text-indigo-700 hover:bg-indigo-50 border border-indigo-200 transition-colors cursor-pointer flex items-center gap-1.5"
                   >
                     <LayoutDashboard className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Buat Tiket Task</span>
+                    <span>Create Task Ticket</span>
                   </button>
                 </div>
 
@@ -3941,13 +3938,13 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     onClick={onCloseEditNodeModal}
                     className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                   >
-                    Batal
+                    Cancel
                   </button>
                   <button
                     type="submit"
                     className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm hover:shadow transition-all cursor-pointer"
                   >
-                    Simpan Perubahan
+                    Save Changes
                   </button>
                 </div>
               </div>
@@ -3964,7 +3961,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-indigo-600" />
                 <h3 className="text-sm font-bold text-slate-900">
-                  Buat Project / Tab Flowchart Baru
+                  Create New Flowchart Project / Tab
                 </h3>
               </div>
               <button
@@ -3979,7 +3976,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             <form onSubmit={onConfirmCreateProject} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Nama Project
+                  Project Name
                 </label>
                 <input
                   type="text"
@@ -3993,7 +3990,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
 
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-2">
-                  Pilih Jenis Flowchart
+                  Select Flowchart Type
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {FLOWCHART_TYPES_METADATA.map((meta) => {
@@ -4028,13 +4025,13 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   onClick={onCloseCreateProjectModal}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm cursor-pointer"
                 >
-                  Buat Project
+                  Create Project
                 </button>
               </div>
             </form>
@@ -4049,7 +4046,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
                 <HelpCircle className="w-4 h-4 text-indigo-600" />
-                <span>Petunjuk Navigasi Flowchart</span>
+                <span>Flowchart Navigation Guide</span>
               </h3>
               <button
                 type="button"
@@ -4061,12 +4058,12 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             </div>
 
             <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
-              <p>• <strong>Tombol (+) Konsisten</strong>: Di setiap node terdapat tombol (+) di kanan (alur horizontal) dan bawah (alur vertikal).</p>
-              <p>• <strong>Edit Node</strong>: Klik ganda pada node atau klik ikon pensil untuk membuka modal edit.</p>
-              <p>• <strong>Ubah Ukuran Node</strong>: Tarik sudut kanan bawah node atau atur lebarnya di modal edit.</p>
-              <p>• <strong>Alur Vertikal Bersih</strong>: Koneksi ke bawah otomatis terarah vertikal tanpa loop kusut.</p>
-              <p>• <strong>Tabel Swimlane</strong>: Ukuran lebar tabel dapat diperpanjang lewat tombol (+200px) atau handle di tepi kanan.</p>
-              <p>• <strong>Data Otomatis Tersimpan</strong>: Semua alur tersimpan di LocalStorage dan tidak akan hilang saat direfresh.</p>
+              <p>• <strong>Consistent (+) Quick Actions</strong>: Every node has (+) buttons on the right (horizontal flow) and bottom (vertical flow).</p>
+              <p>• <strong>Edit Node</strong>: Double-click a node or click the pencil icon to open the edit modal.</p>
+              <p>• <strong>Resize Node</strong>: Drag the bottom-right handle of a node to resize.</p>
+              <p>• <strong>Clean Vertical Routing</strong>: Downward connections route cleanly without tangle loops.</p>
+              <p>• <strong>Swimlane Table</strong>: Table width can be expanded via the (+200px) button or the right edge handle.</p>
+              <p>• <strong>Auto-Saved Data</strong>: All workflow diagrams and tickets are saved locally and persist on page reload.</p>
             </div>
 
             <div className="pt-2 text-right">
@@ -4075,7 +4072,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 onClick={onToggleHelpModal}
                 className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold cursor-pointer"
               >
-                Mengerti
+                Got it
               </button>
             </div>
           </div>
@@ -4095,8 +4092,8 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   <Share2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">Bagikan Flowchart</h3>
-                  <p className="text-[11px] text-slate-500">Mode View-Only (Aman &amp; Read-Only)</p>
+                  <h3 className="text-sm font-bold text-slate-900">Share Flowchart</h3>
+                  <p className="text-[11px] text-slate-500">View-Only Mode (Secure &amp; Read-Only)</p>
                 </div>
               </div>
               <button
@@ -4112,7 +4109,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Link Publik View-Only
+                  Public View-Only Link
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -4134,7 +4131,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     ) : (
                       <Copy className="w-3.5 h-3.5" />
                     )}
-                    <span>{shareModal.isCopied ? 'Tersalin!' : 'Salin'}</span>
+                    <span>{shareModal.isCopied ? 'Copied!' : 'Copy'}</span>
                   </button>
                 </div>
               </div>
@@ -4142,7 +4139,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               <div className="p-3.5 bg-purple-50/80 rounded-xl border border-purple-200 flex items-start gap-2.5 text-xs text-purple-900">
                 <Lock className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
                 <div className="leading-relaxed">
-                  <strong>Aman &amp; Interaktif:</strong> Penerima link hanya bisa melihat diagram tanpa mengubah struktur. Seluruh interaksi interaktif seperti <strong>Zoom, Pan, Pindah Tab, Hover Preview Screen Mockup, dan Simulasi Flow</strong> tetap aktif sepenuhnya!
+                  <strong>Secure &amp; Interactive:</strong> Anyone with the link can explore diagrams in read-only mode without modifying structure. Interactive features like <strong>Zoom, Pan, Tab Switching, Mockup Hover Previews, and Flow Simulation</strong> remain fully functional!
                 </div>
               </div>
             </div>
@@ -4154,7 +4151,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 onClick={onCloseShareModal}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 transition-colors cursor-pointer"
               >
-                Selesai
+                Done
               </button>
             </div>
           </div>
@@ -4172,7 +4169,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 <span>Task Board</span>
                 <span className="text-slate-300">/</span>
                 <span className="text-slate-900 font-semibold">
-                  {kanbanTaskModal.taskId ? 'Edit Tiket' : 'Tiket Baru'}
+                  {kanbanTaskModal.taskId ? 'Edit Ticket' : 'New Ticket'}
                 </span>
               </div>
 
@@ -4192,7 +4189,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 <input
                   type="text"
                   required
-                  placeholder="Judul tiket..."
+                  placeholder="Ticket title..."
                   value={kanbanTaskModal.title}
                   onChange={(e) => onUpdateKanbanTaskField('title', e.target.value)}
                   className="w-full text-base font-semibold text-slate-900 placeholder:text-slate-400 placeholder:font-normal px-3 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 focus:border-slate-400 rounded-xl focus:outline-hidden transition-colors"
@@ -4204,7 +4201,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               <div>
                 <textarea
                   rows={2}
-                  placeholder="Tambahkan deskripsi atau catatan pengerjaan..."
+                  placeholder="Add description or implementation notes..."
                   value={kanbanTaskModal.description}
                   onChange={(e) => onUpdateKanbanTaskField('description', e.target.value)}
                   className="w-full text-xs text-slate-700 placeholder:text-slate-400 px-3 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 focus:border-slate-400 rounded-xl focus:outline-hidden resize-none transition-colors"
@@ -4233,7 +4230,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
 
                   <div>
                     <label className="block text-[11px] font-medium text-slate-500 mb-1">
-                      Prioritas
+                      Priority
                     </label>
                     <select
                       value={kanbanTaskModal.priority}
@@ -4273,7 +4270,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     </label>
                     <input
                       type="text"
-                      placeholder="Nama PIC"
+                      placeholder="Assignee name"
                       value={kanbanTaskModal.assignee}
                       onChange={(e) => onUpdateKanbanTaskField('assignee', e.target.value)}
                       className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden"
@@ -4285,7 +4282,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-200/60">
                   <div>
                     <label className="block text-[11px] font-medium text-slate-500 mb-1">
-                      Tipe Tiket
+                      Issue Type
                     </label>
                     <select
                       value={kanbanTaskModal.issueType}
@@ -4316,12 +4313,12 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
 
                   <div>
                     <label className="block text-[11px] font-medium text-slate-500 mb-1 flex items-center justify-between">
-                      <span>Estimasi</span>
+                      <span>Estimate</span>
                       <Clock className="w-3 h-3 text-slate-400" />
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. 2 Hari"
+                      placeholder="e.g. 2 Days"
                       value={kanbanTaskModal.duration}
                       onChange={(e) => onUpdateKanbanTaskField('duration', e.target.value)}
                       className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden"
@@ -4330,7 +4327,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
 
                   <div>
                     <label className="block text-[11px] font-medium text-slate-500 mb-1 flex items-center justify-between">
-                      <span>Tenggat</span>
+                      <span>Due Date</span>
                       <Calendar className="w-3 h-3 text-slate-400" />
                     </label>
                     <input
@@ -4348,7 +4345,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <input
                       type="text"
-                      placeholder="Tags / Labels (pisahkan dengan koma: Frontend, API, Auth)"
+                      placeholder="Tags / Labels (comma-separated: Frontend, API, Auth)"
                       value={kanbanTaskModal.tags}
                       onChange={(e) => onUpdateKanbanTaskField('tags', e.target.value)}
                       className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden"
@@ -4362,13 +4359,13 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 <label className="block text-xs font-medium text-slate-700 mb-1 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
                     <CheckSquare className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Kriteria Penerimaan (Acceptance Criteria)</span>
+                    <span>Acceptance Criteria</span>
                   </span>
-                  <span className="text-[10px] text-slate-400">Opsional</span>
+                  <span className="text-[10px] text-slate-400">Optional</span>
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="• Kriteria atau syarat selesai..."
+                  placeholder="• Acceptance criteria or completion requirements..."
                   value={kanbanTaskModal.acceptanceCriteria}
                   onChange={(e) => onUpdateKanbanTaskField('acceptanceCriteria', e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-slate-400 focus:outline-hidden resize-none transition-colors"
@@ -4380,9 +4377,9 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
                     <Workflow className="w-3.5 h-3.5 text-slate-600" />
-                    <span>Tautan Diagram Alur (Workflow Link)</span>
+                    <span>Workflow Diagram Link</span>
                   </div>
-                  <span className="text-[10px] text-slate-500">Hubungkan tiket ke langkah flowchart</span>
+                  <span className="text-[10px] text-slate-500">Link ticket to flowchart steps</span>
                 </div>
 
                 {/* Pilih Tab Flowchart */}
@@ -4395,7 +4392,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   }}
                   className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden cursor-pointer"
                 >
-                  <option value="">(Pilih diagram alur...)</option>
+                  <option value="">(Select workflow diagram...)</option>
                   {tabs
                     .filter((t) => t.type !== 'kanban')
                     .map((t) => (
@@ -4422,7 +4419,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                       {/* Dari Node Mana */}
                       <div>
                         <label className="block text-[10.5px] font-medium text-slate-500 mb-1">
-                          Node Asal (Trigger)
+                          Source Node (Trigger)
                         </label>
                         <select
                           value={kanbanTaskModal.linkedSourceNodeId}
@@ -4452,7 +4449,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                           }}
                           className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden cursor-pointer"
                         >
-                          <option value="">(Pilih node asal)</option>
+                          <option value="">(Select source node)</option>
                           {flowNodes.map((n) => (
                             <option key={n.id} value={n.id}>
                               {n.label} ({n.type})
@@ -4464,7 +4461,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                       {/* Ke Node Mana */}
                       <div>
                         <label className="block text-[10.5px] font-medium text-slate-500 mb-1">
-                          Node Tujuan (Transisi)
+                          Target Node (Transition)
                         </label>
                         <select
                           value={kanbanTaskModal.linkedTargetNodeId}
@@ -4482,20 +4479,20 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                           }}
                           className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden cursor-pointer"
                         >
-                          <option value="">(Hanya node ini - tanpa transisi)</option>
+                          <option value="">(Single node only - no transition)</option>
                           {outgoingEdges.length > 0 && (
-                            <optgroup label="Terkoneksi langsung dari node asal:">
+                            <optgroup label="Directly connected from source node:">
                               {outgoingEdges.map((ed) => {
                                 const targetNode = flowNodes.find((n) => n.id === ed.targetNodeId);
                                 return (
                                   <option key={`edge_${ed.id}`} value={ed.targetNodeId}>
-                                    ➔ {targetNode?.label || ed.targetNodeId} ({ed.label || 'Lanjut'})
+                                    ➔ {targetNode?.label || ed.targetNodeId} ({ed.label || 'Next'})
                                   </option>
                                 );
                               })}
                             </optgroup>
                           )}
-                          <optgroup label="Semua Node:">
+                          <optgroup label="All Nodes:">
                             {flowNodes
                               .filter((n) => n.id !== kanbanTaskModal.linkedSourceNodeId)
                               .map((n) => (
@@ -4513,11 +4510,11 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 {/* Connection Live Preview */}
                 {kanbanTaskModal.linkedSourceNodeId && (
                   <div className="pt-2 border-t border-slate-200 flex items-center gap-1.5 text-xs text-slate-700 flex-wrap">
-                    <span className="text-[10px] text-slate-400">Tautan:</span>
+                    <span className="text-[10px] text-slate-400">Link:</span>
                     <span className="px-2 py-0.5 rounded bg-white border border-slate-200 text-[11px] font-medium">
                       {tabs
                         .find((t) => t.id === kanbanTaskModal.linkedWorkflowTabId)
-                        ?.nodes.find((n) => n.id === kanbanTaskModal.linkedSourceNodeId)?.label || 'Node Asal'}
+                        ?.nodes.find((n) => n.id === kanbanTaskModal.linkedSourceNodeId)?.label || 'Source Node'}
                     </span>
                     {kanbanTaskModal.linkedTargetNodeId && (
                       <>
@@ -4526,7 +4523,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                           {tabs
                             .find((t) => t.id === kanbanTaskModal.linkedWorkflowTabId)
                             ?.nodes.find((n) => n.id === kanbanTaskModal.linkedTargetNodeId)?.label ||
-                            'Node Tujuan'}
+                            'Target Node'}
                         </span>
                       </>
                     )}
@@ -4549,7 +4546,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                       className="px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer flex items-center gap-1"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>Hapus Tiket</span>
+                      <span>Delete Ticket</span>
                     </button>
                   )}
                 </div>
@@ -4559,13 +4556,13 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     onClick={onCloseKanbanTaskModal}
                     className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
                   >
-                    Batal
+                    Cancel
                   </button>
                   <button
                     type="submit"
                     className="px-4 py-1.5 rounded-lg text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 transition-colors cursor-pointer shadow-xs"
                   >
-                    {kanbanTaskModal.taskId ? 'Simpan Perubahan' : 'Buat Tiket'}
+                    {kanbanTaskModal.taskId ? 'Save Changes' : 'Create Ticket'}
                   </button>
                 </div>
               </div>

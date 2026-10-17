@@ -1,0 +1,20 @@
+{
+  "name": "lamankilat-drawer",
+  "version": "1.0.0",
+  "description": "WTF Architecture & Business Process Workspace",
+  "gateway": {
+    "defaultPort": 5174,
+    "host": "localhost",
+    "autoOpen": true
+  },
+  "ai": {
+    "provider": "gemini",
+    "model": "gemini-2.5-pro"
+  },
+  "diagramDefaults": {
+    "connectorStyle": "orthogonal",
+    "theme": "slate",
+    "snapToGrid": true
+  },
+  "createdAt": "2026-10-17T12:38:07.809Z"
+}
