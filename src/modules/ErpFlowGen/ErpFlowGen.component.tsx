@@ -2003,7 +2003,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
   const currentSkeleton = SKELETON_TEMPLATES[activeTab.type];
 
   const [activeEdgeLabelToolbarId, setActiveEdgeLabelToolbarId] = React.useState<string | null>(null);
-  const [hoveredEdgeId, setHoveredEdgeId] = React.useState<string>('');
+  const [, setHoveredEdgeId] = React.useState<string>('');
   const [draggingKanbanTaskId, setDraggingKanbanTaskId] = React.useState<string | null>(null);
   const [dragOverKanbanColId, setDragOverKanbanColId] = React.useState<KanbanTaskStatus | null>(null);
 
