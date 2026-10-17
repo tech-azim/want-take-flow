@@ -703,6 +703,8 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     sourceNodeId: '',
     currentMousePosition: { x: 0, y: 0 },
   });
+  const connectingStateRef = useRef<ConnectingState>(connectingState);
+  connectingStateRef.current = connectingState;
 
   const [panningState, setPanningState] = useState<PanningState>({
     isPanning: false,
@@ -2468,42 +2470,73 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     (event: React.MouseEvent, nodeId: string, sourceAnchor?: 'top' | 'bottom' | 'left' | 'right'): void => {
       if (isViewOnly) return;
       event.stopPropagation();
-      const mouseX = (event.clientX - transform.x) / transform.scale;
-      const mouseY = (event.clientY - transform.y) / transform.scale;
+      const rect = mainContainerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
+      const mouseX = (event.clientX - rect.left - transform.x) / transform.scale;
+      const mouseY = (event.clientY - rect.top - transform.y) / transform.scale;
 
-      setConnectingState({
+      const newState: ConnectingState = {
         isConnecting: true,
         sourceNodeId: nodeId,
         sourceAnchor,
         currentMousePosition: { x: mouseX, y: mouseY },
-      });
+      };
+      connectingStateRef.current = newState;
+      setConnectingState(newState);
     },
     [isViewOnly, transform],
   );
 
   const handleCompleteConnection = useCallback(
     (targetNodeId: string, targetAnchor?: 'top' | 'bottom' | 'left' | 'right'): void => {
-      if (!connectingState.isConnecting) return;
+      const conn = connectingStateRef.current;
+      if (!conn.isConnecting && !connectingState.isConnecting) return;
 
-      const sourceId = connectingState.sourceNodeId;
+      const sourceId = conn.sourceNodeId || connectingState.sourceNodeId;
       if (sourceId && sourceId !== targetNodeId) {
         const isDuplicate = edges.some(
           (edge) =>
             edge.sourceNodeId === sourceId &&
             edge.targetNodeId === targetNodeId &&
-            (edge.sourceAnchor || 'auto') === (connectingState.sourceAnchor || 'auto') &&
+            (edge.sourceAnchor || 'auto') === (conn.sourceAnchor || connectingState.sourceAnchor || 'auto') &&
             (edge.targetAnchor || 'auto') === (targetAnchor || 'auto'),
         );
 
         if (!isDuplicate) {
           recordHistory();
+          const srcNode = nodes.find((n) => n.id === sourceId);
+          let edgeLabel = 'Lanjut';
+          let edgeColor: string | undefined = undefined;
+
+          // Smart auto-labeling for decision nodes: first branch is Yes, second is No
+          if (srcNode?.type === 'decision') {
+            const existingOutgoing = edges.filter((e) => e.sourceNodeId === sourceId);
+            const hasYes = existingOutgoing.some(
+              (e) => (e.label || '').toLowerCase().includes('yes') || (e.label || '').toLowerCase().includes('ya'),
+            );
+            const hasNo = existingOutgoing.some(
+              (e) => (e.label || '').toLowerCase().includes('no') || (e.label || '').toLowerCase().includes('tidak'),
+            );
+
+            if (!hasYes) {
+              edgeLabel = 'Yes';
+              edgeColor = '#10b981';
+            } else if (!hasNo) {
+              edgeLabel = 'No';
+              edgeColor = '#f43f5e';
+            } else {
+              edgeLabel = `Option ${existingOutgoing.length + 1}`;
+              edgeColor = '#6366f1';
+            }
+          }
+
           const newEdge: FlowEdge = {
             id: _generateUniqueId('edge'),
             sourceNodeId: sourceId,
             targetNodeId,
-            sourceAnchor: connectingState.sourceAnchor,
+            sourceAnchor: conn.sourceAnchor || connectingState.sourceAnchor,
             targetAnchor: targetAnchor || 'auto',
-            label: 'Lanjut',
+            label: edgeLabel,
+            color: edgeColor,
           };
 
           setTabs((prev) =>
@@ -2513,13 +2546,15 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         }
       }
 
-      setConnectingState({
+      const resetState: ConnectingState = {
         isConnecting: false,
         sourceNodeId: '',
         currentMousePosition: { x: 0, y: 0 },
-      });
+      };
+      connectingStateRef.current = resetState;
+      setConnectingState(resetState);
     },
-    [connectingState, edges, activeTabId, recordHistory],
+    [connectingState, edges, nodes, activeTabId, recordHistory],
   );
 
   const handleCanvasMouseDown = useCallback(
@@ -2564,13 +2599,16 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   const handleCanvasMouseMove = useCallback(
     (event: React.MouseEvent<HTMLDivElement>): void => {
       if (connectingState.isConnecting) {
-        const mouseX = (event.clientX - transform.x) / transform.scale;
-        const mouseY = (event.clientY - transform.y) / transform.scale;
+        const rect = mainContainerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
+        const mouseX = (event.clientX - rect.left - transform.x) / transform.scale;
+        const mouseY = (event.clientY - rect.top - transform.y) / transform.scale;
 
-        setConnectingState((previous) => ({
-          ...previous,
+        const nextState = {
+          ...connectingState,
           currentMousePosition: { x: mouseX, y: mouseY },
-        }));
+        };
+        connectingStateRef.current = nextState;
+        setConnectingState(nextState);
       }
     },
     [connectingState, transform],
@@ -3022,39 +3060,82 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
           const mouseY = (clientY - rect.top - transform.y) / transform.scale;
 
           let candidateId: string | undefined;
+          let minDistance = Infinity;
           activeTab.nodes.forEach((n) => {
             if (n.id === connectingState.sourceNodeId) return;
             const dims = _getNodeDimensions(n);
             const inside =
-              mouseX >= n.position.x - 20 &&
-              mouseX <= n.position.x + dims.width + 20 &&
-              mouseY >= n.position.y - 20 &&
-              mouseY <= n.position.y + dims.height + 20;
+              mouseX >= n.position.x - 40 &&
+              mouseX <= n.position.x + dims.width + 40 &&
+              mouseY >= n.position.y - 40 &&
+              mouseY <= n.position.y + dims.height + 40;
             if (inside) {
-              candidateId = n.id;
+              const centerX = n.position.x + dims.width / 2;
+              const centerY = n.position.y + dims.height / 2;
+              const dist = Math.hypot(mouseX - centerX, mouseY - centerY);
+              if (dist < minDistance) {
+                minDistance = dist;
+                candidateId = n.id;
+              }
             }
           });
 
-          setConnectingState((prev) => ({
-            ...prev,
+          const nextState: ConnectingState = {
+            ...connectingStateRef.current,
+            isConnecting: true,
             currentMousePosition: { x: mouseX, y: mouseY },
             candidateTargetNodeId: candidateId,
-          }));
+          };
+          connectingStateRef.current = nextState;
+          setConnectingState(nextState);
         });
       }
     };
 
-    const onWindowMouseUp = (): void => {
-      if (connectingState.isConnecting) {
-        if (connectingState.candidateTargetNodeId) {
-          handleCompleteConnection(connectingState.candidateTargetNodeId);
-        } else {
-          setConnectingState({
-            isConnecting: false,
-            sourceNodeId: '',
-            currentMousePosition: { x: 0, y: 0 },
+    const onWindowMouseUp = (event: MouseEvent): void => {
+      const conn = connectingStateRef.current;
+      if (conn.isConnecting && conn.sourceNodeId) {
+        const sourceId = conn.sourceNodeId;
+        const rect = mainContainerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
+        const mouseX = (event.clientX - rect.left - transform.x) / transform.scale;
+        const mouseY = (event.clientY - rect.top - transform.y) / transform.scale;
+
+        let targetId = conn.candidateTargetNodeId;
+        if (!targetId) {
+          let minDistance = Infinity;
+          activeTab.nodes.forEach((n) => {
+            if (n.id === sourceId) return;
+            const dims = _getNodeDimensions(n);
+            const inside =
+              mouseX >= n.position.x - 50 &&
+              mouseX <= n.position.x + dims.width + 50 &&
+              mouseY >= n.position.y - 50 &&
+              mouseY <= n.position.y + dims.height + 50;
+            if (inside) {
+              const centerX = n.position.x + dims.width / 2;
+              const centerY = n.position.y + dims.height / 2;
+              const dist = Math.hypot(mouseX - centerX, mouseY - centerY);
+              if (dist < minDistance) {
+                minDistance = dist;
+                targetId = n.id;
+              }
+            }
           });
         }
+
+        if (targetId) {
+          handleCompleteConnection(targetId);
+          handleCanvasMouseUp();
+          return;
+        }
+
+        const resetState: ConnectingState = {
+          isConnecting: false,
+          sourceNodeId: '',
+          currentMousePosition: { x: 0, y: 0 },
+        };
+        connectingStateRef.current = resetState;
+        setConnectingState(resetState);
       }
       handleCanvasMouseUp();
     };

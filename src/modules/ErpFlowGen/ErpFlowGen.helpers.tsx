@@ -255,25 +255,19 @@ export const _renderEdgeCurve = (
         onSelectEdge?.(edge.id);
       }}
     >
-      {/* Background thicker hover path for easy clicking & dragging to move arrow or start */}
+      {/* Background hover path for easy clicking to select edge */}
       <path
         d={geometry.pathD}
         fill="none"
         stroke="transparent"
-        strokeWidth={22}
-        className="pointer-events-auto cursor-grab active:cursor-grabbing"
+        strokeWidth={14}
+        className="pointer-events-auto cursor-pointer"
         style={{ pointerEvents: 'stroke' }}
         onClick={(e) => {
           e.stopPropagation();
           onSelectEdge?.(edge.id);
         }}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-          onStartEdgeEndpointDrag?.(e, edge.id, 'auto');
-        }}
-      >
-        <title>Drag line to move arrow or starting point</title>
-      </path>
+      />
 
       {/* Selection outer glow */}
       {isSelected && (
@@ -297,8 +291,8 @@ export const _renderEdgeCurve = (
         className="transition-colors group-hover:stroke-indigo-600"
       />
 
-      {/* Interactive Arrowhead Endpoint Drag Handle ("Buletin di ujung garis untuk pindahin") */}
-      {geometry.endX !== undefined && geometry.endY !== undefined && (
+      {/* Interactive Arrowhead Endpoint Drag Handle (Only active when edge is selected so it doesn't block connecting) */}
+      {geometry.endX !== undefined && geometry.endY !== undefined && isSelected && (
         <g
           className="cursor-grab active:cursor-grabbing group/target-handle pointer-events-auto"
           onMouseDown={(e) => {
@@ -307,11 +301,11 @@ export const _renderEdgeCurve = (
           }}
         >
           <title>Drag this handle to move the arrow endpoint</title>
-          {/* Large hit area for easy grabbing */}
+          {/* Hit area for easy grabbing */}
           <circle
             cx={geometry.endX}
             cy={geometry.endY}
-            r={24}
+            r={14}
             fill="transparent"
             className="cursor-grab active:cursor-grabbing pointer-events-auto"
           />
@@ -319,36 +313,33 @@ export const _renderEdgeCurve = (
           <circle
             cx={geometry.endX}
             cy={geometry.endY}
-            r={isSelected ? 13 : 9}
+            r={12}
             fill="#4f46e5"
-            className={`transition-all duration-150 pointer-events-none ${isSelected ? 'opacity-35 scale-100' : 'opacity-0 group-hover:opacity-25'
-              }`}
+            className="transition-all duration-150 pointer-events-none opacity-35"
           />
           {/* Circular handle ("buletin") */}
           <circle
             cx={geometry.endX}
             cy={geometry.endY}
-            r={isSelected ? 7.5 : 5.5}
+            r={6}
             fill="#ffffff"
             stroke="#4f46e5"
             strokeWidth={2.5}
-            className={`transition-all duration-150 filter drop-shadow-md pointer-events-none ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-90'
-              }`}
+            className="transition-all duration-150 filter drop-shadow-md pointer-events-none opacity-100"
           />
           {/* Center bullet dot */}
           <circle
             cx={geometry.endX}
             cy={geometry.endY}
-            r={3}
+            r={2.5}
             fill="#4f46e5"
-            className={`transition-opacity duration-150 pointer-events-none ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'
-              }`}
+            className="transition-opacity duration-150 pointer-events-none opacity-100"
           />
         </g>
       )}
 
-      {/* Interactive Source Origin Drag Handle ("Buletin di pangkal garis untuk pindahin") */}
-      {geometry.startX !== undefined && geometry.startY !== undefined && (
+      {/* Interactive Source Origin Drag Handle (Only active when edge is selected to avoid blocking new node connections) */}
+      {geometry.startX !== undefined && geometry.startY !== undefined && isSelected && (
         <g
           className="cursor-grab active:cursor-grabbing group/source-handle pointer-events-auto"
           onMouseDown={(e) => {
@@ -357,11 +348,11 @@ export const _renderEdgeCurve = (
           }}
         >
           <title>Drag this handle to move the line starting point</title>
-          {/* Large hit area */}
+          {/* Hit area */}
           <circle
             cx={geometry.startX}
             cy={geometry.startY}
-            r={24}
+            r={12}
             fill="transparent"
             className="cursor-grab active:cursor-grabbing pointer-events-auto"
           />
@@ -369,10 +360,9 @@ export const _renderEdgeCurve = (
           <circle
             cx={geometry.startX}
             cy={geometry.startY}
-            r={isSelected ? 13 : 9}
+            r={12}
             fill="#6366f1"
-            className={`transition-all duration-150 pointer-events-none ${isSelected ? 'opacity-35 scale-100' : 'opacity-0 group-hover:opacity-25'
-              }`}
+            className="transition-all duration-150 pointer-events-none opacity-35"
           />
           {/* Circular handle ("buletin") */}
           <circle

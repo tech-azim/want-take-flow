@@ -459,7 +459,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
 
   // 4-Side Drag-to-Connect Ports + Consistent Quick-Action Buttons (Miro / Figma style)
   const _renderConsistentPlusButtons = (): React.ReactElement => {
-    const isPortVisible = 'opacity-0 group-hover:opacity-100';
+    const isPortVisible = isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100';
     const isEndpointDragging = Boolean(edgeEndpointDragState?.isDragging);
     const isCandidateNode = isEndpointDragging && edgeEndpointDragState?.candidateNodeId === node.id;
     const candidateAnchor = isCandidateNode ? edgeEndpointDragState?.candidateAnchor : undefined;
@@ -506,9 +506,11 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
                 e.stopPropagation();
                 onStartConnection?.(e, node.id, 'top');
               }}
-              className={`absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-130 transition-all cursor-crosshair z-30 ${isPortVisible} flex items-center justify-center pointer-events-auto`}
+              className={`absolute -top-3.5 left-1/2 -translate-x-1/2 w-7 h-7 flex items-center justify-center cursor-crosshair z-50 ${isPortVisible} pointer-events-auto`}
             >
-              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
+              <div className="w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-125 transition-all flex items-center justify-center pointer-events-none">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+              </div>
             </div>
 
             {/* 2. Left Connection Port (Always available to drag new lines) */}
@@ -519,9 +521,11 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
                 e.stopPropagation();
                 onStartConnection?.(e, node.id, 'left');
               }}
-              className={`absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-130 transition-all cursor-crosshair z-30 ${isPortVisible} flex items-center justify-center pointer-events-auto`}
+              className={`absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center cursor-crosshair z-50 ${isPortVisible} pointer-events-auto`}
             >
-              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
+              <div className="w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-125 transition-all flex items-center justify-center pointer-events-none">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+              </div>
             </div>
 
             {/* 3. Right Connection Port (Always available to drag new lines) */}
@@ -532,9 +536,11 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
                 e.stopPropagation();
                 onStartConnection?.(e, node.id, 'right');
               }}
-              className={`absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-130 transition-all cursor-crosshair z-30 ${isPortVisible} flex items-center justify-center pointer-events-auto`}
+              className={`absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center cursor-crosshair z-50 ${isPortVisible} pointer-events-auto`}
             >
-              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
+              <div className="w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-125 transition-all flex items-center justify-center pointer-events-none">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+              </div>
             </div>
 
             {/* 4. Bottom Connection Port (Always available to drag new lines) */}
@@ -545,9 +551,11 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
                 e.stopPropagation();
                 onStartConnection?.(e, node.id, 'bottom');
               }}
-              className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-130 transition-all cursor-crosshair z-30 ${isPortVisible} flex items-center justify-center pointer-events-auto`}
+              className={`absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 flex items-center justify-center cursor-crosshair z-50 ${isPortVisible} pointer-events-auto`}
             >
-              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
+              <div className="w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-125 transition-all flex items-center justify-center pointer-events-none">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+              </div>
             </div>
 
             {/* 5. Quick Add Node (+) Button at Bottom-Right Corner Outside Node */}
@@ -3077,15 +3085,6 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   </marker>
                 </defs>
 
-                {connectingState.isConnecting ? (
-                  (() => {
-                    const src = nodes.find((n) => n.id === connectingState.sourceNodeId);
-                    return src
-                      ? _renderConnectingPath(src, connectingState.currentMousePosition)
-                      : null;
-                  })()
-                ) : null}
-
                 {edges.map((edge) =>
                   _renderEdgeCurve(
                     edge,
@@ -3107,8 +3106,8 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 )}
               </svg>
 
-              {/* Interactive Flow Nodes Layer */}
-              <div className="relative z-20">
+              {/* Interactive Flow Nodes Layer (Always above background edges so ports are never blocked) */}
+              <div className={`relative ${connectingState.isConnecting ? 'z-40' : 'z-25'}`}>
                 {nodes.map((node) => (
                   <_CanvasNodeItem
                     key={node.id}
@@ -3137,7 +3136,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 ))}
 
                 {/* High-Priority Interactive Top Layer for Handles & Live Connection */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible z-35">
+                <svg className={`absolute inset-0 w-full h-full pointer-events-none overflow-visible ${connectingState.isConnecting ? 'z-30' : 'z-20'}`}>
                   {connectingState.isConnecting ? (
                     (() => {
                       const src = nodes.find((n) => n.id === connectingState.sourceNodeId);
@@ -3147,16 +3146,15 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     })()
                   ) : null}
 
-                  {/* Render top-layer interactive endpoint & waypoint handles for selected or hovered edge */}
-                  {(selectedEdgeId || hoveredEdgeId) ? (
+                  {/* Render top-layer interactive endpoint & waypoint handles for selected edge ONLY when NOT connecting */}
+                  {!connectingState.isConnecting && selectedEdgeId ? (
                     (() => {
-                      const activeEdgeId = selectedEdgeId || hoveredEdgeId;
-                      const activeEdge = edges.find((e) => e.id === activeEdgeId);
+                      const activeEdge = edges.find((e) => e.id === selectedEdgeId);
                       if (!activeEdge) return null;
                       return _renderEdgeCurve(
                         activeEdge,
                         nodes,
-                        selectedEdgeId === activeEdgeId,
+                        true,
                         onSelectEdge,
                         _onOpenEditEdgeModal,
                         onDeleteEdgeById,
