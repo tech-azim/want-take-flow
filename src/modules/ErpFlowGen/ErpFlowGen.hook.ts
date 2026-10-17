@@ -826,6 +826,9 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     currentPos: { x: 0, y: 0 },
   });
 
+  const edgeEndpointDragStateRef = useRef<EdgeEndpointDragState>(edgeEndpointDragState);
+  edgeEndpointDragStateRef.current = edgeEndpointDragState;
+
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const mainContainerRef = useRef<HTMLElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -2370,14 +2373,16 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       const initialAnchor = effectiveEndpointType === 'target' ? edge.targetAnchor : edge.sourceAnchor;
       const sanitizedAnchor = initialAnchor && initialAnchor !== 'auto' ? initialAnchor : undefined;
 
-      setEdgeEndpointDragState({
+      const nextEpState: EdgeEndpointDragState = {
         isDragging: true,
         edgeId,
         endpointType: effectiveEndpointType,
         currentPos: { x: canvasX, y: canvasY },
         candidateNodeId: initialNodeId,
         candidateAnchor: sanitizedAnchor,
-      });
+      };
+      edgeEndpointDragStateRef.current = nextEpState;
+      setEdgeEndpointDragState(nextEpState);
     },
     [isViewOnly, tabs, activeTab.edges, activeTab.nodes, connectorStyle, transform],
   );
@@ -3044,6 +3049,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         const clientY = event.clientY;
 
         rafRef.current = requestAnimationFrame(() => {
+          hasMovedDuringDrag.current = true;
           const deltaX = (clientX - edgeWaypointDragState.startPos.x) / transform.scale;
           const deltaY = (clientY - edgeWaypointDragState.startPos.y) / transform.scale;
           const updatedX = Math.round(edgeWaypointDragState.initialWaypointOffset.x + deltaX);
@@ -3086,6 +3092,12 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
               if (edgeEndpointDragState.endpointType === 'source' && n.id === currentEdge.targetNodeId) return;
             }
             const dims = _getNodeDimensions(n);
+            const inside =
+              canvasX >= n.position.x - 30 &&
+              canvasX <= n.position.x + dims.width + 30 &&
+              canvasY >= n.position.y - 30 &&
+              canvasY <= n.position.y + dims.height + 30;
+
             const ports: { anchor: 'top' | 'bottom' | 'left' | 'right'; x: number; y: number }[] = [
               { anchor: 'top', x: n.position.x + dims.width / 2, y: n.position.y },
               { anchor: 'bottom', x: n.position.x + dims.width / 2, y: n.position.y + dims.height },
@@ -3095,24 +3107,28 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
             ports.forEach((p) => {
               const d = Math.hypot(canvasX - p.x, canvasY - p.y);
-              if (d < bestDist) {
-                bestDist = d;
+              // Prioritize nodes if cursor is hovering over the node body
+              const effectiveDist = inside ? Math.min(d, 40) : d;
+              if (effectiveDist < bestDist) {
+                bestDist = effectiveDist;
                 bestNodeId = n.id;
                 bestAnchor = p.anchor;
               }
             });
           });
 
-          // Magnetic snapping threshold (within 140px)
-          const snappedNodeId = bestDist < 140 ? bestNodeId : undefined;
-          const snappedAnchor = bestDist < 140 ? bestAnchor : undefined;
+          // Magnetic snapping threshold (within 160px or inside node bounds)
+          const snappedNodeId = bestDist < 160 ? bestNodeId : undefined;
+          const snappedAnchor = bestDist < 160 ? bestAnchor : undefined;
 
-          setEdgeEndpointDragState((prev) => ({
-            ...prev,
+          const updatedEp = {
+            ...edgeEndpointDragStateRef.current,
             currentPos: { x: canvasX, y: canvasY },
             candidateNodeId: snappedNodeId,
             candidateAnchor: snappedAnchor,
-          }));
+          };
+          edgeEndpointDragStateRef.current = updatedEp;
+          setEdgeEndpointDragState(updatedEp);
 
           if (snappedNodeId && snappedAnchor) {
             setTabs((prevTabs) =>
@@ -3231,6 +3247,100 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         connectingStateRef.current = resetState;
         setConnectingState(resetState);
       }
+
+      // Reconnect Edge Endpoint on Mouse Up
+      const epDrag = edgeEndpointDragStateRef.current;
+      if (epDrag.isDragging && epDrag.edgeId) {
+        const rect = mainContainerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
+        const mouseX = (event.clientX - rect.left - transform.x) / transform.scale;
+        const mouseY = (event.clientY - rect.top - transform.y) / transform.scale;
+
+        const currentEdge = activeTab.edges.find((e) => e.id === epDrag.edgeId);
+        if (currentEdge) {
+          let bestNodeId: string | undefined = epDrag.candidateNodeId;
+          let bestAnchor: 'top' | 'bottom' | 'left' | 'right' | undefined = epDrag.candidateAnchor;
+
+          let minDistance = Infinity;
+          activeTab.nodes.forEach((n) => {
+            if (epDrag.endpointType === 'target' && n.id === currentEdge.sourceNodeId) return;
+            if (epDrag.endpointType === 'source' && n.id === currentEdge.targetNodeId) return;
+
+            const dims = _getNodeDimensions(n);
+            const inside =
+              mouseX >= n.position.x - 50 &&
+              mouseX <= n.position.x + dims.width + 50 &&
+              mouseY >= n.position.y - 50 &&
+              mouseY <= n.position.y + dims.height + 50;
+
+            const centerX = n.position.x + dims.width / 2;
+            const centerY = n.position.y + dims.height / 2;
+            const dist = Math.hypot(mouseX - centerX, mouseY - centerY);
+
+            if (inside && dist < minDistance) {
+              minDistance = dist;
+              bestNodeId = n.id;
+              const ports: { anchor: 'top' | 'bottom' | 'left' | 'right'; x: number; y: number }[] = [
+                { anchor: 'top', x: n.position.x + dims.width / 2, y: n.position.y },
+                { anchor: 'bottom', x: n.position.x + dims.width / 2, y: n.position.y + dims.height },
+                { anchor: 'left', x: n.position.x, y: n.position.y + dims.height / 2 },
+                { anchor: 'right', x: n.position.x + dims.width, y: n.position.y + dims.height / 2 },
+              ];
+              let portMinDist = Infinity;
+              ports.forEach((p) => {
+                const pd = Math.hypot(mouseX - p.x, mouseY - p.y);
+                if (pd < portMinDist) {
+                  portMinDist = pd;
+                  bestAnchor = p.anchor;
+                }
+              });
+            }
+          });
+
+          if (bestNodeId && bestAnchor) {
+            const finalNodeId = bestNodeId;
+            const finalAnchor = bestAnchor;
+            setTabs((prevTabs) =>
+              prevTabs.map((t) => {
+                if (t.id !== activeTabId) return t;
+                return {
+                  ...t,
+                  edges: t.edges.map((ed) => {
+                    if (ed.id !== epDrag.edgeId) return ed;
+                    if (epDrag.endpointType === 'target') {
+                      return {
+                        ...ed,
+                        targetNodeId: finalNodeId,
+                        targetAnchor: finalAnchor,
+                        waypointOffset: { x: 0, y: 0 },
+                      };
+                    } else {
+                      return {
+                        ...ed,
+                        sourceNodeId: finalNodeId,
+                        sourceAnchor: finalAnchor,
+                        waypointOffset: { x: 0, y: 0 },
+                      };
+                    }
+                  }),
+                };
+              }),
+            );
+            recordHistory();
+          }
+        }
+
+        const resetEp: EdgeEndpointDragState = {
+          isDragging: false,
+          edgeId: '',
+          endpointType: 'target',
+          currentPos: { x: 0, y: 0 },
+          candidateNodeId: undefined,
+          candidateAnchor: undefined,
+        };
+        edgeEndpointDragStateRef.current = resetEp;
+        setEdgeEndpointDragState(resetEp);
+      }
+
       handleCanvasMouseUp();
     };
 

@@ -256,18 +256,19 @@ export const _renderEdgeCurve = (
         onSelectEdge?.(edge.id);
       }}
     >
-      {/* Background hover path for easy clicking to select edge */}
+      {/* Background hover path for easy clicking to select edge AND dragging to bend/reposition */}
       <path
         d={geometry.pathD}
         fill="none"
         stroke="transparent"
-        strokeWidth={18}
+        strokeWidth={22}
         data-edge-id={edge.id}
-        className="pointer-events-auto cursor-pointer"
+        className="pointer-events-auto cursor-grab active:cursor-grabbing"
         style={{ pointerEvents: 'stroke' }}
         onMouseDown={(e) => {
           e.stopPropagation();
           onSelectEdge?.(edge.id);
+          onStartEdgeWaypointDrag?.(e, edge.id);
         }}
         onClick={(e) => {
           e.stopPropagation();
@@ -313,30 +314,30 @@ export const _renderEdgeCurve = (
           }}
         >
           <title>Tarik ujung panah untuk menyambungkan ke node lain</title>
-          {/* Hit area for easy grabbing */}
+          {/* Generous hit area for easy grabbing */}
           <circle
             cx={geometry.endX}
             cy={geometry.endY}
-            r={18}
+            r={22}
             fill="transparent"
             className="cursor-grab active:cursor-grabbing pointer-events-auto"
           />
-          {/* Subtle outer glow ring */}
+          {/* Subtle outer glow ring with pulse */}
           <circle
             cx={geometry.endX}
             cy={geometry.endY}
-            r={13}
+            r={14}
             fill="#4f46e5"
-            className="transition-all duration-150 pointer-events-none opacity-35"
+            className="transition-all duration-150 pointer-events-none opacity-30 group-hover/target-handle:opacity-50"
           />
           {/* Circular handle ("buletin") */}
           <circle
             cx={geometry.endX}
             cy={geometry.endY}
-            r={6.5}
+            r={7}
             fill="#ffffff"
             stroke="#4f46e5"
-            strokeWidth={2.5}
+            strokeWidth={3}
             className="transition-all duration-150 filter drop-shadow-md pointer-events-none opacity-100"
           />
           {/* Center bullet dot */}
@@ -366,11 +367,11 @@ export const _renderEdgeCurve = (
           }}
         >
           <title>Tarik titik awal garis untuk memindah ke node lain</title>
-          {/* Hit area */}
+          {/* Generous hit area */}
           <circle
             cx={geometry.startX}
             cy={geometry.startY}
-            r={18}
+            r={22}
             fill="transparent"
             className="cursor-grab active:cursor-grabbing pointer-events-auto"
           />
@@ -378,18 +379,18 @@ export const _renderEdgeCurve = (
           <circle
             cx={geometry.startX}
             cy={geometry.startY}
-            r={13}
+            r={14}
             fill="#6366f1"
-            className="transition-all duration-150 pointer-events-none opacity-35"
+            className="transition-all duration-150 pointer-events-none opacity-30 group-hover/source-handle:opacity-50"
           />
-          {/* Circular handle ("buletin") */}
+          {/* Circular handle */}
           <circle
             cx={geometry.startX}
             cy={geometry.startY}
-            r={6.5}
+            r={7}
             fill="#ffffff"
             stroke="#6366f1"
-            strokeWidth={2.5}
+            strokeWidth={3}
             className="transition-all duration-150 filter drop-shadow-md pointer-events-none opacity-100"
           />
           {/* Center bullet dot */}
@@ -767,30 +768,35 @@ export const _renderGhostSkeleton = (
                 strokeDasharray="4 4"
               />
               {edge.label ? (
-                <g transform={`translate(${geometry.midX}, ${geometry.midY})`}>
-                  <rect
-                    x={-24}
-                    y={-9}
-                    width={48}
-                    height={18}
-                    rx={9}
-                    fill="#ffffff"
-                    stroke="#cbd5e1"
-                    strokeWidth={1}
-                    opacity={0.95}
-                  />
-                  <text
-                    x={0}
-                    y={3.5}
-                    textAnchor="middle"
-                    fontSize="9.5"
-                    fill="#475569"
-                    fontWeight="700"
-                    className="font-sans select-none"
-                  >
-                    {edge.label}
-                  </text>
-                </g>
+                (() => {
+                  const badgeW = Math.max(48, edge.label.length * 6.5 + 16);
+                  return (
+                    <g transform={`translate(${geometry.midX}, ${geometry.midY})`}>
+                      <rect
+                        x={-badgeW / 2}
+                        y={-9}
+                        width={badgeW}
+                        height={18}
+                        rx={9}
+                        fill="#ffffff"
+                        stroke="#cbd5e1"
+                        strokeWidth={1}
+                        opacity={0.95}
+                      />
+                      <text
+                        x={0}
+                        y={3.5}
+                        textAnchor="middle"
+                        fontSize="9.5"
+                        fill="#475569"
+                        fontWeight="700"
+                        className="font-sans select-none"
+                      >
+                        {edge.label}
+                      </text>
+                    </g>
+                  );
+                })()
               ) : null}
             </g>
           );
@@ -866,7 +872,7 @@ export const _renderGhostSkeleton = (
               )}
             </svg>
 
-            <span className="relative z-10 text-xs font-semibold text-slate-700 px-3 truncate max-w-full">
+            <span className="relative z-10 text-xs font-semibold text-slate-700 px-2 line-clamp-2 leading-snug text-center break-words">
               {node.label}
             </span>
           </div>

@@ -37,10 +37,15 @@ export const _findNodeById = (nodes: FlowNode[], id: string): FlowNode | null =>
 export const _getNodeDimensions = (nodeOrType: FlowNode | string): { width: number; height: number } => {
   if (typeof nodeOrType === 'object') {
     const defaultDims = NODE_DIMENSIONS[nodeOrType.type] ?? { width: 220, height: 96 };
-    return {
-      width: nodeOrType.width ?? defaultDims.width,
-      height: nodeOrType.height ?? defaultDims.height,
-    };
+    let width = nodeOrType.width ?? defaultDims.width;
+    let height = nodeOrType.height ?? defaultDims.height;
+
+    // Auto-expand start/end capsule pills so labels are never truncated with ellipsis
+    if ((nodeOrType.type === 'start' || nodeOrType.type === 'end') && nodeOrType.label && !nodeOrType.width) {
+      width = Math.max(width, Math.round(nodeOrType.label.length * 8.5 + 56));
+    }
+
+    return { width, height };
   }
   return NODE_DIMENSIONS[nodeOrType] ?? { width: 220, height: 96 };
 };
@@ -596,7 +601,17 @@ export const _sanitizeTab = (raw: any): FlowProjectTab => {
     id: raw?.id || `tab_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
     title: raw?.title || 'Untitled Tab',
     type: raw?.type || 'flowchart',
-    nodes: Array.isArray(raw?.nodes) ? raw.nodes : [],
+    nodes: Array.isArray(raw?.nodes)
+      ? raw.nodes.map((n: FlowNode) => {
+          if (raw?.type === 'swimlane' && typeof n?.position?.x === 'number' && n.position.x < 330) {
+            return {
+              ...n,
+              position: { ...n.position, x: 340 },
+            };
+          }
+          return n;
+        })
+      : [],
     edges: Array.isArray(raw?.edges) ? raw.edges : [],
     groups: Array.isArray(raw?.groups) ? raw.groups : [],
     showGhostSkeleton: Boolean(raw?.showGhostSkeleton),

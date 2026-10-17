@@ -400,7 +400,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
     if (isViewOnly) return null;
     return (
       <div
-        className={`absolute -top-7.5 right-0 flex items-center gap-0.5 bg-white/95 backdrop-blur-xs rounded-md p-0.5 shadow-xs border border-slate-200 z-40 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        className={`absolute -top-7.5 -right-20 flex items-center gap-0.5 bg-white/95 backdrop-blur-xs rounded-md p-0.5 shadow-xs border border-slate-200 z-40 ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
           } transition-opacity pointer-events-auto`}
       >
         {extraButtons}
@@ -664,7 +664,10 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
               )}
             </div>
 
-            <span className="text-xs font-bold text-slate-800 truncate tracking-tight">
+            <span
+              title={node.label}
+              className="text-xs font-bold text-slate-800 tracking-tight whitespace-nowrap px-1"
+            >
               {node.label}
             </span>
           </div>
@@ -1552,14 +1555,24 @@ const _renderGroupFrames = (
               >
                 <GripHorizontal className="w-4 h-4 opacity-90 shrink-0" />
 
-                {/* Inline Editable Title */}
+                {/* Inline Editable Title with dynamic auto-expanding width */}
                 <input
                   type="text"
                   value={group.title}
+                  title={group.title}
                   onChange={(e) => onUpdateGroupTitle(group.id, e.target.value)}
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
-                  className="bg-transparent border-b border-transparent hover:border-white/40 focus:border-white focus:bg-white/10 outline-none px-1 text-xs font-bold text-white rounded-xs w-28 sm:w-36 truncate transition-colors"
+                  style={{
+                    width: `${Math.max(
+                      Math.min(
+                        (group.title?.length || 10) * 8.2 + 16,
+                        Math.max((group.width || 380) - 170, 160)
+                      ),
+                      120
+                    )}px`,
+                  }}
+                  className="bg-transparent border-b border-transparent hover:border-white/40 focus:border-white focus:bg-white/10 outline-none px-1 text-xs font-bold text-white rounded-xs transition-[width,background-color] focus:max-w-none"
                   placeholder="Group Frame Title..."
                 />
 
@@ -2057,7 +2070,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
   const currentSkeleton = SKELETON_TEMPLATES[activeTab.type];
 
   const [activeEdgeLabelToolbarId, setActiveEdgeLabelToolbarId] = React.useState<string | null>(null);
-  const [, setHoveredEdgeId] = React.useState<string>('');
+  const [hoveredEdgeId, setHoveredEdgeId] = React.useState<string>('');
   const [draggingKanbanTaskId, setDraggingKanbanTaskId] = React.useState<string | null>(null);
   const [dragOverKanbanColId, setDragOverKanbanColId] = React.useState<KanbanTaskStatus | null>(null);
 
@@ -3189,8 +3202,8 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   />
                 ))}
 
-                {/* High-Priority Interactive Top Layer for Handles & Live Connection */}
-                <svg className={`absolute inset-0 w-full h-full pointer-events-none overflow-visible ${connectingState.isConnecting ? 'z-30' : 'z-20'}`}>
+                {/* High-Priority Interactive Top Layer for Handles & Live Connection (z-35, always above node cards) */}
+                <svg className={`absolute inset-0 w-full h-full pointer-events-none overflow-visible ${connectingState.isConnecting ? 'z-50' : 'z-35'}`}>
                   {connectingState.isConnecting ? (
                     (() => {
                       const src = nodes.find((n) => n.id === connectingState.sourceNodeId);
@@ -3225,28 +3238,37 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     })()
                   ) : null}
 
-                  {/* Render top-layer interactive endpoint & waypoint handles for selected edge ONLY when NOT connecting */}
-                  {!connectingState.isConnecting && selectedEdgeId ? (
+                  {/* Render top-layer interactive endpoint & waypoint handles for selected or hovered edges */}
+                  {!connectingState.isConnecting ? (
                     (() => {
-                      const activeEdge = edges.find((e) => e.id === selectedEdgeId);
-                      if (!activeEdge) return null;
-                      return _renderEdgeCurve(
-                        activeEdge,
-                        nodes,
-                        true,
-                        onSelectEdge,
-                        _onOpenEditEdgeModal,
-                        onDeleteEdgeById,
-                        connectorStyle,
-                        onStartEdgeWaypointDrag,
-                        onResetEdgeWaypoint,
-                        onSetEdgeTargetAnchor,
-                        onStartEdgeEndpointDrag,
-                        edgeEndpointDragState,
-                        onUpdateEdgeLabel,
-                        setActiveEdgeLabelToolbarId,
-                        setHoveredEdgeId,
+                      const activeEdgeIds = Array.from(
+                        new Set(
+                          [selectedEdgeId, hoveredEdgeId, edgeEndpointDragState?.edgeId].filter(
+                            Boolean,
+                          ) as string[],
+                        ),
                       );
+                      return activeEdgeIds.map((edgeId) => {
+                        const activeEdge = edges.find((e) => e.id === edgeId);
+                        if (!activeEdge) return null;
+                        return _renderEdgeCurve(
+                          activeEdge,
+                          nodes,
+                          selectedEdgeId === activeEdge.id,
+                          onSelectEdge,
+                          _onOpenEditEdgeModal,
+                          onDeleteEdgeById,
+                          connectorStyle,
+                          onStartEdgeWaypointDrag,
+                          onResetEdgeWaypoint,
+                          onSetEdgeTargetAnchor,
+                          onStartEdgeEndpointDrag,
+                          edgeEndpointDragState,
+                          onUpdateEdgeLabel,
+                          setActiveEdgeLabelToolbarId,
+                          setHoveredEdgeId,
+                        );
+                      });
                     })()
                   ) : null}
                 </svg>
