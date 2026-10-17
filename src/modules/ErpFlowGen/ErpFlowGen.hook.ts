@@ -51,6 +51,7 @@ import {
   _calculateEdgePath,
   _validateSchemaJson,
   _downloadJsonFile,
+  _sanitizeTab,
 } from './ErpFlowGen.utils';
 
 const STORAGE_KEY = 'erp_flowgen_tabs_v7';
@@ -65,7 +66,7 @@ const _loadPersistedTabs = (): FlowProjectTab[] => {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        return parsed.map(_sanitizeTab);
       }
     }
   } catch (err) {
@@ -321,16 +322,17 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         }
 
         if (Array.isArray(data.tabs) && data.tabs.length > 0) {
-          setTabs(data.tabs);
+          const sanitizedTabs = data.tabs.map(_sanitizeTab);
+          setTabs(sanitizedTabs);
           setActiveTabId((currentId) => {
             const persistedId = localStorage.getItem(ACTIVE_TAB_KEY);
-            if (persistedId && data.tabs.some((t: FlowProjectTab) => t.id === persistedId)) {
+            if (persistedId && sanitizedTabs.some((t: FlowProjectTab) => t.id === persistedId)) {
               return persistedId;
             }
-            if (currentId && data.tabs.some((t: FlowProjectTab) => t.id === currentId)) {
+            if (currentId && sanitizedTabs.some((t: FlowProjectTab) => t.id === currentId)) {
               return currentId;
             }
-            return data.tabs[0]?.id || '';
+            return sanitizedTabs[0]?.id || '';
           });
         } else if (Array.isArray(data.nodes) && Array.isArray(data.edges)) {
           setTabs((prev) =>
@@ -364,12 +366,13 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
               return;
             }
             if (Array.isArray(data.tabs) && data.tabs.length > 0) {
-              setTabs(data.tabs);
+              const sanitizedTabs = data.tabs.map(_sanitizeTab);
+              setTabs(sanitizedTabs);
               setActiveTabId((currentId) => {
-                if (currentId && data.tabs.some((t: FlowProjectTab) => t.id === currentId)) {
+                if (currentId && sanitizedTabs.some((t: FlowProjectTab) => t.id === currentId)) {
                   return currentId;
                 }
-                return data.tabs[0]?.id || '';
+                return sanitizedTabs[0]?.id || '';
               });
             } else if (Array.isArray(data.nodes) && Array.isArray(data.edges)) {
               setTabs((prev) =>
@@ -690,7 +693,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   const nodes = activeTab.nodes;
   const edges = activeTab.edges;
   const showGhostSkeleton = activeTab.showGhostSkeleton;
-  const transform = activeTab.transform;
+  const transform = activeTab.transform || { x: 40, y: 30, scale: 1 };
 
   // 4b. Flowchart Runner Simulation Loop
   useEffect(() => {
@@ -844,15 +847,16 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
           const targetX = Math.round(containerW / 2 - startCenterX);
 
           // Center if uncentered or offset
+          const tabTransform = tab.transform || { x: 40, y: 30, scale: 1.0 };
           if (
-            tab.transform.x === 80 ||
-            tab.transform.x === 40 ||
-            Math.abs(tab.transform.x - targetX) > 120
+            tabTransform.x === 80 ||
+            tabTransform.x === 40 ||
+            Math.abs(tabTransform.x - targetX) > 120
           ) {
             return {
               ...tab,
               transform: {
-                ...tab.transform,
+                ...tabTransform,
                 x: targetX,
                 y: 40,
                 scale: 1.0,

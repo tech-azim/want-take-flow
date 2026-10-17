@@ -1754,10 +1754,11 @@ const _renderMinimap = (
   });
 
   // Current camera viewport in canvas coordinates
-  const viewportW = 1200 / (transform.scale || 1);
-  const viewportH = 800 / (transform.scale || 1);
-  const viewLeft = -transform.x / (transform.scale || 1);
-  const viewTop = -transform.y / (transform.scale || 1);
+  const safeTransform = transform || { x: 40, y: 30, scale: 1 };
+  const viewportW = 1200 / (safeTransform.scale || 1);
+  const viewportH = 800 / (safeTransform.scale || 1);
+  const viewLeft = -safeTransform.x / (safeTransform.scale || 1);
+  const viewTop = -safeTransform.y / (safeTransform.scale || 1);
   const viewRight = viewLeft + viewportW;
   const viewBottom = viewTop + viewportH;
 
@@ -2292,7 +2293,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               title="Reset Zoom to 100%"
               className="text-[11px] font-mono px-1.5 text-slate-600 cursor-pointer hover:text-indigo-600 font-semibold select-none"
             >
-              {Math.round(transform.scale * 100)}%
+              {Math.round((transform?.scale ?? 1) * 100)}%
             </span>
             <button
               type="button"
@@ -3019,8 +3020,8 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             style={{
               backgroundColor: '#f8fafc',
               backgroundImage: 'radial-gradient(circle, #cbd5e1 1.5px, transparent 1.5px)',
-              backgroundSize: `${24 * transform.scale}px ${24 * transform.scale}px`,
-              backgroundPosition: `${transform.x}px ${transform.y}px`,
+              backgroundSize: `${24 * (transform?.scale ?? 1)}px ${24 * (transform?.scale ?? 1)}px`,
+              backgroundPosition: `${transform?.x ?? 0}px ${transform?.y ?? 0}px`,
             }}
             onMouseDown={onCanvasMouseDown}
             onMouseMove={onCanvasMouseMove}
@@ -3031,7 +3032,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               ref={canvasRef}
               className="absolute inset-0 origin-top-left overflow-visible"
               style={{
-                transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
+                transform: `translate(${transform?.x ?? 0}px, ${transform?.y ?? 0}px) scale(${transform?.scale ?? 1})`,
                 transformOrigin: '0 0',
               }}
             >

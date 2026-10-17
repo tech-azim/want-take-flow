@@ -1,4 +1,4 @@
-import type { FlowNode, Position, SchemaExportData } from './ErpFlowGen.type';
+import type { FlowNode, Position, SchemaExportData, FlowProjectTab } from './ErpFlowGen.type';
 import { NODE_DIMENSIONS } from './ErpFlowGen.config';
 
 /**
@@ -588,6 +588,31 @@ export const _calculateEdgePath = (
 };
 
 /**
+ * Sanitize a tab object so it conforms strictly to FlowProjectTab
+ * with guaranteed transform, nodes, edges, groups, and defaults
+ */
+export const _sanitizeTab = (raw: any): FlowProjectTab => {
+  return {
+    id: raw?.id || `tab_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    title: raw?.title || 'Untitled Tab',
+    type: raw?.type || 'flowchart',
+    nodes: Array.isArray(raw?.nodes) ? raw.nodes : [],
+    edges: Array.isArray(raw?.edges) ? raw.edges : [],
+    groups: Array.isArray(raw?.groups) ? raw.groups : [],
+    showGhostSkeleton: Boolean(raw?.showGhostSkeleton),
+    transform: {
+      x: typeof raw?.transform?.x === 'number' ? raw.transform.x : 40,
+      y: typeof raw?.transform?.y === 'number' ? raw.transform.y : 30,
+      scale: typeof raw?.transform?.scale === 'number' && raw.transform.scale > 0 ? raw.transform.scale : 1,
+    },
+    swimlanes: Array.isArray(raw?.swimlanes) ? raw.swimlanes : undefined,
+    masterTitle: raw?.masterTitle,
+    tableWidth: raw?.tableWidth,
+    kanbanTasks: Array.isArray(raw?.kanbanTasks) ? raw.kanbanTasks : undefined,
+  };
+};
+
+/**
  * Validate imported JSON schema content
  * @param {string} rawContent - raw json string
  * @returns {SchemaExportData | null} - parsed schema data or null if invalid
@@ -602,7 +627,10 @@ export const _validateSchemaJson = (rawContent: string): SchemaExportData | null
 
     // Support full multi-tab diagram schemas (e.g., flow.json, current.json, or multi-tab project exports)
     if (Array.isArray(parsedData.tabs) && parsedData.tabs.length > 0) {
-      return parsedData as SchemaExportData;
+      return {
+        ...parsedData,
+        tabs: parsedData.tabs.map(_sanitizeTab),
+      } as SchemaExportData;
     }
 
     // Support single-tab schema exports

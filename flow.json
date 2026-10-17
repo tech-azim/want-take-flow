@@ -1,0 +1,390 @@
+{
+  "name": "Daily Food App - Architecture & Workflow Flowcharts",
+  "version": "1.0.0",
+  "tabs": [
+    {
+      "id": "tab_e2e_overview",
+      "title": "1. E2E System Overview",
+      "type": "flowchart",
+      "transform": { "x": 40, "y": 30, "scale": 1.0 },
+      "nodes": [
+        {
+          "id": "node_user_app",
+          "type": "start",
+          "label": "Buka Aplikasi Daily Food",
+          "description": "User memilih restoran, menu harian, atau paket langganan sehat",
+          "position": { "x": 360, "y": 60 },
+          "colorTheme": "indigo"
+        },
+        {
+          "id": "node_cart_checkout",
+          "type": "process",
+          "label": "Keranjang & Checkout",
+          "description": "Pilih porsi, request tanpa MSG/alergi, dan atur jam pengantaran",
+          "position": { "x": 360, "y": 200 },
+          "colorTheme": "blue"
+        },
+        {
+          "id": "node_api_gateway",
+          "type": "process",
+          "label": "API Gateway & Auth Service",
+          "description": "Validasi JWT token, rate limiting, dan routing request ke microservices",
+          "position": { "x": 360, "y": 340 },
+          "colorTheme": "purple"
+        },
+        {
+          "id": "node_check_stock",
+          "type": "decision",
+          "label": "Bahan & Kuota Siap?",
+          "description": "Cek stok bahan dapur dan kuota porsi harian merchant",
+          "position": { "x": 360, "y": 480 },
+          "colorTheme": "amber"
+        },
+        {
+          "id": "node_sold_out",
+          "type": "end",
+          "label": "Notifikasi Menu Habis",
+          "description": "Tampilkan opsi ganti menu alternatif atau refund ke e-wallet",
+          "position": { "x": 80, "y": 480 },
+          "colorTheme": "rose"
+        },
+        {
+          "id": "node_payment_proc",
+          "type": "process",
+          "label": "Payment Gateway (QRIS / VA)",
+          "description": "Membuat invoice dan mendengarkan webhook callback transaksi",
+          "position": { "x": 360, "y": 640 },
+          "colorTheme": "cyan"
+        },
+        {
+          "id": "node_kitchen_dispatch",
+          "type": "process",
+          "label": "Order Masuk ke Dapur (KDS)",
+          "description": "Kitchen Display System print tiket masak & estimasi selesai",
+          "position": { "x": 360, "y": 790 },
+          "colorTheme": "emerald"
+        },
+        {
+          "id": "node_driver_match",
+          "type": "process",
+          "label": "Dispatch & Driver Matching",
+          "description": "Algoritma mencocokkan kurir terdekat dengan sistem batching rute",
+          "position": { "x": 360, "y": 940 },
+          "colorTheme": "blue"
+        },
+        {
+          "id": "node_delivered_success",
+          "type": "end",
+          "label": "Makanan Tiba & Rating",
+          "description": "Konfirmasi foto serah terima, poin loyalti, dan review rasa makanan",
+          "position": { "x": 360, "y": 1090 },
+          "colorTheme": "emerald"
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "sourceNodeId": "node_user_app",
+          "targetNodeId": "node_cart_checkout",
+          "label": "Pilih Menu"
+        },
+        {
+          "id": "e2",
+          "sourceNodeId": "node_cart_checkout",
+          "targetNodeId": "node_api_gateway",
+          "label": "POST /api/v1/orders"
+        },
+        {
+          "id": "e3",
+          "sourceNodeId": "node_api_gateway",
+          "targetNodeId": "node_check_stock",
+          "label": "Cek Ketersediaan"
+        },
+        {
+          "id": "e4_sold",
+          "sourceNodeId": "node_check_stock",
+          "targetNodeId": "node_sold_out",
+          "label": "Stok Habis",
+          "color": "#f43f5e",
+          "sourceAnchor": "left",
+          "targetAnchor": "right"
+        },
+        {
+          "id": "e4_ok",
+          "sourceNodeId": "node_check_stock",
+          "targetNodeId": "node_payment_proc",
+          "label": "Stok Aman",
+          "color": "#10b981",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top"
+        },
+        {
+          "id": "e5",
+          "sourceNodeId": "node_payment_proc",
+          "targetNodeId": "node_kitchen_dispatch",
+          "label": "Payment Lunas"
+        },
+        {
+          "id": "e6",
+          "sourceNodeId": "node_kitchen_dispatch",
+          "targetNodeId": "node_driver_match",
+          "label": "Makanan Selesai Dipacking"
+        },
+        {
+          "id": "e7",
+          "sourceNodeId": "node_driver_match",
+          "targetNodeId": "node_delivered_success",
+          "label": "Antar ke Konsumen"
+        }
+      ],
+      "groups": [
+        {
+          "id": "grp_client_app",
+          "title": "Aplikasi Pengguna (Mobile / Web)",
+          "position": { "x": 300, "y": 20 },
+          "width": 340,
+          "height": 280,
+          "colorTheme": "indigo"
+        },
+        {
+          "id": "grp_core_backend",
+          "title": "Core Services & Payment Hub",
+          "position": { "x": 40, "y": 310 },
+          "width": 600,
+          "height": 430,
+          "colorTheme": "purple"
+        },
+        {
+          "id": "grp_kitchen_courier",
+          "title": "Operasional Dapur & Pengiriman",
+          "position": { "x": 280, "y": 750 },
+          "width": 380,
+          "height": 430,
+          "colorTheme": "emerald"
+        }
+      ]
+    },
+    {
+      "id": "tab_subscription_flow",
+      "title": "2. Langganan Katering Harian (Meal Plan)",
+      "type": "flowchart",
+      "transform": { "x": 40, "y": 30, "scale": 1.0 },
+      "nodes": [
+        {
+          "id": "sub_start",
+          "type": "start",
+          "label": "Pilih Paket Katering Harian",
+          "description": "Pilihan: 5 Hari / 20 Hari (Keto, Diet Mayo, Clean Eating, Halal Regular)",
+          "position": { "x": 360, "y": 60 },
+          "colorTheme": "indigo"
+        },
+        {
+          "id": "sub_pref",
+          "type": "process",
+          "label": "Set Preferensi & Jadwal Kirim",
+          "description": "Atur jam pengantaran makan siang (11:00) atau makan malam (17:30)",
+          "position": { "x": 360, "y": 200 },
+          "colorTheme": "blue"
+        },
+        {
+          "id": "sub_cron_cutoff",
+          "type": "process",
+          "label": "Daily Cron Cut-off (Pukul 06:00)",
+          "description": "Sistem otomatis lock menu hari ini dan batching bahan belanja harian",
+          "position": { "x": 360, "y": 340 },
+          "colorTheme": "amber"
+        },
+        {
+          "id": "sub_check_pause",
+          "type": "decision",
+          "label": "Status Langganan Aktif?",
+          "description": "Cek apakah user mengajukan jeda (pause) langganan H-1",
+          "position": { "x": 360, "y": 480 },
+          "colorTheme": "purple"
+        },
+        {
+          "id": "sub_paused_node",
+          "type": "end",
+          "label": "Jadwal Ditunda (Paused)",
+          "description": "Sisa kuota hari tidak berkurang dan dialihkan ke jadwal berikutnya",
+          "position": { "x": 80, "y": 480 },
+          "colorTheme": "slate"
+        },
+        {
+          "id": "sub_kitchen_batch",
+          "type": "process",
+          "label": "Batching Masak Massal Dapur",
+          "description": "Dapur memproduksi berdasarkan rekap nutrisi & porsi otomatis",
+          "position": { "x": 360, "y": 640 },
+          "colorTheme": "emerald"
+        },
+        {
+          "id": "sub_route_opt",
+          "type": "process",
+          "label": "Route Clustering & Bulk Dispatch",
+          "description": "Optimasi rute kurir mengantar 10-15 alamat katering berdekatan",
+          "position": { "x": 360, "y": 780 },
+          "colorTheme": "cyan"
+        },
+        {
+          "id": "sub_done",
+          "type": "end",
+          "label": "Makanan Diterima Pelanggan",
+          "description": "Pengurangan saldo kuota harian & notifikasi menu besok",
+          "position": { "x": 360, "y": 920 },
+          "colorTheme": "emerald"
+        }
+      ],
+      "edges": [
+        {
+          "id": "se1",
+          "sourceNodeId": "sub_start",
+          "targetNodeId": "sub_pref",
+          "label": "Simpan Paket"
+        },
+        {
+          "id": "se2",
+          "sourceNodeId": "sub_pref",
+          "targetNodeId": "sub_cron_cutoff",
+          "label": "Aktivasi Langganan"
+        },
+        {
+          "id": "se3",
+          "sourceNodeId": "sub_cron_cutoff",
+          "targetNodeId": "sub_check_pause",
+          "label": "Validasi Harian"
+        },
+        {
+          "id": "se4_pause",
+          "sourceNodeId": "sub_check_pause",
+          "targetNodeId": "sub_paused_node",
+          "label": "User Sedang Cuti/Pause",
+          "color": "#64748b",
+          "sourceAnchor": "left",
+          "targetAnchor": "right"
+        },
+        {
+          "id": "se4_active",
+          "sourceNodeId": "sub_check_pause",
+          "targetNodeId": "sub_kitchen_batch",
+          "label": "Aktif (Kirim Hari Ini)",
+          "color": "#10b981",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top"
+        },
+        {
+          "id": "se5",
+          "sourceNodeId": "sub_kitchen_batch",
+          "targetNodeId": "sub_route_opt",
+          "label": "Packing Box Siap"
+        },
+        {
+          "id": "se6",
+          "sourceNodeId": "sub_route_opt",
+          "targetNodeId": "sub_done",
+          "label": "Selesai Antar"
+        }
+      ],
+      "groups": [
+        {
+          "id": "grp_sub_schedule",
+          "title": "Manajemen Jadwal & Meal Plan Scheduler",
+          "position": { "x": 40, "y": 20 },
+          "width": 640,
+          "height": 550,
+          "colorTheme": "purple"
+        },
+        {
+          "id": "grp_sub_fulfillment",
+          "title": "Produksi Katering & Pengantaran Terjadwal",
+          "position": { "x": 280, "y": 590 },
+          "width": 380,
+          "height": 420,
+          "colorTheme": "cyan"
+        }
+      ]
+    },
+    {
+      "id": "tab_dailyfood_tasks",
+      "title": "3. Daily Food Project Tasks",
+      "type": "kanban",
+      "transform": { "x": 0, "y": 0, "scale": 1.0 },
+      "nodes": [],
+      "edges": [],
+      "kanbanTasks": [
+        {
+          "id": "df-101",
+          "title": "Integrasi Webhook QRIS & Payment Settlement",
+          "description": "Callback notifikasi instan dari gateway saat pelanggan bayar QRIS untuk auto-confirm order",
+          "status": "inprogress",
+          "priority": "high",
+          "assignee": "Backend Team",
+          "tag": "Payment"
+        },
+        {
+          "id": "df-102",
+          "title": "Fitur Pause / Resume Jadwal Katering",
+          "description": "User bisa cuti langganan makan siang H-1 tanpa hangus sisa kuota hari",
+          "status": "inprogress",
+          "priority": "high",
+          "assignee": "Fullstack",
+          "tag": "Subscription"
+        },
+        {
+          "id": "df-103",
+          "title": "Tracking GPS Kurir Real-Time via WebSocket",
+          "description": "Streaming koordinat kurir makanan setiap 3 detik di map aplikasi pelanggan",
+          "status": "todo",
+          "priority": "high",
+          "assignee": "Mobile Team",
+          "tag": "Logistics"
+        },
+        {
+          "id": "df-104",
+          "title": "Kitchen SLA Alert Timer (>20 menit)",
+          "description": "Alarm visual pada Kitchen Display System jika makanan belum selesai dipacking dalam 20 menit",
+          "status": "todo",
+          "priority": "medium",
+          "assignee": "Frontend Dapur",
+          "tag": "Kitchen KDS"
+        },
+        {
+          "id": "df-105",
+          "title": "Kalkulator Nutrisi & Kalori per Porsi Menu",
+          "description": "Perhitungan otomatis total karbohidrat, protein, dan lemak untuk menu makanan diet",
+          "status": "done",
+          "priority": "medium",
+          "assignee": "Nutritionist & AI",
+          "tag": "Nutrition"
+        },
+        {
+          "id": "df-106",
+          "title": "Push Notification FCM Status Makanan",
+          "description": "Notifikasi: 'Makanan sedang dimasak', 'Kurir menjemput', dan 'Makanan tiba di depan rumah'",
+          "status": "done",
+          "priority": "high",
+          "assignee": "DevOps / Backend",
+          "tag": "Notifications"
+        },
+        {
+          "id": "df-107",
+          "title": "Algoritma Route Clustering Pengiriman Katering",
+          "description": "Pengelompokan 10-15 box katering per wilayah kelurahan agar efisiensi bensin & waktu kurir",
+          "status": "review",
+          "priority": "high",
+          "assignee": "Algorithm Engineer",
+          "tag": "Routing"
+        },
+        {
+          "id": "df-108",
+          "title": "Integrasi Thermal Bluetooth Printer untuk Struk Dapur",
+          "description": "Auto print resi dapur berisi detail menu, catatan alergi/tanpa bawang, dan nomor meja/kantor",
+          "status": "done",
+          "priority": "low",
+          "assignee": "Hardware / App",
+          "tag": "Kitchen"
+        }
+      ]
+    }
+  ]
+}
