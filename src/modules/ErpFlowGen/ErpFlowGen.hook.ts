@@ -276,6 +276,9 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     }
   }, [activeTabId]);
 
+  const activeTabIdRef = useRef(activeTabId);
+  activeTabIdRef.current = activeTabId;
+
   // --- Live Synchronization with WTF Gateway & Hermes ---
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -290,7 +293,16 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         if (!data) return;
         if (Array.isArray(data.tabs) && data.tabs.length > 0) {
           setTabs(data.tabs);
-          if (data.tabs[0]?.id) setActiveTabId(data.tabs[0].id);
+          setActiveTabId((currentId) => {
+            const persistedId = localStorage.getItem(ACTIVE_TAB_KEY);
+            if (persistedId && data.tabs.some((t: FlowProjectTab) => t.id === persistedId)) {
+              return persistedId;
+            }
+            if (currentId && data.tabs.some((t: FlowProjectTab) => t.id === currentId)) {
+              return currentId;
+            }
+            return data.tabs[0]?.id || '';
+          });
         } else if (Array.isArray(data.nodes) && Array.isArray(data.edges)) {
           setTabs((prev) =>
             prev.map((t, idx) =>
@@ -315,11 +327,16 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
             const data = msg.payload;
             if (Array.isArray(data.tabs) && data.tabs.length > 0) {
               setTabs(data.tabs);
-              if (data.tabs[0]?.id) setActiveTabId(data.tabs[0].id);
+              setActiveTabId((currentId) => {
+                if (currentId && data.tabs.some((t: FlowProjectTab) => t.id === currentId)) {
+                  return currentId;
+                }
+                return data.tabs[0]?.id || '';
+              });
             } else if (Array.isArray(data.nodes) && Array.isArray(data.edges)) {
               setTabs((prev) =>
                 prev.map((t) =>
-                  t.id === activeTabId
+                  t.id === activeTabIdRef.current
                     ? { ...t, nodes: data.nodes, edges: data.edges, swimlanes: data.swimlanes || t.swimlanes }
                     : t,
                 ),
@@ -333,7 +350,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     return () => {
       if (eventSource) eventSource.close();
     };
-  }, [activeTabId]);
+  }, []);
 
   // --- Undo & Redo History Management ---
   const [historyPast, setHistoryPast] = useState<FlowProjectTab[][]>([]);
