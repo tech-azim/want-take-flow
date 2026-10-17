@@ -3834,8 +3834,8 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                           accept="image/*"
                           className="hidden"
                           onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) onUploadMockupImage(file);
+                            const file = e.target.files?.[0];
+                            if (file) onUploadMockupImage(file);
                           }}
                         />
                       </label>
@@ -3862,8 +3862,8 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                       accept="image/*"
                       className="hidden"
                       onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) onUploadMockupImage(file);
+                        const file = e.target.files?.[0];
+                        if (file) onUploadMockupImage(file);
                       }}
                     />
                   </label>
@@ -3923,9 +3923,8 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-xl w-full flex flex-col overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-indigo-600" />
                 <h3 className="text-sm font-bold text-slate-900">
-                  Create New Flowchart Project / Tab
+                  Create New Flowchart
                 </h3>
               </div>
               <button

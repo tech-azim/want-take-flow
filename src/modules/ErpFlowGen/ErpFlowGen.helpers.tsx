@@ -256,20 +256,18 @@ export const _renderEdgeCurve = (
         onSelectEdge?.(edge.id);
       }}
     >
-      {/* Background hover path for easy clicking & direct line dragging to reconnect */}
+      {/* Background hover path for easy clicking to select edge */}
       <path
         d={geometry.pathD}
         fill="none"
         stroke="transparent"
         strokeWidth={18}
         data-edge-id={edge.id}
-        className="pointer-events-auto cursor-grab active:cursor-grabbing"
+        className="pointer-events-auto cursor-pointer"
         style={{ pointerEvents: 'stroke' }}
         onMouseDown={(e) => {
-          e.preventDefault();
           e.stopPropagation();
           onSelectEdge?.(edge.id);
-          onStartEdgeEndpointDrag?.(e, edge.id, 'auto');
         }}
         onClick={(e) => {
           e.stopPropagation();
