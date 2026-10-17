@@ -26,7 +26,7 @@ const CWD = process.cwd();
 const WTF_DIR = path.resolve(CWD, '.wtf');
 const PID_FILE = path.resolve(WTF_DIR, 'gateway.pid');
 
-const VERSION = '1.0.1';
+const VERSION = '1.0.2';
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -224,6 +224,32 @@ function handleInit() {
       console.log(`  ${colors.green}✓${colors.reset} Created template: ${colors.cyan}.wtf/schemas/starter_flow.json${colors.reset}`);
     }
 
+    const agentsMdFile = path.resolve(CWD, 'AGENTS.md');
+    if (!fs.existsSync(agentsMdFile)) {
+      const agentsMdContent = `# AI Agent Guidelines (Hermes / Claude / Cursor / Antigravity)
+
+## Want Take Flow (WTF) Architecture & Diagram Generation
+When requested to create, inspect, or update architecture diagrams and workflow flowcharts:
+
+1. **Schema Inspection**:
+   Run \`wtf schema --json\` to retrieve the exact diagram format.
+
+2. **Analysis & Structure**:
+   Analyze the codebase and structure the flowchart into logical tabs:
+   - **Tab 1: High-Level Overview**: End-to-end system flow (Client -> API Gateway -> Service -> DB).
+   - **Tab 2+: Sub-Process Breakdown**: Detailed flow for complex modules (Auth, Payments, Workers).
+   - **Tab Last: Kanban Board**: Task board for refactors, backlog, or issues found during code scan.
+
+3. **Live Sync to Browser**:
+   Save the output to \`flow.json\` and push to the live gateway:
+   \`\`\`bash
+   wtf push flow.json
+   \`\`\`
+`;
+      fs.writeFileSync(agentsMdFile, agentsMdContent, 'utf-8');
+      console.log(`  ${colors.green}✓${colors.reset} Created AI context file: ${colors.cyan}AGENTS.md${colors.reset}`);
+    }
+
     console.log(`\n${colors.green}${colors.bold}🎉 Workspace Initialized Successfully!${colors.reset}`);
     console.log(`To launch the visual interface, run:`);
     console.log(`  $ ${colors.cyan}wtf gateway start${colors.reset}\n`);
@@ -375,89 +401,120 @@ function handlePush(args) {
 /**
  * Command: wtf schema
  */
-function handleSchema() {
+function handleSchema(args = []) {
+  const schemaSample = {
+    name: 'Project Workflow & Architecture',
+    version: '1.0.0',
+    tabs: [
+      {
+        id: 'tab_overview',
+        title: '1. E2E System Overview',
+        type: 'flowchart',
+        nodes: [
+          {
+            id: 'node_1',
+            type: 'start',
+            label: 'Client Request',
+            description: 'User clicks checkout in web app',
+            position: { x: 260, y: 80 },
+            colorTheme: 'indigo',
+          },
+          {
+            id: 'node_2',
+            type: 'process',
+            label: 'Order Service',
+            description: 'Validates stock & calculates tax',
+            position: { x: 260, y: 240 },
+            colorTheme: 'blue',
+          },
+          {
+            id: 'node_3',
+            type: 'decision',
+            label: 'Payment OK?',
+            description: 'Checks payment gateway webhook',
+            position: { x: 260, y: 400 },
+            colorTheme: 'amber',
+          },
+          {
+            id: 'node_4',
+            type: 'end',
+            label: 'Invoice Sent',
+            description: 'Email confirmation and shipping label',
+            position: { x: 260, y: 560 },
+            colorTheme: 'emerald',
+          },
+        ],
+        edges: [
+          { id: 'e1', sourceNodeId: 'node_1', targetNodeId: 'node_2', label: 'POST /order' },
+          { id: 'e2', sourceNodeId: 'node_2', targetNodeId: 'node_3', label: 'Verify' },
+          { id: 'e3', sourceNodeId: 'node_3', targetNodeId: 'node_4', label: 'Approved' },
+        ],
+      },
+      {
+        id: 'tab_sub_payment',
+        title: '2. Payment Sub-Process Breakdown',
+        type: 'flowchart',
+        nodes: [
+          {
+            id: 'sub_1',
+            type: 'start',
+            label: 'Process Transaction',
+            description: 'Verify payment gateway token',
+            position: { x: 260, y: 80 },
+            colorTheme: 'indigo',
+          },
+          {
+            id: 'sub_2',
+            type: 'decision',
+            label: 'Sufficient Balance?',
+            description: 'Check bank settlement status',
+            position: { x: 260, y: 240 },
+            colorTheme: 'amber',
+          },
+          {
+            id: 'sub_3',
+            type: 'end',
+            label: 'Payment Completed',
+            description: 'Emit order.paid event',
+            position: { x: 260, y: 400 },
+            colorTheme: 'emerald',
+          },
+        ],
+        edges: [
+          { id: 'se1', sourceNodeId: 'sub_1', targetNodeId: 'sub_2', label: 'Check' },
+          { id: 'se2', sourceNodeId: 'sub_2', targetNodeId: 'sub_3', label: 'Yes' },
+        ],
+      },
+      {
+        id: 'tab_kanban',
+        title: '3. Project Tasks Board',
+        type: 'kanban',
+        nodes: [],
+        edges: [],
+        kanbanTasks: [
+          { id: 'k1', title: 'Refactor payment webhook retry', status: 'inprogress', priority: 'high' },
+          { id: 'k2', title: 'Add idempotency key check on order creation', status: 'todo', priority: 'high' },
+        ],
+      },
+    ],
+  };
+
+  if (args.includes('--json') || args.includes('-j')) {
+    console.log(JSON.stringify(schemaSample, null, 2));
+    return;
+  }
+
   printBanner();
   console.log(`${colors.bold}📐 WTF DIAGRAM SCHEMA SPECIFICATION (FOR HERMES / AI AGENTS):${colors.reset}\n`);
-  console.log(`Hermes can generate multi-tab flowcharts using this exact JSON structure:\n`);
-  console.log(`${colors.cyan}{
-  "name": "Project Workflow & Architecture",
-  "version": "1.0.0",
-  "tabs": [
-    {
-      "id": "tab_overview",
-      "title": "1. E2E System Overview",
-      "type": "flowchart",
-      "nodes": [
-        {
-          "id": "node_1",
-          "type": "start",
-          "label": "Client Request",
-          "description": "User clicks checkout in web app",
-          "position": { "x": 260, "y": 80 },
-          "colorTheme": "indigo"
-        },
-        {
-          "id": "node_2",
-          "type": "process",
-          "label": "Order Service",
-          "description": "Validates stock & calculates tax",
-          "position": { "x": 260, "y": 240 },
-          "colorTheme": "blue"
-        },
-        {
-          "id": "node_3",
-          "type": "decision",
-          "label": "Payment OK?",
-          "description": "Checks payment gateway webhook",
-          "position": { "x": 260, "y": 400 },
-          "colorTheme": "amber"
-        },
-        {
-          "id": "node_4",
-          "type": "end",
-          "label": "Invoice Sent",
-          "description": "Email confirmation and shipping label",
-          "position": { "x": 260, "y": 560 },
-          "colorTheme": "emerald"
-        }
-      ],
-      "edges": [
-        { "id": "e1", "sourceNodeId": "node_1", "targetNodeId": "node_2", "label": "POST /order" },
-        { "id": "e2", "sourceNodeId": "node_2", "targetNodeId": "node_3", "label": "Verify" },
-        { "id": "e3", "sourceNodeId": "node_3", "targetNodeId": "node_4", "label": "Approved" }
-      ]
-    },
-    {
-      "id": "tab_sub_payment",
-      "title": "2. Payment Sub-Process Breakdown",
-      "type": "flowchart",
-      "nodes": [],
-      "edges": []
-    },
-    {
-      "id": "tab_kanban",
-      "title": "3. Project Tasks Board",
-      "type": "kanban",
-      "nodes": [],
-      "edges": [],
-      "kanbanTasks": [
-        { "id": "k1", "title": "Refactor payment webhook retry", "status": "inprogress", "priority": "high" }
-      ]
-    }
-  ]
-}${colors.reset}\n`);
+  console.log(`Hermes can generate multi-tab flowcharts using this exact JSON structure (run ${colors.cyan}wtf schema --json${colors.reset} for raw output):\n`);
+  console.log(colors.cyan + JSON.stringify(schemaSample, null, 2) + colors.reset + '\n');
 
   console.log(`${colors.bold}NODE TYPES:${colors.reset} start, process, decision, subprocess, database, api, queue, end`);
   console.log(`${colors.bold}COLOR THEMES:${colors.reset} indigo, blue, emerald, amber, rose, purple, cyan, slate\n`);
 
-  console.log(`${colors.bold}🤖 PROMPT UNTUK DISERAHKAN KE HERMES:${colors.reset}`);
+  console.log(`${colors.bold}🤖 CARA SURUH HERMES (TANPA PERLU COPY FORMAT):${colors.reset}`);
   console.log(`--------------------------------------------------------------------------------`);
-  console.log(`${colors.yellow}Scan folder codebase project ini, pelajari alur flow aplikasinya, lalu buat file JSON bernama 'flow.json' yang berisi arsitektur multi-tab:
-- Tab 1: High-Level Overview (Garis besar alur E2E dari input user, controller, service sampai database)
-- Tab 2+: Sub-process Breakdown untuk flow yang panjang/kompleks (misal Auth, Transaksi, Sync)
-- Tab terakhir: Kanban Task Board berisi task/to-do yang relevan
-Gunakan format 'wtf schema'. Setelah selesai simpan ke 'flow.json' lalu jalankan:
-  wtf push flow.json${colors.reset}`);
+  console.log(`${colors.yellow}"Cek format di 'wtf schema --json', baca folder codebase ini, buat flowchart multi-tab di 'flow.json', lalu jalankan 'wtf push flow.json'."${colors.reset}`);
   console.log(`--------------------------------------------------------------------------------\n`);
 }
 
@@ -719,7 +776,7 @@ if (command === 'init') {
 } else if (command === 'push') {
   handlePush(rawArgs.slice(1));
 } else if (command === 'schema') {
-  handleSchema();
+  handleSchema(rawArgs.slice(1));
 } else if (command === 'gateway' || command === 'start') {
   const action = command === 'start' ? 'start' : subCommand;
   const remainingArgs = command === 'start' ? rawArgs.slice(1) : rawArgs.slice(2);
