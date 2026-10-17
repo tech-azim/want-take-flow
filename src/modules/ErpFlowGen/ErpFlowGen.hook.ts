@@ -56,12 +56,34 @@ import {
   _sanitizeTab,
 } from './ErpFlowGen.utils';
 import { joinRoom } from 'trystero';
-import { DEFAULT_DAILY_APP_TABS } from './ErpFlowGen.defaultFlow';
 
 const STORAGE_KEY = 'erp_flowgen_tabs_v7';
 const ACTIVE_TAB_KEY = 'erp_flowgen_active_tab_id_v7';
 const UPDATED_AT_KEY = 'erp_flowgen_updated_at_v7';
 const BROWSER_CLIENT_ID = typeof window !== 'undefined' ? `client_${Math.random().toString(36).slice(2, 9)}` : '';
+
+export const createCleanBlankProject = (title: string = 'Project 1'): FlowProjectTab => ({
+  id: `proj_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+  title,
+  type: 'userflow',
+  nodes: [
+    {
+      id: 'start_node',
+      type: 'start',
+      label: 'Start',
+      description: 'Flowchart starting point',
+      position: { x: 380, y: 80 },
+      colorTheme: 'indigo',
+      width: 160,
+      height: 48,
+      moduleCategory: 'General',
+    },
+  ],
+  edges: [],
+  groups: [],
+  showGhostSkeleton: false,
+  transform: { x: 60, y: 40, scale: 1 },
+});
 
 const _loadPersistedTabs = (): FlowProjectTab[] => {
   if (typeof window === 'undefined') return [];
@@ -76,20 +98,15 @@ const _loadPersistedTabs = (): FlowProjectTab[] => {
   } catch (err) {
     console.warn('Failed reading localStorage tabs:', err);
   }
-  // Default to full Daily App flowchart project
-  if (DEFAULT_DAILY_APP_TABS && DEFAULT_DAILY_APP_TABS.length > 0) {
-    return DEFAULT_DAILY_APP_TABS.map(_sanitizeTab);
-  }
-  return [
-    createInitialProject('userflow', 'Amazon Book Order'),
-    createInitialProject('swimlane', 'Company SOP'),
-  ];
+  // Default: Start from scratch with a pristine blank canvas (1 clean start node)
+  return [createCleanBlankProject('Project 1')];
 };
 
 const _loadPersistedActiveTabId = (fallbackId: string): string => {
   if (typeof window === 'undefined') return fallbackId;
   try {
-    const saved = localStorage.getItem(ACTIVE_TAB_KEY);
+    // Check sessionStorage first so each browser tab has independent active tab selection
+    const saved = sessionStorage.getItem(ACTIVE_TAB_KEY) || localStorage.getItem(ACTIVE_TAB_KEY);
     if (saved) return saved;
   } catch (err) {
     console.warn('Failed reading activeTabId:', err);
@@ -264,6 +281,7 @@ export type UseErpFlowGenReturn = {
   onUpdateCurrentUserName: (name: string) => void;
   onStartFollowPeer: (peerId: string) => void;
   onStopFollowPeer: () => void;
+  onDismissConnecting: () => void;
 };
 
 /**
@@ -278,9 +296,19 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     _loadPersistedActiveTabId(tabs[0]?.id || ''),
   );
   const isReceivingRemoteSyncRef = useRef<boolean>(false);
+  const lastLocalChangeTimestampRef = useRef<number>(Date.now());
+  const isInitialTabsMountRef = useRef<boolean>(true);
+  const broadcastMessageRef = useRef<((msg: Record<string, any>) => void) | null>(null);
 
   useEffect(() => {
+    // Avoid broadcasting DOCUMENT_UPDATE on initial mount so a newly opened tab doesn't overwrite existing room canvas
+    if (isInitialTabsMountRef.current) {
+      isInitialTabsMountRef.current = false;
+      return;
+    }
+
     const now = Date.now();
+    lastLocalChangeTimestampRef.current = now;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tabs));
       localStorage.setItem(UPDATED_AT_KEY, String(now));
@@ -310,26 +338,24 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
           updatedAt: now,
         };
         try {
-          broadcastChannelRef.current?.postMessage(docMsg);
-        } catch (_) {}
-        try {
-          fetch('/api/multiplayer/message', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(docMsg),
-          }).catch(() => {});
+          if (broadcastMessageRef.current) {
+            broadcastMessageRef.current(docMsg);
+          } else {
+            broadcastChannelRef.current?.postMessage(docMsg);
+          }
         } catch (_) {}
       }
-    }, 600);
+    }, 400);
 
     return () => clearTimeout(timer);
   }, [tabs]);
 
   useEffect(() => {
     try {
+      sessionStorage.setItem(ACTIVE_TAB_KEY, activeTabId);
       localStorage.setItem(ACTIVE_TAB_KEY, activeTabId);
     } catch (err) {
-      console.warn('Failed writing activeTabId to localStorage:', err);
+      console.warn('Failed writing activeTabId to storage:', err);
     }
   }, [activeTabId]);
 
@@ -610,6 +636,8 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       currentUser: identity,
       peers: {},
       followedPeerId: undefined,
+      isConnecting: Boolean(queryRoom),
+      connectionStatus: 'connecting',
     };
   });
   const multiplayerStateRef = useRef<MultiplayerState>(multiplayerState);
@@ -1748,6 +1776,14 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
   const handleStopFollowPeer = useCallback((): void => {
     setMultiplayerState((prev) => ({ ...prev, followedPeerId: undefined }));
+  }, []);
+
+  const handleDismissConnecting = useCallback((): void => {
+    setMultiplayerState((prev) => ({
+      ...prev,
+      isConnecting: false,
+      connectionStatus: 'connected',
+    }));
   }, []);
 
   const handleToggleViewOnly = useCallback((): void => {
@@ -3756,6 +3792,17 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         } catch (_) {}
       }
     };
+    broadcastMessageRef.current = broadcastMessage;
+
+    // Safety timeout: dismiss room connecting loading overlay if user is host or first to join
+    const connectionTimeout = setTimeout(() => {
+      setMultiplayerState((prev) => {
+        if (prev.isConnecting) {
+          return { ...prev, isConnecting: false, connectionStatus: 'connected' };
+        }
+        return prev;
+      });
+    }, 1200);
 
     // 1. Announce presence on join and request live document synchronization
     broadcastMessage({
@@ -3800,57 +3847,91 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
             targetPeerId: msg.peerId,
             tabs: tabsRef.current,
             activeTabId: activeTabIdRef.current,
-            updatedAt: Date.now(),
+            updatedAt: lastLocalChangeTimestampRef.current || Date.now(),
           });
         }
       } else if (msg.type === 'SYNC_DOCUMENT') {
         if (!msg.targetPeerId || msg.targetPeerId === localUser.peerId) {
+          // If we have local edits strictly newer than the incoming snapshot, keep our state!
+          if (msg.updatedAt && msg.updatedAt < lastLocalChangeTimestampRef.current) {
+            setMultiplayerState((prev) => ({ ...prev, isConnecting: false, connectionStatus: 'connected' }));
+            return;
+          }
           if (Array.isArray(msg.tabs) && msg.tabs.length > 0) {
             isReceivingRemoteSyncRef.current = true;
+            lastLocalChangeTimestampRef.current = msg.updatedAt || Date.now();
             const sanitizedTabs = msg.tabs.map(_sanitizeTab);
             setTabs(sanitizedTabs);
-            if (msg.activeTabId && sanitizedTabs.some((t: FlowProjectTab) => t.id === msg.activeTabId)) {
-              setActiveTabId(msg.activeTabId);
-            }
+            // DO NOT force user to another tab! Preserve current tab unless it was deleted
+            setActiveTabId((currentId) => {
+              if (currentId && sanitizedTabs.some((t: FlowProjectTab) => t.id === currentId)) {
+                return currentId;
+              }
+              return sanitizedTabs[0]?.id || '';
+            });
           }
+          setMultiplayerState((prev) => ({ ...prev, isConnecting: false, connectionStatus: 'connected' }));
         }
       } else if (msg.type === 'DOCUMENT_UPDATE') {
+        if (msg.updatedAt && msg.updatedAt < lastLocalChangeTimestampRef.current) {
+          return;
+        }
         if (Array.isArray(msg.tabs) && msg.tabs.length > 0) {
           isReceivingRemoteSyncRef.current = true;
+          lastLocalChangeTimestampRef.current = msg.updatedAt || Date.now();
           const sanitizedTabs = msg.tabs.map(_sanitizeTab);
           setTabs(sanitizedTabs);
+          // Preserve current user's active tab
+          setActiveTabId((currentId) => {
+            if (currentId && sanitizedTabs.some((t: FlowProjectTab) => t.id === currentId)) {
+              return currentId;
+            }
+            return sanitizedTabs[0]?.id || '';
+          });
         }
       } else if (msg.type === 'CURSOR_MOVE') {
-        setMultiplayerState((prev) => {
-          const existingPeer = prev.peers[msg.peerId] || {
-            peerId: msg.peerId,
-            name: msg.name || 'Collaborator',
-            color: msg.color || '#4f46e5',
-            activeTabId: msg.activeTabId,
-            lastActive: Date.now(),
-            cursor: null,
-          };
+        // Direct GPU-accelerated DOM transform for ultra-smooth 60/120fps motion with ZERO React re-render thrashing
+        const cursorEl = document.getElementById(`remote-cursor-${msg.peerId}`);
+        if (cursorEl) {
+          if (msg.cursor) {
+            cursorEl.style.display = 'block';
+            const inverseScale = transformRef.current.scale > 0 ? 1 / transformRef.current.scale : 1;
+            cursorEl.style.transform = `translate3d(${msg.cursor.x}px, ${msg.cursor.y}px, 0) scale(${inverseScale})`;
+          } else {
+            cursorEl.style.display = 'none';
+          }
+        }
 
-          return {
+        // Register peer once in React state if newly seen, otherwise update ref silently
+        const peerExists = Boolean(multiplayerStateRef.current.peers[msg.peerId]);
+        if (!peerExists) {
+          setMultiplayerState((prev) => ({
             ...prev,
             peers: {
               ...prev.peers,
               [msg.peerId]: {
-                ...existingPeer,
-                name: msg.name || existingPeer.name,
-                color: msg.color || existingPeer.color,
+                peerId: msg.peerId,
+                name: msg.name || 'Collaborator',
+                color: msg.color || '#4f46e5',
                 cursor: msg.cursor,
-                activeTabId: msg.activeTabId || existingPeer.activeTabId,
+                activeTabId: msg.activeTabId,
                 selectedNodeId: msg.selectedNodeId,
                 lastActive: Date.now(),
               },
             },
-          };
-        });
+          }));
+        } else {
+          const peer = multiplayerStateRef.current.peers[msg.peerId];
+          if (peer) {
+            peer.cursor = msg.cursor;
+            peer.lastActive = Date.now();
+            if (msg.activeTabId) peer.activeTabId = msg.activeTabId;
+            if (msg.selectedNodeId) peer.selectedNodeId = msg.selectedNodeId;
+          }
+        }
 
-        // Follow Mode camera & active workflow tab smooth tracking
+        // Follow Mode camera tracking
         if (multiplayerStateRef.current.followedPeerId === msg.peerId) {
-          // If the collaborator being followed switches tabs, automatically switch tab too!
           if (msg.activeTabId && msg.activeTabId !== activeTabIdRef.current) {
             setActiveTabId(msg.activeTabId);
           }
@@ -4037,6 +4118,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       clearInterval(pruneInterval);
       window.removeEventListener('mousemove', handleWindowMouseMove);
       document.removeEventListener('mouseleave', handleWindowMouseLeave);
+      clearTimeout(connectionTimeout);
       try {
         trysteroRoom?.leave();
       } catch (_) {}
@@ -4047,6 +4129,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         channel.close();
       }
       broadcastChannelRef.current = null;
+      broadcastMessageRef.current = null;
     };
   }, [multiplayerState.isEnabled, multiplayerState.roomId, multiplayerState.currentUser]);
 
@@ -4765,5 +4848,6 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     onUpdateCurrentUserName: handleUpdateCurrentUserName,
     onStartFollowPeer: handleStartFollowPeer,
     onStopFollowPeer: handleStopFollowPeer,
+    onDismissConnecting: handleDismissConnecting,
   };
 };

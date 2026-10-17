@@ -2099,6 +2099,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
     onUpdateCurrentUserName,
     onStartFollowPeer,
     onStopFollowPeer,
+    onDismissConnecting,
   } = props;
 
   const currentSkeleton = SKELETON_TEMPLATES[activeTab.type];
@@ -4775,6 +4776,51 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {/* 5. Sleek Multiplayer Live Room Connecting & Sync Overlay */}
+      {multiplayerState?.isConnecting ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 backdrop-blur-md animate-in fade-in duration-300 select-none">
+          <div className="relative bg-slate-900/95 text-white rounded-3xl border border-slate-700/80 shadow-2xl p-7 max-w-sm w-full mx-4 flex flex-col items-center text-center backdrop-blur-xl">
+            {/* Glowing Radar Pulse Animation */}
+            <div className="relative flex items-center justify-center mb-5 mt-1">
+              <span className="w-16 h-16 rounded-full bg-indigo-500/20 animate-ping absolute" />
+              <span className="w-12 h-12 rounded-full bg-indigo-500/30 animate-pulse absolute" />
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/50 z-10">
+                <Users className="w-5 h-5 animate-pulse" />
+              </div>
+            </div>
+
+            <h3 className="text-base font-bold text-white mb-1.5 tracking-tight">
+              Menghubungkan ke Ruang Live
+            </h3>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-semibold mb-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
+              <span>Room: {multiplayerState.roomId}</span>
+            </div>
+
+            <p className="text-xs text-slate-400 leading-relaxed max-w-xs mb-5">
+              Menghubungkan WebRTC P2P & melakukan sinkronisasi canvas real-time antar collaborator...
+            </p>
+
+            {/* Glowing Progress Indicator */}
+            <div className="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden mb-5">
+              <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 h-full rounded-full animate-pulse w-3/4" />
+            </div>
+
+            {/* Quick Dismiss / Continue Button */}
+            {onDismissConnecting && (
+              <button
+                type="button"
+                onClick={onDismissConnecting}
+                className="text-xs font-medium text-slate-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-slate-800/60 transition-colors cursor-pointer"
+              >
+                Mulai Kanvas Sekarang
+              </button>
+            )}
           </div>
         </div>
       ) : null}

@@ -233,6 +233,8 @@ export type MultiplayerState = {
   };
   peers: Record<string, PeerPresence>;
   followedPeerId?: string;
+  isConnecting?: boolean;
+  connectionStatus?: 'connecting' | 'connected' | 'alone';
 };
 
 export type FlowRunnerState = {
@@ -503,4 +505,5 @@ export type ErpFlowGenComponentProps = {
   onUpdateCurrentUserName: (name: string) => void;
   onStartFollowPeer: (peerId: string) => void;
   onStopFollowPeer: () => void;
+  onDismissConnecting?: () => void;
 };

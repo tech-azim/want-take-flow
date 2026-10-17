@@ -59,21 +59,25 @@ export const _renderRemotePeerCursor = (
   isFollowed: boolean,
   canvasScale: number = 1,
 ): React.ReactElement | null => {
-  if (!peer.cursor) return null;
-
   const inverseScale = canvasScale > 0 ? 1 / canvasScale : 1;
+  const initialX = peer.cursor ? peer.cursor.x : -9999;
+  const initialY = peer.cursor ? peer.cursor.y : -9999;
 
   return (
     <div
       key={peer.peerId}
+      id={`remote-cursor-${peer.peerId}`}
+      data-peer-id={peer.peerId}
       style={{
         position: 'absolute',
-        left: `${peer.cursor.x}px`,
-        top: `${peer.cursor.y}px`,
+        left: 0,
+        top: 0,
+        transform: `translate3d(${initialX}px, ${initialY}px, 0) scale(${inverseScale})`,
+        display: peer.cursor ? 'block' : 'none',
         pointerEvents: 'none',
         zIndex: isFollowed ? 60 : 45,
-        transition: 'left 60ms linear, top 60ms linear',
-        transform: `scale(${inverseScale})`,
+        transition: 'transform 75ms cubic-bezier(0.16, 1, 0.3, 1)',
+        willChange: 'transform',
         transformOrigin: '0 0',
       }}
       className="select-none"
