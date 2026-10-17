@@ -98,19 +98,11 @@ const ErpFlowGenContainer = (): React.ReactElement => {
     handleStartGroupDrag,
     handleStartGroupResize,
     handleToggleDecisionSwap,
-    aiSettingsModal,
-    projectScanModal,
-    handleOpenAiSettings,
-    handleCloseAiSettings,
-    handleUpdateAiSettingsField,
-    handleTestAiConnection,
-    handleOpenProjectFolder,
-    handleCloseProjectScanModal,
-    handleGenerateFlowFromProject,
-    folderInputRef,
-    handleFolderInputChange,
     isViewOnly,
     handleToggleViewOnly,
+    projectSubView,
+    handleSetProjectSubView,
+    handleGenerateTasksFromNodes,
     shareModal,
     handleOpenShareModal,
     handleCloseShareModal,
@@ -129,9 +121,11 @@ const ErpFlowGenContainer = (): React.ReactElement => {
     kanbanTaskModal,
     kanbanSearchQuery,
     kanbanPriorityFilter,
+    kanbanSprintFilter,
     kanbanLinkFilter,
     onSetKanbanSearchQuery,
     onSetKanbanPriorityFilter,
+    onSetKanbanSprintFilter,
     onSetKanbanLinkFilter,
     onOpenCreateKanbanTask,
     onOpenEditKanbanTask,
@@ -141,6 +135,29 @@ const ErpFlowGenContainer = (): React.ReactElement => {
     onDeleteKanbanTask,
     onMoveKanbanTaskStatus,
     onJumpToLinkedWorkflow,
+    canUndo,
+    canRedo,
+    handleUndo,
+    handleRedo,
+    connectorStyle,
+    handleSetConnectorStyle,
+    handleSelectEdge,
+    handleDeleteEdgeById,
+    editEdgeModal,
+    handleOpenEditEdgeModal,
+    handleCloseEditEdgeModal,
+    handleUpdateEditEdgeField,
+    handleSaveEditEdge,
+    handleFlipEdgeDirection,
+    handleStartEdgeWaypointDrag,
+    handleResetEdgeWaypoint,
+    handleSetEdgeTargetAnchor,
+    handleSetEdgeSourceAnchor,
+    edgeEndpointDragState,
+    handleStartEdgeEndpointDrag,
+    handleUpdateEdgeLabel,
+    handleUpdateEdgeColor,
+    handleResetEdgeAnchors,
   } = useErpFlowGen();
 
   return (
@@ -233,19 +250,11 @@ const ErpFlowGenContainer = (): React.ReactElement => {
       onStartGroupDrag={handleStartGroupDrag}
       onStartGroupResize={handleStartGroupResize}
       onToggleDecisionSwap={handleToggleDecisionSwap}
-      aiSettingsModal={aiSettingsModal}
-      projectScanModal={projectScanModal}
-      onOpenAiSettings={handleOpenAiSettings}
-      onCloseAiSettings={handleCloseAiSettings}
-      onUpdateAiSettingsField={handleUpdateAiSettingsField}
-      onTestAiConnection={handleTestAiConnection}
-      onOpenProjectFolder={handleOpenProjectFolder}
-      onCloseProjectScanModal={handleCloseProjectScanModal}
-      onGenerateFlowFromProject={handleGenerateFlowFromProject}
-      folderInputRef={folderInputRef}
-      onFolderInputChange={handleFolderInputChange}
       isViewOnly={isViewOnly}
       onToggleViewOnly={handleToggleViewOnly}
+      projectSubView={projectSubView}
+      onSetProjectSubView={handleSetProjectSubView}
+      onGenerateTasksFromNodes={handleGenerateTasksFromNodes}
       shareModal={shareModal}
       onOpenShareModal={handleOpenShareModal}
       onCloseShareModal={handleCloseShareModal}
@@ -264,9 +273,11 @@ const ErpFlowGenContainer = (): React.ReactElement => {
       kanbanTaskModal={kanbanTaskModal}
       kanbanSearchQuery={kanbanSearchQuery}
       kanbanPriorityFilter={kanbanPriorityFilter}
+      kanbanSprintFilter={kanbanSprintFilter}
       kanbanLinkFilter={kanbanLinkFilter}
       onSetKanbanSearchQuery={onSetKanbanSearchQuery}
       onSetKanbanPriorityFilter={onSetKanbanPriorityFilter}
+      onSetKanbanSprintFilter={onSetKanbanSprintFilter}
       onSetKanbanLinkFilter={onSetKanbanLinkFilter}
       onOpenCreateKanbanTask={onOpenCreateKanbanTask}
       onOpenEditKanbanTask={onOpenEditKanbanTask}
@@ -276,6 +287,29 @@ const ErpFlowGenContainer = (): React.ReactElement => {
       onDeleteKanbanTask={onDeleteKanbanTask}
       onMoveKanbanTaskStatus={onMoveKanbanTaskStatus}
       onJumpToLinkedWorkflow={onJumpToLinkedWorkflow}
+      canUndo={canUndo}
+      canRedo={canRedo}
+      onUndo={handleUndo}
+      onRedo={handleRedo}
+      connectorStyle={connectorStyle}
+      onSetConnectorStyle={handleSetConnectorStyle}
+      onSelectEdge={handleSelectEdge}
+      onDeleteEdgeById={handleDeleteEdgeById}
+      editEdgeModal={editEdgeModal}
+      onOpenEditEdgeModal={handleOpenEditEdgeModal}
+      onCloseEditEdgeModal={handleCloseEditEdgeModal}
+      onUpdateEditEdgeField={handleUpdateEditEdgeField}
+      onSaveEditEdge={handleSaveEditEdge}
+      onFlipEdgeDirection={handleFlipEdgeDirection}
+      onStartEdgeWaypointDrag={handleStartEdgeWaypointDrag}
+      onResetEdgeWaypoint={handleResetEdgeWaypoint}
+      onSetEdgeTargetAnchor={handleSetEdgeTargetAnchor}
+      onSetEdgeSourceAnchor={handleSetEdgeSourceAnchor}
+      edgeEndpointDragState={edgeEndpointDragState}
+      onStartEdgeEndpointDrag={handleStartEdgeEndpointDrag}
+      onUpdateEdgeLabel={handleUpdateEdgeLabel}
+      onUpdateEdgeColor={handleUpdateEdgeColor}
+      onResetEdgeAnchors={handleResetEdgeAnchors}
     />
   );
 };

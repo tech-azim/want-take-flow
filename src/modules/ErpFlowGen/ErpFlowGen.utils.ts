@@ -63,6 +63,12 @@ export type EdgeGeometry = {
   pathD: string;
   midX: number;
   midY: number;
+  startX?: number;
+  startY?: number;
+  endX?: number;
+  endY?: number;
+  sourceSide?: AnchorSide;
+  targetSide?: AnchorSide;
 };
 
 export type AnchorSide = 'top' | 'bottom' | 'left' | 'right';
@@ -74,7 +80,14 @@ export type AnchorSide = 'top' | 'bottom' | 'left' | 'right';
  * @param {FlowNode} targetNode - destination flow node
  * @returns {EdgeGeometry} - SVG path string and midpoint
  */
-export const _calculateEdgePath = (sourceNode: FlowNode, targetNode: FlowNode): EdgeGeometry => {
+export const _calculateEdgePath = (
+  sourceNode: FlowNode,
+  targetNode: FlowNode,
+  style: 'curved' | 'orthogonal' | 'straight' = 'curved',
+  waypointOffset?: { x: number; y: number },
+  sourceAnchor?: 'auto' | 'top' | 'bottom' | 'left' | 'right',
+  targetAnchor?: 'auto' | 'top' | 'bottom' | 'left' | 'right',
+): EdgeGeometry => {
   const sourceDims = _getNodeDimensions(sourceNode);
   const targetDims = _getNodeDimensions(targetNode);
 
@@ -137,11 +150,21 @@ export const _calculateEdgePath = (sourceNode: FlowNode, targetNode: FlowNode): 
       sourceSide = 'top';
       targetSide = 'bottom';
     } else if (isTargetRight) {
-      sourceSide = 'right';
-      targetSide = 'bottom';
+      if (deltaX > 60) {
+        sourceSide = 'top';
+        targetSide = 'left';
+      } else {
+        sourceSide = 'right';
+        targetSide = 'bottom';
+      }
     } else if (isTargetLeft) {
-      sourceSide = 'left';
-      targetSide = 'bottom';
+      if (-deltaX > 60) {
+        sourceSide = 'top';
+        targetSide = 'right';
+      } else {
+        sourceSide = 'left';
+        targetSide = 'bottom';
+      }
     } else {
       sourceSide = 'top';
       targetSide = 'bottom';
@@ -155,6 +178,14 @@ export const _calculateEdgePath = (sourceNode: FlowNode, targetNode: FlowNode): 
       sourceSide = 'left';
       targetSide = 'right';
     }
+  }
+
+  // Explicit user override for anchor ports (e.g. left, right, top, bottom)
+  if (sourceAnchor && sourceAnchor !== 'auto') {
+    sourceSide = sourceAnchor;
+  }
+  if (targetAnchor && targetAnchor !== 'auto') {
+    targetSide = targetAnchor;
   }
 
   // Calculate actual coordinates for selected anchors
@@ -204,6 +235,256 @@ export const _calculateEdgePath = (sourceNode: FlowNode, targetNode: FlowNode): 
       break;
   }
 
+  const offX = waypointOffset?.x ?? 0;
+  const offY = waypointOffset?.y ?? 0;
+
+  if (style === 'straight') {
+    if (offX !== 0 || offY !== 0) {
+      const wpX = (startX + endX) / 2 + offX;
+      const wpY = (startY + endY) / 2 + offY;
+      return {
+        pathD: `M ${startX} ${startY} L ${wpX} ${wpY} L ${endX} ${endY}`,
+        midX: wpX,
+        midY: wpY,
+        startX,
+        startY,
+        endX,
+        endY,
+      };
+    }
+    return {
+      pathD: `M ${startX} ${startY} L ${endX} ${endY}`,
+      midX: (startX + endX) / 2,
+      midY: (startY + endY) / 2,
+      startX,
+      startY,
+      endX,
+      endY,
+      sourceSide,
+      targetSide,
+    };
+  }
+
+  if (style === 'orthogonal') {
+    let pathD = '';
+    let midX = (startX + endX) / 2;
+    let midY = (startY + endY) / 2;
+
+    if (sourceSide === 'bottom' && targetSide === 'top') {
+      if (endY > startY + 15) {
+        const stepY = startY + (endY - startY) / 2 + offY;
+        if (offX !== 0) {
+          const wpX = (startX + endX) / 2 + offX;
+          pathD = `M ${startX} ${startY} L ${startX} ${stepY} L ${wpX} ${stepY} L ${wpX} ${endY - 15} L ${endX} ${endY - 15} L ${endX} ${endY}`;
+          midX = wpX;
+          midY = stepY;
+        } else {
+          pathD = `M ${startX} ${startY} L ${startX} ${stepY} L ${endX} ${stepY} L ${endX} ${endY}`;
+          midX = (startX + endX) / 2;
+          midY = stepY;
+        }
+      } else {
+        const downY = startY + 25 + offY;
+        const upY = endY - 25;
+        const bypassX = (startX >= endX ? Math.min(startX, endX) - 80 : Math.max(startX, endX) + 80) + offX;
+        pathD = `M ${startX} ${startY} L ${startX} ${downY} L ${bypassX} ${downY} L ${bypassX} ${upY} L ${endX} ${upY} L ${endX} ${endY}`;
+        midX = bypassX;
+        midY = (downY + upY) / 2;
+      }
+    } else if (sourceSide === 'bottom' && targetSide === 'left') {
+      const stepY = startY + Math.max(20, (endY - startY) / 2) + offY;
+      if (endX > startX + 25 && offX === 0) {
+        pathD = `M ${startX} ${startY} L ${startX} ${endY} L ${endX} ${endY}`;
+        midX = (startX + endX) / 2;
+        midY = endY;
+      } else {
+        const approachX = Math.min(startX - 25, endX - 35) + offX;
+        pathD = `M ${startX} ${startY} L ${startX} ${stepY} L ${approachX} ${stepY} L ${approachX} ${endY} L ${endX} ${endY}`;
+        midX = approachX;
+        midY = (stepY + endY) / 2;
+      }
+    } else if (sourceSide === 'bottom' && targetSide === 'right') {
+      const stepY = startY + Math.max(20, (endY - startY) / 2) + offY;
+      if (endX < startX - 25 && offX === 0) {
+        pathD = `M ${startX} ${startY} L ${startX} ${endY} L ${endX} ${endY}`;
+        midX = (startX + endX) / 2;
+        midY = endY;
+      } else {
+        const approachX = Math.max(startX + 25, endX + 35) + offX;
+        pathD = `M ${startX} ${startY} L ${startX} ${stepY} L ${approachX} ${stepY} L ${approachX} ${endY} L ${endX} ${endY}`;
+        midX = approachX;
+        midY = (stepY + endY) / 2;
+      }
+    } else if (sourceSide === 'bottom' && targetSide === 'bottom') {
+      const dropY = Math.max(startY, endY) + 35 + offY;
+      pathD = `M ${startX} ${startY} L ${startX} ${dropY} L ${endX} ${dropY} L ${endX} ${endY}`;
+      midX = (startX + endX) / 2 + offX;
+      midY = dropY;
+    } else if (sourceSide === 'top' && targetSide === 'bottom') {
+      if (endY < startY - 15) {
+        const stepY = startY + (endY - startY) / 2 + offY;
+        if (offX !== 0) {
+          const wpX = (startX + endX) / 2 + offX;
+          pathD = `M ${startX} ${startY} L ${startX} ${stepY} L ${wpX} ${stepY} L ${wpX} ${endY + 15} L ${endX} ${endY + 15} L ${endX} ${endY}`;
+          midX = wpX;
+          midY = stepY;
+        } else {
+          pathD = `M ${startX} ${startY} L ${startX} ${stepY} L ${endX} ${stepY} L ${endX} ${endY}`;
+          midX = (startX + endX) / 2;
+          midY = stepY;
+        }
+      } else {
+        const upY = startY - 25 + offY;
+        const downY = endY + 25;
+        const bypassX = (startX >= endX ? Math.min(startX, endX) - 80 : Math.max(startX, endX) + 80) + offX;
+        pathD = `M ${startX} ${startY} L ${startX} ${upY} L ${bypassX} ${upY} L ${bypassX} ${downY} L ${endX} ${downY} L ${endX} ${endY}`;
+        midX = bypassX;
+        midY = (upY + downY) / 2;
+      }
+    } else if (sourceSide === 'top' && targetSide === 'top') {
+      const liftY = Math.min(startY, endY) - 35 + offY;
+      pathD = `M ${startX} ${startY} L ${startX} ${liftY} L ${endX} ${liftY} L ${endX} ${endY}`;
+      midX = (startX + endX) / 2 + offX;
+      midY = liftY;
+    } else if (sourceSide === 'top' && targetSide === 'left') {
+      const stepY = startY - 25 + offY;
+      const approachX = Math.min(startX - 25, endX - 35) + offX;
+      pathD = `M ${startX} ${startY} L ${startX} ${stepY} L ${approachX} ${stepY} L ${approachX} ${endY} L ${endX} ${endY}`;
+      midX = approachX;
+      midY = (stepY + endY) / 2;
+    } else if (sourceSide === 'top' && targetSide === 'right') {
+      const stepY = startY - 25 + offY;
+      const approachX = Math.max(startX + 25, endX + 35) + offX;
+      pathD = `M ${startX} ${startY} L ${startX} ${stepY} L ${approachX} ${stepY} L ${approachX} ${endY} L ${endX} ${endY}`;
+      midX = approachX;
+      midY = (stepY + endY) / 2;
+    } else if (sourceSide === 'right' && targetSide === 'left') {
+      if (endX > startX + 15) {
+        const stepX = startX + (endX - startX) / 2 + offX;
+        if (offY !== 0) {
+          const wpY = (startY + endY) / 2 + offY;
+          pathD = `M ${startX} ${startY} L ${stepX} ${startY} L ${stepX} ${wpY} L ${endX - 15} ${wpY} L ${endX - 15} ${endY} L ${endX} ${endY}`;
+          midX = stepX;
+          midY = wpY;
+        } else {
+          pathD = `M ${startX} ${startY} L ${stepX} ${startY} L ${stepX} ${endY} L ${endX} ${endY}`;
+          midX = stepX;
+          midY = (startY + endY) / 2;
+        }
+      } else {
+        const rightX = startX + 35 + offX;
+        const leftX = endX - 35;
+        const bypassY = Math.min(startY, endY) - 50 + offY;
+        pathD = `M ${startX} ${startY} L ${rightX} ${startY} L ${rightX} ${bypassY} L ${leftX} ${bypassY} L ${leftX} ${endY} L ${endX} ${endY}`;
+        midX = (rightX + leftX) / 2;
+        midY = bypassY;
+      }
+    } else if (sourceSide === 'right' && targetSide === 'top') {
+      const cornerX = endX + offX;
+      const cornerY = startY + offY;
+      if (offX !== 0 || offY !== 0) {
+        pathD = `M ${startX} ${startY} L ${cornerX} ${startY} L ${cornerX} ${cornerY} L ${endX} ${cornerY} L ${endX} ${endY}`;
+        midX = cornerX;
+        midY = cornerY;
+      } else {
+        pathD = `M ${startX} ${startY} L ${endX} ${startY} L ${endX} ${endY}`;
+        midX = (startX + endX) / 2;
+        midY = startY;
+      }
+    } else if (sourceSide === 'right' && targetSide === 'bottom') {
+      const cornerX = endX + offX;
+      const cornerY = startY + offY;
+      if (offX !== 0 || offY !== 0) {
+        pathD = `M ${startX} ${startY} L ${cornerX} ${startY} L ${cornerX} ${cornerY} L ${endX} ${cornerY} L ${endX} ${endY}`;
+        midX = cornerX;
+        midY = cornerY;
+      } else {
+        pathD = `M ${startX} ${startY} L ${endX} ${startY} L ${endX} ${endY}`;
+        midX = (startX + endX) / 2;
+        midY = startY;
+      }
+    } else if (sourceSide === 'right' && targetSide === 'right') {
+      const farX = Math.max(startX, endX) + 35 + offX;
+      pathD = `M ${startX} ${startY} L ${farX} ${startY} L ${farX} ${endY} L ${endX} ${endY}`;
+      midX = farX;
+      midY = (startY + endY) / 2 + offY;
+    } else if (sourceSide === 'left' && targetSide === 'right') {
+      if (endX < startX - 15) {
+        const stepX = startX + (endX - startX) / 2 + offX;
+        if (offY !== 0) {
+          const wpY = (startY + endY) / 2 + offY;
+          pathD = `M ${startX} ${startY} L ${stepX} ${startY} L ${stepX} ${wpY} L ${endX + 15} ${wpY} L ${endX + 15} ${endY} L ${endX} ${endY}`;
+          midX = stepX;
+          midY = wpY;
+        } else {
+          pathD = `M ${startX} ${startY} L ${stepX} ${startY} L ${stepX} ${endY} L ${endX} ${endY}`;
+          midX = stepX;
+          midY = (startY + endY) / 2;
+        }
+      } else {
+        const leftX = startX - 35 + offX;
+        const rightX = endX + 35;
+        const bypassY = Math.min(startY, endY) - 50 + offY;
+        pathD = `M ${startX} ${startY} L ${leftX} ${startY} L ${leftX} ${bypassY} L ${rightX} ${bypassY} L ${rightX} ${endY} L ${endX} ${endY}`;
+        midX = (leftX + rightX) / 2;
+        midY = bypassY;
+      }
+    } else if (sourceSide === 'left' && targetSide === 'top') {
+      const cornerX = endX + offX;
+      const cornerY = startY + offY;
+      if (offX !== 0 || offY !== 0) {
+        pathD = `M ${startX} ${startY} L ${cornerX} ${startY} L ${cornerX} ${cornerY} L ${endX} ${cornerY} L ${endX} ${endY}`;
+        midX = cornerX;
+        midY = cornerY;
+      } else {
+        pathD = `M ${startX} ${startY} L ${endX} ${startY} L ${endX} ${endY}`;
+        midX = (startX + endX) / 2;
+        midY = startY;
+      }
+    } else if (sourceSide === 'left' && targetSide === 'bottom') {
+      const cornerX = endX + offX;
+      const cornerY = startY + offY;
+      if (offX !== 0 || offY !== 0) {
+        pathD = `M ${startX} ${startY} L ${cornerX} ${startY} L ${cornerX} ${cornerY} L ${endX} ${cornerY} L ${endX} ${endY}`;
+        midX = cornerX;
+        midY = cornerY;
+      } else {
+        pathD = `M ${startX} ${startY} L ${endX} ${startY} L ${endX} ${endY}`;
+        midX = (startX + endX) / 2;
+        midY = startY;
+      }
+    } else if (sourceSide === 'left' && targetSide === 'left') {
+      const farX = Math.min(startX, endX) - 35 + offX;
+      pathD = `M ${startX} ${startY} L ${farX} ${startY} L ${farX} ${endY} L ${endX} ${endY}`;
+      midX = farX;
+      midY = (startY + endY) / 2 + offY;
+    } else {
+      if (Math.abs(endY - startY) > Math.abs(endX - startX)) {
+        const stepY = startY + (endY - startY) / 2 + offY;
+        pathD = `M ${startX} ${startY} L ${startX} ${stepY} L ${endX} ${stepY} L ${endX} ${endY}`;
+        midX = (startX + endX) / 2 + offX;
+        midY = stepY;
+      } else {
+        const stepX = startX + (endX - startX) / 2 + offX;
+        pathD = `M ${startX} ${startY} L ${stepX} ${startY} L ${stepX} ${endY} L ${endX} ${endY}`;
+        midX = stepX;
+        midY = (startY + endY) / 2 + offY;
+      }
+    }
+
+    return {
+      pathD,
+      midX,
+      midY,
+      startX,
+      startY,
+      endX,
+      endY,
+      sourceSide,
+      targetSide,
+    };
+  }
+
   // Calculate robust cubic Bezier control points with guaranteed collinear entry/exit tangents
   const distance = Math.hypot(endX - startX, endY - startY);
   const tangentOffset = Math.max(35, Math.min(distance * 0.4, 120));
@@ -222,6 +503,7 @@ export const _calculateEdgePath = (sourceNode: FlowNode, targetNode: FlowNode): 
       controlPoint1X = startX - tangentOffset;
       break;
     case 'right':
+    default:
       controlPoint1X = startX + tangentOffset;
       break;
   }
@@ -240,6 +522,7 @@ export const _calculateEdgePath = (sourceNode: FlowNode, targetNode: FlowNode): 
       controlPoint2X = endX - tangentOffset;
       break;
     case 'right':
+    default:
       controlPoint2X = endX + tangentOffset;
       break;
   }
@@ -261,6 +544,16 @@ export const _calculateEdgePath = (sourceNode: FlowNode, targetNode: FlowNode): 
     controlPoint2Y = endY;
   }
 
+  // Apply waypoint offset to Bezier control points
+  if (offX !== 0 || offY !== 0) {
+    const cpShiftX = offX / 0.75;
+    const cpShiftY = offY / 0.75;
+    controlPoint1X += cpShiftX;
+    controlPoint1Y += cpShiftY;
+    controlPoint2X += cpShiftX;
+    controlPoint2Y += cpShiftY;
+  }
+
   const pathD = `M ${startX} ${startY} C ${controlPoint1X} ${controlPoint1Y}, ${controlPoint2X} ${controlPoint2Y}, ${endX} ${endY}`;
 
   // Mathematical midpoint on cubic Bezier at t = 0.5 for perfect edge label pill alignment
@@ -271,6 +564,12 @@ export const _calculateEdgePath = (sourceNode: FlowNode, targetNode: FlowNode): 
     pathD,
     midX,
     midY,
+    startX,
+    startY,
+    endX,
+    endY,
+    sourceSide,
+    targetSide,
   };
 };
 

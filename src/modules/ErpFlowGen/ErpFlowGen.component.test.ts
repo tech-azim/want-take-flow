@@ -342,7 +342,102 @@ describe('ErpFlowGen Utilities Test Suite', () => {
     expect(movedNodes[0].position.x).toBe(nodesInside[0].position.x + deltaX);
     expect(movedNodes[0].position.y).toBe(nodesInside[0].position.y + deltaY);
   });
+
+  it('should adjust edge path and midpoint when waypointOffset is provided for line dragging', () => {
+    const nodeA: FlowNode = {
+      id: 'node_a',
+      type: 'start',
+      label: 'Node A',
+      description: '',
+      moduleCategory: 'General',
+      position: { x: 100, y: 100 },
+      colorTheme: 'indigo',
+    };
+    const nodeB: FlowNode = {
+      id: 'node_b',
+      type: 'process',
+      label: 'Node B',
+      description: '',
+      moduleCategory: 'General',
+      position: { x: 100, y: 300 },
+      colorTheme: 'emerald',
+    };
+
+    const initialGeometry = _calculateEdgePath(nodeA, nodeB, 'orthogonal');
+    const draggedGeometry = _calculateEdgePath(nodeA, nodeB, 'orthogonal', { x: 60, y: 40 });
+
+    expect(draggedGeometry.midY).toBe(initialGeometry.midY + 40);
+    expect(draggedGeometry.midX).toBe(initialGeometry.midX + 60);
+    expect(draggedGeometry.pathD).not.toBe(initialGeometry.pathD);
+  });
+
+  it('should route edge to custom left or right anchor port when targetAnchor is specified', () => {
+    const nodeA: FlowNode = {
+      id: 'node_a',
+      type: 'start',
+      label: 'Node A',
+      description: '',
+      moduleCategory: 'General',
+      position: { x: 200, y: 100 },
+      colorTheme: 'indigo',
+    };
+    const nodeB: FlowNode = {
+      id: 'node_b',
+      type: 'process',
+      label: 'Node B',
+      description: '',
+      moduleCategory: 'General',
+      position: { x: 200, y: 300 },
+      colorTheme: 'emerald',
+    };
+
+    // Default target anchor is top for downward layout
+    const defaultGeom = _calculateEdgePath(nodeA, nodeB, 'orthogonal');
+    expect(defaultGeom.endY).toBe(300); // top of nodeB
+
+    // Custom targetAnchor 'left'
+    const leftAnchorGeom = _calculateEdgePath(nodeA, nodeB, 'orthogonal', undefined, 'auto', 'left');
+    expect(leftAnchorGeom.endX).toBe(200); // left edge of nodeB
+    expect(leftAnchorGeom.endY).toBeGreaterThan(300); // middle Y of nodeB
+    expect(leftAnchorGeom.pathD).toContain('L 200 ');
+
+    // Custom targetAnchor 'right'
+    const rightAnchorGeom = _calculateEdgePath(nodeA, nodeB, 'orthogonal', undefined, 'auto', 'right');
+    expect(rightAnchorGeom.endX).toBeGreaterThan(200); // right edge of nodeB
+    expect(rightAnchorGeom.endY).toBeGreaterThan(300);
+  });
+
+  it('should route edge from custom sourceAnchor (e.g. right side) instead of bottom port', () => {
+    const nodeA: FlowNode = {
+      id: 'node_a',
+      type: 'start',
+      label: 'Start Node',
+      description: '',
+      moduleCategory: 'General',
+      position: { x: 200, y: 100 },
+      colorTheme: 'indigo',
+    };
+    const nodeB: FlowNode = {
+      id: 'node_b',
+      type: 'process',
+      label: 'Process Node',
+      description: '',
+      moduleCategory: 'General',
+      position: { x: 200, y: 300 },
+      colorTheme: 'emerald',
+    };
+
+    // Default source anchor is bottom for downward layout
+    const defaultGeom = _calculateEdgePath(nodeA, nodeB, 'curved');
+    expect(defaultGeom.sourceSide).toBe('bottom');
+
+    // Custom sourceAnchor 'right'
+    const rightSourceGeom = _calculateEdgePath(nodeA, nodeB, 'curved', undefined, 'right', 'top');
+    expect(rightSourceGeom.sourceSide).toBe('right');
+    expect(rightSourceGeom.startX).toBeGreaterThan(200); // starts from the right edge
+  });
 });
+
 
 
 

@@ -57,6 +57,10 @@ export type FlowEdge = {
   sourceNodeId: string;
   targetNodeId: string;
   label: string;
+  color?: string;
+  waypointOffset?: { x: number; y: number };
+  sourceAnchor?: 'auto' | 'top' | 'bottom' | 'left' | 'right';
+  targetAnchor?: 'auto' | 'top' | 'bottom' | 'left' | 'right';
 };
 
 export type SwimlaneLane = {
@@ -124,7 +128,18 @@ export type DraggingState = {
 export type ConnectingState = {
   isConnecting: boolean;
   sourceNodeId: string;
+  sourceAnchor?: 'top' | 'bottom' | 'left' | 'right';
   currentMousePosition: Position;
+  candidateTargetNodeId?: string;
+};
+
+export type EdgeEndpointDragState = {
+  isDragging: boolean;
+  edgeId: string;
+  endpointType: 'source' | 'target';
+  currentPos: Position;
+  candidateNodeId?: string;
+  candidateAnchor?: 'top' | 'bottom' | 'left' | 'right';
 };
 
 export type PanningState = {
@@ -191,6 +206,8 @@ export type KanbanTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export type KanbanTaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
 
+export type KanbanIssueType = 'story' | 'task' | 'bug' | 'epic' | 'improvement';
+
 export type KanbanTask = {
   id: string;
   key: string;
@@ -198,6 +215,13 @@ export type KanbanTask = {
   description: string;
   status: KanbanTaskStatus;
   priority: KanbanTaskPriority;
+  issueType?: KanbanIssueType;
+  sprint?: string;
+  duration?: string;
+  storyPoints?: number | string;
+  startDate?: string;
+  dueDate?: string;
+  acceptanceCriteria?: string;
   assignee?: string;
   tags?: string[];
   linkedWorkflowTabId?: string;
@@ -217,7 +241,15 @@ export type KanbanTaskModalData = {
   description: string;
   status: KanbanTaskStatus;
   priority: KanbanTaskPriority;
+  issueType: KanbanIssueType;
+  sprint: string;
+  duration: string;
+  storyPoints: string;
+  startDate: string;
+  dueDate: string;
+  acceptanceCriteria: string;
   assignee: string;
+  tags: string;
   linkedWorkflowTabId: string;
   linkedSourceNodeId: string;
   linkedTargetNodeId: string;
@@ -263,6 +295,16 @@ export type AiSettingsModalData = {
   isTesting: boolean;
   testStatus?: 'idle' | 'success' | 'error';
   testMessage?: string;
+};
+
+export type EditEdgeModalData = {
+  isOpen: boolean;
+  edgeId: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+  label: string;
+  sourceAnchor?: 'auto' | 'top' | 'bottom' | 'left' | 'right';
+  targetAnchor?: 'auto' | 'top' | 'bottom' | 'left' | 'right';
 };
 
 export type ErpFlowGenComponentProps = {
@@ -312,7 +354,7 @@ export type ErpFlowGenComponentProps = {
   onDeleteSelectedEdge: () => void;
   onStartNodeDrag: (event: React.MouseEvent<HTMLDivElement>, nodeId: string) => void;
   onStartNodeResize?: (event: React.MouseEvent, nodeId: string, mode?: 'both' | 'horizontal' | 'vertical') => void;
-  onStartConnection: (event: React.MouseEvent<HTMLButtonElement>, nodeId: string) => void;
+  onStartConnection: (event: React.MouseEvent, nodeId: string, sourceAnchor?: 'top' | 'bottom' | 'left' | 'right') => void;
   onCompleteConnection: (targetNodeId: string) => void;
   onCanvasMouseDown: (event: React.MouseEvent<HTMLDivElement>) => void;
   onCanvasMouseMove: (event: React.MouseEvent<HTMLDivElement>) => void;
@@ -354,19 +396,11 @@ export type ErpFlowGenComponentProps = {
   onStartGroupDrag: (event: React.MouseEvent, groupId: string) => void;
   onStartGroupResize: (event: React.MouseEvent, groupId: string, mode?: 'both' | 'horizontal' | 'vertical') => void;
   onToggleDecisionSwap: (nodeId: string) => void;
-  aiSettingsModal: AiSettingsModalData;
-  projectScanModal: ProjectScanModalData;
-  onOpenAiSettings: () => void;
-  onCloseAiSettings: () => void;
-  onUpdateAiSettingsField: (field: keyof AiSettingsModalData, value: string) => void;
-  onTestAiConnection: () => void;
-  onOpenProjectFolder: () => void;
-  onCloseProjectScanModal: () => void;
-  onGenerateFlowFromProject: () => void;
-  folderInputRef: React.RefObject<HTMLInputElement | null>;
-  onFolderInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   isViewOnly: boolean;
   onToggleViewOnly: () => void;
+  projectSubView: 'flowchart' | 'kanban';
+  onSetProjectSubView: (mode: 'flowchart' | 'kanban') => void;
+  onGenerateTasksFromNodes: () => void;
   shareModal: ShareModalData;
   onOpenShareModal: () => void;
   onCloseShareModal: () => void;
@@ -385,9 +419,11 @@ export type ErpFlowGenComponentProps = {
   kanbanTaskModal: KanbanTaskModalData;
   kanbanSearchQuery: string;
   kanbanPriorityFilter: string;
+  kanbanSprintFilter: string;
   kanbanLinkFilter: boolean;
   onSetKanbanSearchQuery: (query: string) => void;
   onSetKanbanPriorityFilter: (filter: string) => void;
+  onSetKanbanSprintFilter: (filter: string) => void;
   onSetKanbanLinkFilter: (linkedOnly: boolean) => void;
   onOpenCreateKanbanTask: (defaultStatus?: KanbanTaskStatus, defaultSourceNodeId?: string) => void;
   onOpenEditKanbanTask: (taskId: string) => void;
@@ -401,4 +437,23 @@ export type ErpFlowGenComponentProps = {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  connectorStyle: 'orthogonal' | 'curved' | 'straight';
+  onSetConnectorStyle: (style: 'orthogonal' | 'curved' | 'straight') => void;
+  onSelectEdge: (edgeId: string) => void;
+  onDeleteEdgeById: (edgeId: string) => void;
+  editEdgeModal: EditEdgeModalData;
+  onOpenEditEdgeModal: (edgeId: string) => void;
+  onCloseEditEdgeModal: () => void;
+  onUpdateEditEdgeField: (field: keyof EditEdgeModalData, value: string) => void;
+  onSaveEditEdge: (e?: React.FormEvent) => void;
+  onFlipEdgeDirection: () => void;
+  onStartEdgeWaypointDrag: (e: React.MouseEvent, edgeId: string) => void;
+  onResetEdgeWaypoint: (edgeId: string) => void;
+  onSetEdgeTargetAnchor: (edgeId: string, anchor: 'auto' | 'top' | 'bottom' | 'left' | 'right') => void;
+  onSetEdgeSourceAnchor?: (edgeId: string, anchor: 'auto' | 'top' | 'bottom' | 'left' | 'right') => void;
+  edgeEndpointDragState: EdgeEndpointDragState;
+  onStartEdgeEndpointDrag: (e: React.MouseEvent, edgeId: string, endpointType: 'source' | 'target') => void;
+  onUpdateEdgeLabel: (edgeId: string, label: string) => void;
+  onUpdateEdgeColor: (edgeId: string, color: string) => void;
+  onResetEdgeAnchors?: (edgeId: string) => void;
 };

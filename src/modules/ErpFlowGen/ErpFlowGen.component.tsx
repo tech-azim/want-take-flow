@@ -39,19 +39,8 @@ import {
   GripHorizontal,
   Check,
   ArrowLeftRight,
-  FolderCode,
-  Bot,
-  Key,
-  FileCode,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
+
   Share2,
-  Play,
-  Pause,
-  Square,
-  SkipForward,
-  SkipBack,
   Copy,
   Lock,
   Camera,
@@ -59,9 +48,16 @@ import {
   ListTodo,
   Link2,
   Move,
+  Undo2,
+  Redo2,
+  Calendar,
+  Zap,
+  Tag,
+  CheckSquare,
 } from 'lucide-react';
 import type {
   FlowNode,
+  FlowEdge,
   FlowNodeType,
   FlowGroupFrame,
   NodeColorTheme,
@@ -77,7 +73,7 @@ import {
   SKELETON_TEMPLATES,
 } from './ErpFlowGen.config';
 import { COLOR_THEME_STYLES } from './ErpFlowGen.style';
-import { _getNodeDimensions } from './ErpFlowGen.utils';
+import { _getNodeDimensions, _calculateEdgePath } from './ErpFlowGen.utils';
 import {
   _renderSwimlaneTable,
   _renderGhostSkeleton,
@@ -253,15 +249,19 @@ type CanvasNodeProps = {
   onOpenEditModal: (nodeId: string) => void;
   onStartDrag: (event: React.MouseEvent<HTMLDivElement>, nodeId: string) => void;
   onStartResize?: (event: React.MouseEvent, nodeId: string, mode?: 'both' | 'horizontal' | 'vertical') => void;
-  onStartConnection?: (event: React.MouseEvent<HTMLButtonElement>, nodeId: string) => void;
+  onStartConnection?: (event: React.MouseEvent, nodeId: string, sourceAnchor?: 'top' | 'bottom' | 'left' | 'right') => void;
   onCompleteConnect: (nodeId: string) => void;
   onOpenAddModal: (nodeId: string, direction: 'right' | 'bottom', defaultEdgeLabel?: string) => void;
   onToggleDecisionSwap?: (nodeId: string) => void;
   flowType?: FlowchartProjectType;
   isViewOnly?: boolean;
   isRunnerActive?: boolean;
+  isConnectingCandidate?: boolean;
   onMouseEnter?: (nodeId: string) => void;
   onMouseLeave?: () => void;
+  onOpenCreateKanbanTask?: (defaultStatus?: KanbanTaskStatus, defaultSourceNodeId?: string) => void;
+  edges?: FlowEdge[];
+  allNodes?: FlowNode[];
 };
 
 /**
@@ -283,9 +283,50 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
     flowType,
     isViewOnly,
     isRunnerActive,
+    isConnectingCandidate,
     onMouseEnter,
     onMouseLeave,
+    onOpenCreateKanbanTask,
+    edges,
+    allNodes,
   } = props;
+
+  // Track which ports are already occupied by existing connected edges
+  const connectedAnchors = new Set<string>();
+  if (edges && allNodes) {
+    edges.forEach((e) => {
+      if (e.sourceNodeId === node.id) {
+        if (e.sourceAnchor && e.sourceAnchor !== 'auto') {
+          connectedAnchors.add(e.sourceAnchor);
+        } else {
+          const targetNode = allNodes.find((n) => n.id === e.targetNodeId);
+          if (targetNode) {
+            const geom = _calculateEdgePath(node, targetNode, 'curved', e.waypointOffset, e.sourceAnchor, e.targetAnchor);
+            if (geom.sourceSide) {
+              connectedAnchors.add(geom.sourceSide);
+            }
+          } else {
+            connectedAnchors.add(flowType === 'swimlane' ? 'right' : 'bottom');
+          }
+        }
+      }
+      if (e.targetNodeId === node.id) {
+        if (e.targetAnchor && e.targetAnchor !== 'auto') {
+          connectedAnchors.add(e.targetAnchor);
+        } else {
+          const sourceNode = allNodes.find((n) => n.id === e.sourceNodeId);
+          if (sourceNode) {
+            const geom = _calculateEdgePath(sourceNode, node, 'curved', e.waypointOffset, e.sourceAnchor, e.targetAnchor);
+            if (geom.targetSide) {
+              connectedAnchors.add(geom.targetSide);
+            }
+          } else {
+            connectedAnchors.add(flowType === 'swimlane' ? 'left' : 'top');
+          }
+        }
+      }
+    });
+  }
 
   const theme = COLOR_THEME_STYLES[node.colorTheme] ?? COLOR_THEME_STYLES.indigo;
   const dims = _getNodeDimensions(node);
@@ -349,39 +390,104 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
     );
   };
 
-  // Single Clean Consistent Plus Action Button (Exactly 1 per node based on flowchart direction)
+  // 4-Side Drag-to-Connect Ports + Consistent Quick-Action Buttons (Miro / Figma style)
   const _renderConsistentPlusButtons = (): React.ReactElement => {
-    const isHorizontal = flowType === 'swimlane';
+    const isPortVisible = isSelected ? 'opacity-100 scale-100' : 'opacity-0 group-hover:opacity-100';
 
     return (
       <>
         {_renderScreenBadge()}
-        {!isViewOnly && !isEnd && (
-          isHorizontal ? (
-            <button
-              type="button"
-              title="Tambah langkah berikutnya ke Kanan (👉)"
-              onClick={(e) => {
+
+        {!isViewOnly && (
+          <>
+            {/* 1. Top Connection Port (Always available to drag new lines) */}
+            <div
+              title="Tarik untuk buat garis baru dari Atas (Drag to connect)"
+              onMouseDown={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                onOpenAddModal(node.id, 'right');
+                onStartConnection?.(e, node.id, 'top');
               }}
-              className="absolute -right-3.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center justify-center cursor-pointer hover:scale-115 transition-transform z-30"
+              className={`absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-130 transition-all cursor-crosshair z-30 ${isPortVisible} flex items-center justify-center pointer-events-auto`}
             >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              title="Tambah langkah berikutnya ke Bawah (👇)"
-              onClick={(e) => {
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
+            </div>
+
+            {/* 2. Left Connection Port (Always available to drag new lines) */}
+            <div
+              title="Tarik untuk buat garis baru dari Kiri (Drag to connect)"
+              onMouseDown={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                onOpenAddModal(node.id, 'bottom');
+                onStartConnection?.(e, node.id, 'left');
               }}
-              className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center justify-center cursor-pointer hover:scale-115 transition-transform z-30"
+              className={`absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-130 transition-all cursor-crosshair z-30 ${isPortVisible} flex items-center justify-center pointer-events-auto`}
             >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            </button>
-          )
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
+            </div>
+
+            {/* 3. Right Connection Port or Plus Button */}
+            {!connectedAnchors.has('right') ? (
+              <button
+                type="button"
+                title="Klik untuk tambah langkah baru ke Kanan, atau tarik untuk buat garis baru"
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  onStartConnection?.(e, node.id, 'right');
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenAddModal(node.id, 'right');
+                }}
+                className={`absolute -right-3.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center justify-center cursor-crosshair hover:scale-120 transition-all z-30 pointer-events-auto ${isPortVisible}`}
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[2.5] pointer-events-none" />
+              </button>
+            ) : (
+              <div
+                title="Tarik untuk buat garis baru dari Kanan (Drag to connect)"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onStartConnection?.(e, node.id, 'right');
+                }}
+                className={`absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-130 transition-all cursor-crosshair z-30 ${isPortVisible} flex items-center justify-center pointer-events-auto`}
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
+              </div>
+            )}
+
+            {/* 4. Bottom Connection Port or Plus Button */}
+            {!connectedAnchors.has('bottom') ? (
+              <button
+                type="button"
+                title="Klik untuk tambah langkah baru ke Bawah, atau tarik untuk buat garis baru"
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  onStartConnection?.(e, node.id, 'bottom');
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenAddModal(node.id, 'bottom');
+                }}
+                className={`absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center justify-center cursor-crosshair hover:scale-120 transition-all z-30 pointer-events-auto ${isPortVisible}`}
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[2.5] pointer-events-none" />
+              </button>
+            ) : (
+              <div
+                title="Tarik untuk buat garis baru dari Bawah (Drag to connect)"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onStartConnection?.(e, node.id, 'bottom');
+                }}
+                className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-130 transition-all cursor-crosshair z-30 ${isPortVisible} flex items-center justify-center pointer-events-auto`}
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 pointer-events-none" />
+              </div>
+            )}
+          </>
         )}
       </>
     );
@@ -446,11 +552,22 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
     );
   };
 
-  // Quick Node Action Buttons (Tarik Garis Hubungan + Buka Modal Edit)
+  // Quick Node Action Buttons (Tambah Langkah, Tarik Garis, Buka Modal Edit)
   const _renderEditButton = (): React.ReactElement | null => {
     if (isViewOnly) return null;
     return (
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-0.5 bg-white/95 backdrop-blur-xs rounded-md p-0.5 shadow-xs border border-slate-200">
+        <button
+          type="button"
+          title="Tambah Langkah Baru dari Node Ini"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenAddModal(node.id, flowType === 'swimlane' ? 'right' : 'bottom');
+          }}
+          className="w-5 h-5 rounded-md hover:bg-indigo-50 text-indigo-600 flex items-center justify-center transition-colors cursor-pointer"
+        >
+          <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+        </button>
         {onStartConnection && (
           <button
             type="button"
@@ -462,6 +579,19 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
             className="w-5 h-5 rounded-md hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 flex items-center justify-center transition-colors cursor-crosshair"
           >
             <Link2 className="w-3 h-3" />
+          </button>
+        )}
+        {onOpenCreateKanbanTask && (
+          <button
+            type="button"
+            title="Buat Tiket Task Jira untuk node ini"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenCreateKanbanTask('todo', node.id);
+            }}
+            className="w-5 h-5 rounded-md hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <LayoutDashboard className="w-3 h-3" />
           </button>
         )}
         <button
@@ -1329,11 +1459,14 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
   const runnerGlowClass = isRunnerActive
     ? 'ring-4 ring-indigo-500 ring-offset-2 animate-pulse scale-105 z-30 shadow-2xl'
     : '';
+  const candidateClass = isConnectingCandidate
+    ? 'ring-4 ring-indigo-500 ring-offset-2 scale-[1.03] z-30 shadow-2xl transition-all'
+    : '';
 
   return React.cloneElement(element, {
     onMouseEnter: () => onMouseEnter?.(node.id),
     onMouseLeave,
-    className: `${element.props.className || ''} ${runnerGlowClass}`.trim(),
+    className: `${element.props.className || ''} ${runnerGlowClass} ${candidateClass}`.trim(),
   });
 };
 
@@ -1874,22 +2007,14 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
     onStartGroupDrag,
     onStartGroupResize,
     onToggleDecisionSwap,
-    aiSettingsModal,
-    projectScanModal,
-    onOpenAiSettings,
-    onCloseAiSettings,
-    onUpdateAiSettingsField,
-    onTestAiConnection,
-    onOpenProjectFolder,
-    onCloseProjectScanModal,
-    onGenerateFlowFromProject,
-    folderInputRef,
-    onFolderInputChange,
     canvasRef,
     fileInputRef,
     mainContainerRef,
     isViewOnly,
     onToggleViewOnly,
+    projectSubView,
+    onSetProjectSubView,
+    onGenerateTasksFromNodes,
     shareModal,
     onOpenShareModal,
     onCloseShareModal,
@@ -1898,18 +2023,16 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
     onNodeMouseEnter,
     onNodeMouseLeave,
     flowRunner,
-    onToggleRunFlow,
-    onNextFlowStep,
-    onPrevFlowStep,
-    onStopFlow,
     onUploadMockupImage,
     onClearMockupImage,
     kanbanTaskModal,
     kanbanSearchQuery,
     kanbanPriorityFilter,
+    kanbanSprintFilter,
     kanbanLinkFilter,
     onSetKanbanSearchQuery,
     onSetKanbanPriorityFilter,
+    onSetKanbanSprintFilter,
     onSetKanbanLinkFilter,
     onOpenCreateKanbanTask,
     onOpenEditKanbanTask,
@@ -1919,6 +2042,29 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
     onDeleteKanbanTask,
     onMoveKanbanTaskStatus,
     onJumpToLinkedWorkflow,
+    canUndo,
+    canRedo,
+    onUndo,
+    onRedo,
+    connectorStyle,
+    onSetConnectorStyle,
+    onSelectEdge,
+    onDeleteEdgeById,
+    editEdgeModal: _editEdgeModal,
+    onOpenEditEdgeModal: _onOpenEditEdgeModal,
+    onCloseEditEdgeModal: _onCloseEditEdgeModal,
+    onUpdateEditEdgeField: _onUpdateEditEdgeField,
+    onSaveEditEdge: _onSaveEditEdge,
+    onFlipEdgeDirection: _onFlipEdgeDirection,
+    onStartEdgeWaypointDrag,
+    onResetEdgeWaypoint,
+    onSetEdgeTargetAnchor,
+    edgeEndpointDragState,
+    onStartEdgeEndpointDrag,
+    onUpdateEdgeLabel,
+    onUpdateEdgeColor,
+    onResetEdgeAnchors,
+    onSetEdgeSourceAnchor,
   } = props;
 
   const currentSkeleton = SKELETON_TEMPLATES[activeTab.type];
@@ -2039,16 +2185,6 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
           >
             <Plus className="w-4 h-4" />
           </button>
-
-          <button
-            type="button"
-            title={`Clone / Duplikat Tab Aktif ("${activeTab.title}")`}
-            onClick={() => onCloneTab(activeTab.id)}
-            className="h-7 px-2.5 rounded-full bg-slate-300/80 hover:bg-white text-slate-700 flex items-center gap-1.5 text-xs font-semibold transition-all ml-1 cursor-pointer shadow-xs hover:shadow hover:text-emerald-700"
-          >
-            <Copy className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Clone Tab</span>
-          </button>
         </div>
 
         {/* Global Blueprint Skeleton Toggle */}
@@ -2069,20 +2205,23 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
       </div>
 
       {/* 2. Secondary Application Header Bar */}
-      <header className="h-12 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 z-20">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-              LF
-            </div>
-            <div>
-              <div className="font-bold text-xs text-slate-900 leading-none flex items-center gap-1.5">
-                <span>{activeTab.title}</span>
+      <header className="h-12 bg-white border-b border-slate-200 px-3 sm:px-4 flex items-center justify-between gap-3 shrink-0 z-20 overflow-x-auto no-scrollbar">
+        {/* Left Section: Logo, Title, Tab Stats, and Undo / Redo */}
+        <div className="flex items-center gap-2.5 min-w-0 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <img
+              src="/logo.png"
+              alt="LamanKilat Flow Logo"
+              className="w-7 h-7 object-contain drop-shadow-xs shrink-0 select-none hover:scale-105 transition-transform"
+            />
+            <div className="min-w-0 max-w-[160px] sm:max-w-[220px]">
+              <div className="font-bold text-xs text-slate-900 leading-tight flex items-center gap-1.5">
+                <span className="truncate" title={activeTab.title}>{activeTab.title}</span>
                 <button
                   type="button"
                   title="Ganti nama project / tab ini"
                   onClick={() => onStartRenameTab(activeTab.id, activeTab.title)}
-                  className="w-4 h-4 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer transition-colors"
+                  className="w-4 h-4 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer transition-colors shrink-0"
                 >
                   <Edit3 className="w-3 h-3" />
                 </button>
@@ -2090,47 +2229,61 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   type="button"
                   title="Clone / Duplikat tab aktif ini"
                   onClick={() => onCloneTab(activeTab.id)}
-                  className="w-4 h-4 rounded text-slate-400 hover:text-emerald-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer transition-colors"
+                  className="w-4 h-4 rounded text-slate-400 hover:text-emerald-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer transition-colors shrink-0"
                 >
                   <Copy className="w-3 h-3" />
                 </button>
               </div>
-              <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+              <div className="text-[10px] text-slate-400 font-mono mt-0.5 truncate whitespace-nowrap">
                 {activeTab.type.toUpperCase()} • {nodes.length} langkah • {edges.length} konektor
               </div>
             </div>
           </div>
 
-          {/* Mode View-Only Indicator & Quick Toggle */}
-          {isViewOnly ? (
-            <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-purple-100 border border-purple-300 text-purple-900 text-xs font-bold shadow-2xs">
-              <Lock className="w-3 h-3 text-purple-600" />
-              <span>View-Only</span>
-              <button
-                type="button"
-                onClick={onToggleViewOnly}
-                className="text-[10.5px] text-purple-700 hover:text-purple-950 font-bold underline ml-1 cursor-pointer"
-                title="Beralih ke mode Editor"
-              >
-                Edit Mode
-              </button>
-            </div>
-          ) : (
+          {/* Undo / Redo Controls */}
+          <div className="flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200 shrink-0 shadow-2xs">
             <button
               type="button"
-              onClick={onToggleViewOnly}
-              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-purple-700 hover:bg-purple-50 border border-slate-200 transition-all cursor-pointer"
-              title="Pratinjau tampilan mode View-Only (tanpa editing)"
+              onClick={onUndo}
+              disabled={!canUndo}
+              title="Undo (Ctrl+Z / Cmd+Z)"
+              className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${
+                canUndo
+                  ? 'hover:bg-white text-slate-700 hover:text-indigo-600 cursor-pointer shadow-2xs active:scale-95'
+                  : 'text-slate-300 cursor-not-allowed'
+              }`}
             >
-              <Eye className="w-3.5 h-3.5 text-purple-600" />
-              <span>Preview View-Only</span>
+              <Undo2 className="w-3.5 h-3.5" />
             </button>
+            <div className="w-[1px] h-3.5 bg-slate-200 mx-0.5" />
+            <button
+              type="button"
+              onClick={onRedo}
+              disabled={!canRedo}
+              title="Redo (Ctrl+Y / Cmd+Shift+Z)"
+              className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${
+                canRedo
+                  ? 'hover:bg-white text-slate-700 hover:text-indigo-600 cursor-pointer shadow-2xs active:scale-95'
+                  : 'text-slate-300 cursor-not-allowed'
+              }`}
+            >
+              <Redo2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Mode View-Only Indicator Badge */}
+          {isViewOnly && (
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-100 border border-purple-200 text-purple-800 text-[11px] font-bold shadow-2xs shrink-0">
+              <Lock className="w-3 h-3 text-purple-600" />
+              <span>View-Only</span>
+            </div>
           )}
         </div>
 
-        {/* Zoom & View Actions */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200">
+        {/* Right Section: Organized Action Groups */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Zoom Controls */}
+          <div className="flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200 shrink-0">
             <button
               type="button"
               onClick={onZoomOut}
@@ -2142,7 +2295,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             <span
               onClick={onResetZoom}
               title="Reset Zoom ke 100%"
-              className="text-[11px] font-mono px-2 text-slate-600 cursor-pointer hover:text-indigo-600 font-semibold"
+              className="text-[11px] font-mono px-1.5 text-slate-600 cursor-pointer hover:text-indigo-600 font-semibold select-none"
             >
               {Math.round(transform.scale * 100)}%
             </span>
@@ -2156,93 +2309,77 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             </button>
           </div>
 
-          {/* Fokus ke Start Node Button */}
+          {/* Fokus Start */}
           <button
             type="button"
             onClick={onFocusStart}
             title="Auto Focus ke Node Start"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition-all cursor-pointer shadow-xs active:scale-95"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
           >
             <Target className="w-3.5 h-3.5 text-indigo-600" />
-            <span className="hidden md:inline">Fokus Start</span>
+            <span className="hidden xl:inline">Fokus Start</span>
           </button>
 
-          {/* Tambah Group Frame Button */}
+          {/* + Tambah Node */}
+          <button
+            type="button"
+            onClick={() => onOpenAddNodeModal(selectedNodeId || (nodes[nodes.length - 1]?.id ?? ''))}
+            title="Tambah Langkah / Node Baru ke Alur Diagram"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all cursor-pointer shadow-xs active:scale-95 shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>+ Tambah Node</span>
+          </button>
+
+          {/* + Frame Group */}
           <button
             type="button"
             onClick={onAddGroupFrame}
             title="Kelompokkan Node ke dalam Frame (Group Box)"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:text-indigo-600 hover:border-indigo-300 transition-all cursor-pointer shadow-xs active:scale-95"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:text-indigo-600 hover:border-indigo-300 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
           >
             <FolderPlus className="w-3.5 h-3.5 text-indigo-600" />
-            <span>+ Frame Group</span>
+            <span className="hidden lg:inline">+ Frame Group</span>
           </button>
 
-          <div className="h-5 w-[1px] bg-slate-200 mx-1" />
+          <div className="h-5 w-[1px] bg-slate-200 mx-0.5 shrink-0" />
 
-          {/* Buka Folder Project (Hermes AI) */}
-          <button
-            type="button"
-            onClick={onOpenProjectFolder}
-            title="Buka Folder Project Codingan & Generate Flowchart Multi-Tab dengan Hermes AI"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all cursor-pointer shadow-sm hover:shadow active:scale-95"
-          >
-            <FolderCode className="w-3.5 h-3.5 text-indigo-200" />
-            <span>Open Project (Hermes AI)</span>
-          </button>
-
-          {/* Hermes AI Connection Settings */}
-          <button
-            type="button"
-            onClick={onOpenAiSettings}
-            title="Pengaturan Koneksi Hermes AI (OpenRouter / Custom Endpoint)"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:text-indigo-600 hover:border-indigo-300 transition-all cursor-pointer shadow-xs active:scale-95"
-          >
-            <Bot className="w-3.5 h-3.5 text-indigo-600" />
-            <span className="hidden xl:inline">Hermes AI</span>
-          </button>
-
-          {/* Hidden File System input for fallback folder selection */}
-          <input
-            ref={folderInputRef}
-            type="file"
-            // @ts-expect-error webkitdirectory is standard for folder picking
-            webkitdirectory=""
-            directory=""
-            multiple
-            onChange={onFolderInputChange}
-            className="hidden"
-          />
-
-          <button
-            type="button"
-            onClick={onLoadTemplate}
-            title="Reset ke template awal"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-            <span>Reset</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onClearCanvas}
-            title="Kosongkan alur di kanvas"
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-600 bg-white border border-rose-200 hover:bg-rose-50 transition-colors cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-            <span>Clear</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onImportJsonClick}
-            title="Import diagram JSON"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
-          >
-            <Upload className="w-3.5 h-3.5 text-slate-500" />
-            <span>Import</span>
-          </button>
+          {/* Canvas Utilities Cluster (Reset, Clear, Import, JSON) */}
+          <div className="flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200 shrink-0">
+            <button
+              type="button"
+              onClick={onLoadTemplate}
+              title="Reset ke template awal"
+              className="w-7 h-7 rounded-md hover:bg-white text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onClearCanvas}
+              title="Kosongkan alur di kanvas"
+              className="w-7 h-7 rounded-md hover:bg-white text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+            <div className="w-[1px] h-3.5 bg-slate-200 mx-0.5" />
+            <button
+              type="button"
+              onClick={onImportJsonClick}
+              title="Import diagram JSON"
+              className="w-7 h-7 rounded-md hover:bg-white text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onExportJson}
+              title="Download diagram JSON file"
+              className="w-7 h-7 rounded-md hover:bg-white text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+            </button>
+          </div>
           <input
             type="file"
             ref={fileInputRef}
@@ -2251,46 +2388,83 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             className="hidden"
           />
 
-          <button
-            type="button"
-            onClick={onExportJson}
-            title="Download JSON file"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>JSON</span>
-          </button>
+          <div className="h-5 w-[1px] bg-slate-200 mx-0.5 shrink-0" />
 
-          {/* Quick Jira Kanban Board Tab Shortcut */}
-          <button
-            type="button"
-            title="Buka / Buat Jira Task Board"
-            onClick={() => {
-              const kanbanTab = tabs.find((t) => t.type === 'kanban');
-              if (kanbanTab) {
-                onSelectTab(kanbanTab.id);
-              } else {
-                onOpenCreateKanbanTask('todo');
-              }
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${activeTab.type === 'kanban'
-              ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+          {/* Mode Switcher: Flowchart vs Task Board */}
+          <div className="flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200 shrink-0">
+            <button
+              type="button"
+              onClick={() => onSetProjectSubView('flowchart')}
+              title="Tampilkan Diagram Alur / Node"
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                projectSubView === 'flowchart' && activeTab.type !== 'kanban'
+                  ? 'bg-white text-indigo-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>Task Board (Jira)</span>
-          </button>
+            >
+              <Workflow className="w-3.5 h-3.5" />
+              <span>Flowchart</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onSetProjectSubView('kanban')}
+              title="Tampilkan Task Board (Tiket Alur)"
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                projectSubView === 'kanban' || activeTab.type === 'kanban'
+                  ? 'bg-white text-indigo-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Task Board</span>
+              {(activeTab.kanbanTasks?.length ?? 0) > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700">
+                  {activeTab.kanbanTasks?.length}
+                </span>
+              )}
+            </button>
+          </div>
 
+          <div className="h-5 w-[1px] bg-slate-200 mx-0.5 shrink-0" />
+
+          {/* Connector Line Style Switcher */}
+          <div className="flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200 shrink-0" title="Bentuk Garis Alur (Siku-Siku Tegas / Melengkung)">
+            <button
+              type="button"
+              onClick={() => onSetConnectorStyle('orthogonal')}
+              title="Garis Siku-Siku Tegas (Standar Flowchart)"
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                connectorStyle === 'orthogonal'
+                  ? 'bg-white text-indigo-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>⏞ Siku Tegas</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onSetConnectorStyle('curved')}
+              title="Garis Melengkung Halus (Smooth Curve)"
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                connectorStyle === 'curved'
+                  ? 'bg-white text-indigo-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>∿ Lengkung</span>
+            </button>
+          </div>
+
+          {/* Export PNG */}
           <button
             type="button"
             onClick={onExportPng}
             disabled={isExportingPng}
             title="Export ke gambar PNG"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-2xs cursor-pointer disabled:opacity-50 shrink-0"
           >
             <ImageIcon className="w-3.5 h-3.5" />
-            <span>{isExportingPng ? 'Rendering...' : 'Export PNG'}</span>
+            <span className="hidden sm:inline">{isExportingPng ? 'Rendering...' : 'Export PNG'}</span>
           </button>
 
           {/* Share View-Only Link Button */}
@@ -2298,17 +2472,18 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             type="button"
             onClick={onOpenShareModal}
             title="Bagikan Flowchart ini (Mode View-Only)"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-all cursor-pointer shadow-xs active:scale-95"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
           >
             <Share2 className="w-3.5 h-3.5 text-purple-600" />
-            <span>Share Link</span>
+            <span className="hidden lg:inline">Share</span>
           </button>
 
+          {/* Help Button */}
           <button
             type="button"
             onClick={onToggleHelpModal}
             title="Bantuan & Petunjuk"
-            className="w-8 h-8 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+            className="w-7 h-7 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer shrink-0"
           >
             <HelpCircle className="w-4 h-4" />
           </button>
@@ -2327,16 +2502,25 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               const matchesTitle = task.title.toLowerCase().includes(q);
               const matchesDesc = task.description.toLowerCase().includes(q);
               const matchesAssignee = task.assignee?.toLowerCase().includes(q) ?? false;
+              const matchesSprint = task.sprint?.toLowerCase().includes(q) ?? false;
               const matchesNode =
                 (task.linkedSourceNodeLabel?.toLowerCase().includes(q) ?? false) ||
                 (task.linkedTargetNodeLabel?.toLowerCase().includes(q) ?? false);
-              if (!matchesKey && !matchesTitle && !matchesDesc && !matchesAssignee && !matchesNode) {
+              if (!matchesKey && !matchesTitle && !matchesDesc && !matchesAssignee && !matchesSprint && !matchesNode) {
                 return false;
               }
             }
 
             if (kanbanPriorityFilter !== 'all' && task.priority !== kanbanPriorityFilter) {
               return false;
+            }
+
+            if (kanbanSprintFilter !== 'all') {
+              if (kanbanSprintFilter.toLowerCase() === 'backlog') {
+                if (task.sprint && task.sprint.toLowerCase() !== 'backlog') return false;
+              } else if (task.sprint !== kanbanSprintFilter) {
+                return false;
+              }
             }
 
             if (kanbanLinkFilter && !task.linkedSourceNodeId) {
@@ -2380,6 +2564,13 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
 
           const doneCount = tasks.filter((t) => t.status === 'done').length;
           const progressPercent = tasks.length > 0 ? Math.round((doneCount / tasks.length) * 100) : 0;
+          const totalStoryPoints = tasks.reduce(
+            (sum, t) => sum + (typeof t.storyPoints === 'number' ? t.storyPoints : (Number(t.storyPoints) || 0)),
+            0,
+          );
+          const availableSprints = Array.from(
+            new Set(['Sprint 1', 'Sprint 2', 'Sprint 3', 'Sprint 4', 'Backlog', ...tasks.map((t) => t.sprint).filter(Boolean)]),
+          ) as string[];
 
           return (
             <main className="flex-1 overflow-y-auto bg-slate-100/70 p-6 flex flex-col gap-6 select-text">
@@ -2390,13 +2581,14 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     <LayoutDashboard className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
-                        Jira Agile Board
+                        Task Board (Kanban)
                       </span>
                       <span className="text-xs text-slate-400">•</span>
                       <span className="text-xs font-semibold text-slate-500">
                         {tasks.length} Tiket ({doneCount} Selesai • {progressPercent}%)
+                        {totalStoryPoints > 0 && ` • ${totalStoryPoints} Story Points`}
                       </span>
                     </div>
                     <h2 className="text-base font-bold text-slate-900 mt-0.5">
@@ -2405,29 +2597,53 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   </div>
                 </div>
 
-                {/* Search & Filters */}
+                {/* Actions, Search & Filters */}
                 <div className="flex items-center gap-2.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => onSetProjectSubView('flowchart')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer border border-slate-200"
+                  >
+                    <Workflow className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Kembali ke Flowchart</span>
+                  </button>
+
                   <div className="relative">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="Cari tiket, key, atau node..."
+                      placeholder="Cari tiket, key, sprint, atau node..."
                       value={kanbanSearchQuery}
                       onChange={(e) => onSetKanbanSearchQuery(e.target.value)}
-                      className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 w-56 transition-all"
+                      className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 w-48 transition-all"
                     />
                   </div>
 
+                  {/* Filter Sprint */}
+                  <select
+                    value={kanbanSprintFilter}
+                    onChange={(e) => onSetKanbanSprintFilter(e.target.value)}
+                    className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  >
+                    <option value="all">Semua Sprint</option>
+                    {availableSprints.map((sp) => (
+                      <option key={sp} value={sp}>
+                        {sp}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Filter Prioritas */}
                   <select
                     value={kanbanPriorityFilter}
                     onChange={(e) => onSetKanbanPriorityFilter(e.target.value)}
                     className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                   >
                     <option value="all">Semua Prioritas</option>
-                    <option value="urgent">🔴 Urgent</option>
-                    <option value="high">🟠 High</option>
-                    <option value="medium">🟡 Medium</option>
-                    <option value="low">⚪ Low</option>
+                    <option value="urgent">Urgent (P1)</option>
+                    <option value="high">High (P2)</option>
+                    <option value="medium">Medium (P3)</option>
+                    <option value="low">Low (P4)</option>
                   </select>
 
                   <button
@@ -2439,8 +2655,20 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                       }`}
                   >
                     <Workflow className="w-3.5 h-3.5" />
-                    <span>Hanya yang Terkoneksi Node</span>
+                    <span>Hanya Terkoneksi Node</span>
                   </button>
+
+                  {!isViewOnly && nodes.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={onGenerateTasksFromNodes}
+                      title="Generate tiket otomatis dari setiap node di flowchart ini"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Sync Node ke Tiket</span>
+                    </button>
+                  )}
 
                   {!isViewOnly && (
                     <button
@@ -2502,28 +2730,41 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                           colTasks.map((task) => {
                             const priorityColor =
                               task.priority === 'urgent'
-                                ? 'bg-rose-100 text-rose-700 border-rose-200'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
                                 : task.priority === 'high'
-                                  ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
                                   : task.priority === 'medium'
-                                    ? 'bg-blue-100 text-blue-700 border-blue-200'
-                                    : 'bg-slate-100 text-slate-600 border-slate-200';
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                    : 'bg-slate-50 text-slate-600 border-slate-200';
+
+                            const issueBadge = {
+                              story: { label: 'Story', cls: 'bg-purple-50 text-purple-700 border-purple-200' },
+                              task: { label: 'Task', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+                              bug: { label: 'Bug', cls: 'bg-rose-50 text-rose-700 border-rose-200' },
+                              epic: { label: 'Epic', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                              improvement: { label: 'Improvement', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+                            }[task.issueType || 'task'] || { label: 'Task', cls: 'bg-blue-50 text-blue-700 border-blue-200' };
 
                             const hasLink = Boolean(task.linkedSourceNodeId || task.linkedWorkflowTabTitle);
 
                             return (
                               <div
                                 key={task.id}
-                                className="group bg-white rounded-xl border border-slate-200/90 p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col gap-2.5"
+                                className="group bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col gap-2.5"
                               >
-                                {/* Card Top Row: Key & Priority */}
+                                {/* Card Top Row: Issue Type, Key & Priority */}
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono text-[10px] font-bold border border-slate-200">
-                                    {task.key}
-                                  </span>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`px-1.5 py-0.5 rounded text-[9.5px] font-semibold border ${issueBadge.cls}`}>
+                                      {issueBadge.label}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10px] font-semibold border border-slate-200">
+                                      {task.key}
+                                    </span>
+                                  </div>
 
                                   <div className="flex items-center gap-1.5">
-                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${priorityColor}`}>
+                                    <span className={`px-1.5 py-0.5 rounded text-[9.5px] font-semibold border ${priorityColor}`}>
                                       {task.priority.toUpperCase()}
                                     </span>
 
@@ -2550,9 +2791,38 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                                   </div>
                                 </div>
 
+                                {/* Card Second Row: Sprint, Durasi, Story Points & Due Date */}
+                                {(task.sprint || task.duration || (task.storyPoints != null && task.storyPoints !== '') || task.dueDate) && (
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    {task.sprint && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 text-[9.5px] font-medium">
+                                        <span>{task.sprint}</span>
+                                      </span>
+                                    )}
+                                    {task.duration && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-50 text-slate-700 border border-slate-200 text-[9.5px] font-medium">
+                                        <Clock className="w-2.5 h-2.5 text-slate-400" />
+                                        <span>{task.duration}</span>
+                                      </span>
+                                    )}
+                                    {task.storyPoints != null && task.storyPoints !== '' && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-50 text-slate-700 border border-slate-200 text-[9.5px] font-semibold">
+                                        <Zap className="w-2.5 h-2.5 text-slate-400" />
+                                        <span>{task.storyPoints} pt</span>
+                                      </span>
+                                    )}
+                                    {task.dueDate && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-50 text-slate-600 border border-slate-200 text-[9.5px] font-medium">
+                                        <Calendar className="w-2.5 h-2.5 text-slate-400" />
+                                        <span>{task.dueDate}</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+
                                 {/* Card Title & Desc */}
                                 <div>
-                                  <h4 className="text-xs font-bold text-slate-900 leading-snug">
+                                  <h4 className="text-xs font-semibold text-slate-900 leading-snug">
                                     {task.title}
                                   </h4>
                                   {task.description && (
@@ -2562,12 +2832,36 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                                   )}
                                 </div>
 
+                                {/* Acceptance Criteria Preview */}
+                                {task.acceptanceCriteria && (
+                                  <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-[10px] text-slate-600 flex items-start gap-1.5">
+                                    <CheckSquare className="w-3 h-3 text-slate-400 mt-0.5 shrink-0" />
+                                    <div className="line-clamp-2 whitespace-pre-line font-medium leading-relaxed">
+                                      {task.acceptanceCriteria}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Tags Pills */}
+                                {task.tags && task.tags.length > 0 && (
+                                  <div className="flex items-center gap-1 flex-wrap">
+                                    {task.tags.map((tag) => (
+                                      <span
+                                        key={tag}
+                                        className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9.5px] font-medium border border-slate-200"
+                                      >
+                                        #{tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+
                                 {/* 🔗 WORKFLOW LINKAGE BOX */}
                                 {hasLink && (
-                                  <div className="p-2.5 rounded-xl bg-indigo-50/80 border border-indigo-200/80 flex flex-col gap-1.5">
+                                  <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 flex flex-col gap-1.5">
                                     <div className="flex items-center justify-between gap-1">
-                                      <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider flex items-center gap-1 truncate">
-                                        <Workflow className="w-3 h-3 shrink-0" />
+                                      <span className="text-[10px] font-medium text-slate-600 flex items-center gap-1 truncate">
+                                        <Workflow className="w-3 h-3 text-slate-400 shrink-0" />
                                         <span className="truncate">{task.linkedWorkflowTabTitle || 'Workflow'}</span>
                                       </span>
                                       <button
@@ -2581,25 +2875,25 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                                             task.linkedTargetNodeId,
                                           );
                                         }}
-                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-xs cursor-pointer shrink-0"
+                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-colors shadow-2xs cursor-pointer shrink-0"
                                       >
-                                        <span>Lihat di Flow</span>
-                                        <ArrowRight className="w-2.5 h-2.5" />
+                                        <span>Lihat Alur</span>
+                                        <ArrowRight className="w-2.5 h-2.5 text-slate-400" />
                                       </button>
                                     </div>
 
-                                    <div className="text-[10.5px] font-medium text-slate-700 flex items-center gap-1.5 flex-wrap">
-                                      <span className="px-1.5 py-0.5 rounded bg-white font-semibold text-slate-800 border border-slate-200 shadow-2xs">
+                                    <div className="text-[10px] font-medium text-slate-700 flex items-center gap-1 flex-wrap">
+                                      <span className="px-1.5 py-0.5 rounded bg-white font-medium text-slate-800 border border-slate-200 shadow-2xs">
                                         {task.linkedSourceNodeLabel || 'Node Asal'}
                                       </span>
                                       {task.linkedTargetNodeLabel && (
                                         <>
-                                          <span className="text-slate-400 font-bold text-xs">➔</span>
-                                          <span className="px-1.5 py-0.5 rounded bg-white font-semibold text-slate-800 border border-slate-200 shadow-2xs">
+                                          <span className="text-slate-400 text-xs">➔</span>
+                                          <span className="px-1.5 py-0.5 rounded bg-white font-medium text-slate-800 border border-slate-200 shadow-2xs">
                                             {task.linkedTargetNodeLabel}
                                           </span>
                                           {task.linkedEdgeLabel && (
-                                            <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 font-bold">
+                                            <span className="text-[9px] px-1 py-0.2 rounded bg-slate-200 text-slate-700 font-medium">
                                               ({task.linkedEdgeLabel})
                                             </span>
                                           )}
@@ -2675,7 +2969,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
           );
         };
 
-        if (activeTab.type === 'kanban') {
+        if (projectSubView === 'kanban' || activeTab.type === 'kanban') {
           return _renderKanbanBoard();
         }
 
@@ -2765,6 +3059,36 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   >
                     <polygon points="0 0, 10 3.5, 0 7" fill="#f43f5e" />
                   </marker>
+                  <marker
+                    id="erp-arrow-marker-indigo"
+                    markerWidth="10"
+                    markerHeight="7"
+                    refX="9.5"
+                    refY="3.5"
+                    orient="auto"
+                  >
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#4f46e5" />
+                  </marker>
+                  <marker
+                    id="erp-arrow-marker-amber"
+                    markerWidth="10"
+                    markerHeight="7"
+                    refX="9.5"
+                    refY="3.5"
+                    orient="auto"
+                  >
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b" />
+                  </marker>
+                  <marker
+                    id="erp-arrow-marker-purple"
+                    markerWidth="10"
+                    markerHeight="7"
+                    refX="9.5"
+                    refY="3.5"
+                    orient="auto"
+                  >
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#8b5cf6" />
+                  </marker>
                 </defs>
 
                 {connectingState.isConnecting ? (
@@ -2777,7 +3101,21 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 ) : null}
 
                 {edges.map((edge) =>
-                  _renderEdgeCurve(edge, nodes, selectedEdgeId === edge.id),
+                  _renderEdgeCurve(
+                    edge,
+                    nodes,
+                    selectedEdgeId === edge.id,
+                    onSelectEdge,
+                    _onOpenEditEdgeModal,
+                    onDeleteEdgeById,
+                    connectorStyle,
+                    onStartEdgeWaypointDrag,
+                    onResetEdgeWaypoint,
+                    onSetEdgeTargetAnchor,
+                    onStartEdgeEndpointDrag,
+                    edgeEndpointDragState,
+                    onUpdateEdgeLabel,
+                  ),
                 )}
               </svg>
 
@@ -2799,10 +3137,49 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     flowType={activeTab.type}
                     isViewOnly={isViewOnly}
                     isRunnerActive={flowRunner.isRunning && flowRunner.currentNodeId === node.id}
+                    isConnectingCandidate={connectingState.isConnecting && connectingState.candidateTargetNodeId === node.id}
                     onMouseEnter={onNodeMouseEnter}
                     onMouseLeave={onNodeMouseLeave}
+                    onOpenCreateKanbanTask={onOpenCreateKanbanTask}
+                    edges={edges}
+                    allNodes={nodes}
                   />
                 ))}
+
+                {/* High-Priority Interactive Top Layer for Handles & Live Connection */}
+                <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible z-35">
+                  {connectingState.isConnecting ? (
+                    (() => {
+                      const src = nodes.find((n) => n.id === connectingState.sourceNodeId);
+                      return src
+                        ? _renderConnectingPath(src, connectingState.currentMousePosition, connectingState.sourceAnchor)
+                        : null;
+                    })()
+                  ) : null}
+
+                  {/* Render top-layer interactive endpoint & waypoint handles for selected edge */}
+                  {selectedEdgeId ? (
+                    (() => {
+                      const selEdge = edges.find((e) => e.id === selectedEdgeId);
+                      if (!selEdge) return null;
+                      return _renderEdgeCurve(
+                        selEdge,
+                        nodes,
+                        true,
+                        onSelectEdge,
+                        _onOpenEditEdgeModal,
+                        onDeleteEdgeById,
+                        connectorStyle,
+                        onStartEdgeWaypointDrag,
+                        onResetEdgeWaypoint,
+                        onSetEdgeTargetAnchor,
+                        onStartEdgeEndpointDrag,
+                        edgeEndpointDragState,
+                        onUpdateEdgeLabel,
+                      );
+                    })()
+                  ) : null}
+                </svg>
 
                 {/* Floating Screen Preview Popover - Only in Preview / View-Only Mode */}
                 {(() => {
@@ -2838,6 +3215,156 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   );
                 })()}
               </div>
+
+              {/* Floating Toolbar for Selected Edge (z-30, pure HTML, 100% reliable) */}
+              {(() => {
+                if (!selectedEdgeId || isViewOnly) return null;
+                const edge = edges.find((e) => e.id === selectedEdgeId);
+                if (!edge) return null;
+                const src = nodes.find((n) => n.id === edge.sourceNodeId);
+                const tgt = nodes.find((n) => n.id === edge.targetNodeId);
+                if (!src || !tgt) return null;
+                const geom = _calculateEdgePath(src, tgt, connectorStyle, edge.waypointOffset, edge.sourceAnchor, edge.targetAnchor);
+                const hasCustomWaypoint = Boolean(edge.waypointOffset && (edge.waypointOffset.x !== 0 || edge.waypointOffset.y !== 0));
+
+                return (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: `${geom.midX}px`,
+                      top: `${geom.midY - 44}px`,
+                      transform: 'translateX(-50%)',
+                    }}
+                    className="z-30 pointer-events-auto flex items-center justify-center gap-2 bg-slate-900/95 backdrop-blur-md text-white px-3 py-1.5 rounded-2xl shadow-2xl border border-slate-700/80 text-[11px] select-none scale-95 hover:scale-100 transition-all animate-in fade-in zoom-in-95"
+                  >
+                    {/* Color Swatches */}
+                    <div className="flex items-center gap-1.5 px-1.5 py-0.5 bg-slate-800/80 rounded-xl border border-slate-700/50">
+                      {[
+                        { name: 'Indigo (Default)', color: '#4f46e5' },
+                        { name: 'Hijau', color: '#10b981' },
+                        { name: 'Merah', color: '#f43f5e' },
+                        { name: 'Kuning', color: '#f59e0b' },
+                        { name: 'Ungu', color: '#8b5cf6' },
+                        { name: 'Abu-abu', color: '#64748b' },
+                      ].map((swatch) => {
+                        const isCurrentColor = (edge.color || '#4f46e5') === swatch.color;
+                        return (
+                          <button
+                            key={swatch.color}
+                            type="button"
+                            title={swatch.name}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onUpdateEdgeColor(edge.id, swatch.color);
+                            }}
+                            className={`w-4 h-4 rounded-full transition-transform cursor-pointer flex items-center justify-center ${
+                              isCurrentColor
+                                ? 'scale-125 ring-2 ring-white ring-offset-1 ring-offset-slate-900 shadow-xs'
+                                : 'hover:scale-110 opacity-75 hover:opacity-100'
+                            }`}
+                            style={{ backgroundColor: swatch.color }}
+                          />
+                        );
+                      })}
+                    </div>
+
+                    {/* Source Anchor (Pangkal Garis) Selector */}
+                    <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-800/80 rounded-xl border border-slate-700/50 text-[10px]">
+                      <span className="text-slate-400 font-semibold px-0.5">Pangkal:</span>
+                      {[
+                        { id: 'auto', label: 'Auto' },
+                        { id: 'right', label: '➡️ Kanan' },
+                        { id: 'bottom', label: '⬇️ Bawah' },
+                        { id: 'left', label: '⬅️ Kiri' },
+                        { id: 'top', label: '⬆️ Atas' },
+                      ].map((port) => (
+                        <button
+                          key={port.id}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSetEdgeSourceAnchor?.(edge.id, port.id as any);
+                          }}
+                          className={`px-1.5 py-0.5 rounded-lg font-bold transition-all cursor-pointer ${
+                            (edge.sourceAnchor || 'auto') === port.id
+                              ? 'bg-indigo-600 text-white shadow-xs'
+                              : 'text-slate-300 hover:bg-slate-700'
+                          }`}
+                        >
+                          {port.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Target Anchor (Ujung Garis) Selector */}
+                    <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-800/80 rounded-xl border border-slate-700/50 text-[10px]">
+                      <span className="text-slate-400 font-semibold px-0.5">Ujung:</span>
+                      {[
+                        { id: 'auto', label: 'Auto' },
+                        { id: 'top', label: '⬆️ Atas' },
+                        { id: 'bottom', label: '⬇️ Bawah' },
+                        { id: 'left', label: '⬅️ Kiri' },
+                        { id: 'right', label: '➡️ Kanan' },
+                      ].map((port) => (
+                        <button
+                          key={port.id}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSetEdgeTargetAnchor?.(edge.id, port.id as any);
+                          }}
+                          className={`px-1.5 py-0.5 rounded-lg font-bold transition-all cursor-pointer ${
+                            (edge.targetAnchor || 'auto') === port.id
+                              ? 'bg-indigo-600 text-white shadow-xs'
+                              : 'text-slate-300 hover:bg-slate-700'
+                          }`}
+                        >
+                          {port.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Auto Rute / Reset Arah button */}
+                    <button
+                      type="button"
+                      title="Rapikan rute garis otomatis (Reset ke rute terpendek)"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onResetEdgeAnchors?.(edge.id);
+                      }}
+                      className="px-2 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs whitespace-nowrap text-[10px]"
+                    >
+                      <span>⚡ Auto Rute</span>
+                    </button>
+
+                    {hasCustomWaypoint && (
+                      <button
+                        type="button"
+                        title="Reset garis ke lekukan default otomatis"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onResetEdgeWaypoint(edge.id);
+                        }}
+                        className="px-2 py-1 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs whitespace-nowrap ml-0.5"
+                      >
+                        <span>↺ Reset</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      title="Hapus garis ini"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteEdgeById(edge.id);
+                      }}
+                      className="px-2 py-1 rounded-xl bg-rose-600 hover:bg-rose-500 font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs whitespace-nowrap"
+                    >
+                      <span>🗑️ Hapus</span>
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Floating Auto-Focus Notification when user is dragged far from diagram */}
@@ -2845,10 +3372,8 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               <div
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
-                className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-4 py-2 bg-white/95 backdrop-blur-md rounded-full border border-amber-300 shadow-xl text-xs text-amber-900 animate-in fade-in slide-in-from-top-4 duration-200 pointer-events-auto"
+                className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3  backdrop-blur-md rounded-full border border-amber-300 shadow-xl text-xs text-amber-900 animate-in fade-in slide-in-from-top-4 duration-200 pointer-events-auto"
               >
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
-                <span className="font-medium">Posisi kanvas jauh dari diagram awal</span>
                 <button
                   type="button"
                   onClick={onFocusStart}
@@ -2860,67 +3385,39 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               </div>
             )}
 
-            {/* Flowchart Simulation / Runner Floating Controller */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-slate-900/95 backdrop-blur-md text-white px-4 py-2 rounded-2xl shadow-2xl border border-slate-700 pointer-events-auto select-none">
-              <div className="flex items-center gap-1.5 pr-2.5 border-r border-slate-700">
-                <div
-                  className={`w-2 h-2 rounded-full ${flowRunner.isRunning ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'
-                    }`}
-                />
-                <span className="text-[11px] font-bold text-slate-200 uppercase tracking-wider">
-                  {flowRunner.isRunning ? 'Running Flow' : 'Flow Simulator'}
-                </span>
-              </div>
-
+            {/* Floating Mode Switcher: Mode Edit vs Preview Only */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl shadow-2xl border border-slate-700/80 pointer-events-auto select-none gap-1.5">
               <button
                 type="button"
-                onClick={onPrevFlowStep}
-                title="Langkah Sebelumnya"
-                className="w-7 h-7 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                onClick={() => {
+                  if (isViewOnly) onToggleViewOnly();
+                }}
+                title="Beralih ke Mode Edit (Tambah, ubah, dan susun diagram)"
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                  !isViewOnly
+                    ? 'bg-indigo-600 text-white shadow-md active:scale-95'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
+                }`}
               >
-                <SkipBack className="w-3.5 h-3.5" />
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Mode Edit</span>
               </button>
 
               <button
                 type="button"
-                onClick={onToggleRunFlow}
-                title={flowRunner.isRunning ? 'Pause Alur Flowchart' : 'Jalankan Animasi Alur Flowchart'}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer ${flowRunner.isRunning
-                  ? 'bg-amber-500 hover:bg-amber-600 text-slate-950'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                  }`}
+                onClick={() => {
+                  if (!isViewOnly) onToggleViewOnly();
+                }}
+                title="Beralih ke Mode Preview Only (Lihat alur & preview mockup bersih)"
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                  isViewOnly
+                    ? 'bg-purple-600 text-white shadow-md active:scale-95'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
+                }`}
               >
-                {flowRunner.isRunning ? (
-                  <Pause className="w-3.5 h-3.5 fill-current" />
-                ) : (
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                )}
-                <span>{flowRunner.isRunning ? 'Pause' : 'Play Flow'}</span>
+                <Eye className="w-3.5 h-3.5" />
+                <span>Preview Only</span>
               </button>
-
-              <button
-                type="button"
-                onClick={onNextFlowStep}
-                title="Langkah Berikutnya"
-                className="w-7 h-7 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
-              >
-                <SkipForward className="w-3.5 h-3.5" />
-              </button>
-
-              {(flowRunner.isRunning || flowRunner.currentNodeId) && (
-                <button
-                  type="button"
-                  onClick={onStopFlow}
-                  title="Hentikan Simulasi Alur"
-                  className="w-7 h-7 rounded-lg hover:bg-rose-900/50 text-rose-400 hover:text-rose-300 flex items-center justify-center transition-all cursor-pointer"
-                >
-                  <Square className="w-3 h-3 fill-current" />
-                </button>
-              )}
-
-              <span className="text-[11px] font-mono text-slate-400 pl-2 border-l border-slate-700">
-                Step {nodes.length > 0 ? flowRunner.stepIndex + 1 : 0}/{nodes.length}
-              </span>
             </div>
 
             {/* Interactive Minimap */}
@@ -3526,7 +4023,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
 
                   <button
                     type="button"
-                    title="Buat tiket Jira yang terkoneksi langsung ke node ini"
+                    title="Buat tiket task di Task Board untuk node ini"
                     onClick={() => {
                       onOpenCreateKanbanTask('todo', editNodeModal.nodeId);
                       onCloseEditNodeModal();
@@ -3534,7 +4031,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     className="px-3 py-2 rounded-xl text-xs font-semibold text-indigo-700 hover:bg-indigo-50 border border-indigo-200 transition-colors cursor-pointer flex items-center gap-1.5"
                   >
                     <LayoutDashboard className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Buat Tiket Jira</span>
+                    <span>Buat Tiket Task</span>
                   </button>
                 </div>
 
@@ -3685,344 +4182,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
         </div>
       ) : null}
 
-      {/* 8. Hermes AI Settings Modal */}
-      {aiSettingsModal.isOpen ? (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full flex flex-col overflow-hidden">
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-xs">
-                  <Bot className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">
-                    Konfigurasi Hermes AI
-                  </h3>
-                  <div className="text-[11px] text-slate-500">
-                    Koneksi OpenRouter / Local Endpoint untuk analisis codingan
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={onCloseAiSettings}
-                className="w-8 h-8 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            {/* Body */}
-            <div className="p-6 space-y-4">
-              {/* API Endpoint */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  API Base URL / Endpoint
-                </label>
-                <input
-                  type="text"
-                  value={aiSettingsModal.endpoint}
-                  onChange={(e) => onUpdateAiSettingsField('endpoint', e.target.value)}
-                  placeholder="https://openrouter.ai/api/v1"
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono text-slate-800 focus:bg-white focus:ring-2 focus:ring-purple-500 focus:outline-hidden"
-                />
-                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                  <span className="text-[10px] text-slate-400">Preset cepat:</span>
-                  <button
-                    type="button"
-                    onClick={() => onUpdateAiSettingsField('endpoint', 'https://openrouter.ai/api/v1')}
-                    className="px-2 py-0.5 rounded text-[10px] font-medium bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 cursor-pointer"
-                  >
-                    OpenRouter
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onUpdateAiSettingsField('endpoint', 'http://localhost:11434/v1')}
-                    className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 cursor-pointer"
-                  >
-                    Ollama Local
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onUpdateAiSettingsField('endpoint', 'http://localhost:1234/v1')}
-                    className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 cursor-pointer"
-                  >
-                    LM Studio
-                  </button>
-                </div>
-              </div>
-
-              {/* Model Name */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Model AI (Hermes / Llama)
-                </label>
-                <input
-                  type="text"
-                  value={aiSettingsModal.model}
-                  onChange={(e) => onUpdateAiSettingsField('model', e.target.value)}
-                  placeholder="nousresearch/hermes-3-llama-3.1-70b"
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono text-slate-800 focus:bg-white focus:ring-2 focus:ring-purple-500 focus:outline-hidden"
-                />
-                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                  <span className="text-[10px] text-slate-400">Pilihan model:</span>
-                  <button
-                    type="button"
-                    onClick={() => onUpdateAiSettingsField('model', 'nousresearch/hermes-3-llama-3.1-70b')}
-                    className="px-2 py-0.5 rounded text-[10px] font-medium bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 cursor-pointer"
-                  >
-                    Hermes 3 70B
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onUpdateAiSettingsField('model', 'nousresearch/hermes-3-llama-3.1-405b')}
-                    className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 cursor-pointer"
-                  >
-                    Hermes 3 405B
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onUpdateAiSettingsField('model', 'nousresearch/hermes-2-pro-llama-3-8b')}
-                    className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 cursor-pointer"
-                  >
-                    Hermes 2 Pro 8B
-                  </button>
-                </div>
-              </div>
-
-              {/* API Key */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
-                  <span>OpenRouter / OpenAI API Key</span>
-                  <span className="text-[10px] font-normal text-slate-400">Tersimpan aman di LocalStorage</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="password"
-                    value={aiSettingsModal.apiKey}
-                    onChange={(e) => onUpdateAiSettingsField('apiKey', e.target.value)}
-                    placeholder="sk-or-v1-..."
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono text-slate-800 focus:bg-white focus:ring-2 focus:ring-purple-500 focus:outline-hidden"
-                  />
-                </div>
-                <p className="text-[10px] text-slate-400 mt-1">
-                  *Untuk Ollama / LM Studio local server, API key boleh dikosongkan.
-                </p>
-              </div>
-
-              {/* Test Connection Button & Result Alert */}
-              <div className="pt-2">
-                <button
-                  type="button"
-                  disabled={aiSettingsModal.isTesting}
-                  onClick={onTestAiConnection}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  {aiSettingsModal.isTesting ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Key className="w-3.5 h-3.5" />
-                  )}
-                  <span>Test Koneksi Endpoint</span>
-                </button>
-
-                {aiSettingsModal.testStatus === 'success' && (
-                  <div className="mt-2.5 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-xs text-emerald-800">
-                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>{aiSettingsModal.testMessage}</span>
-                  </div>
-                )}
-
-                {aiSettingsModal.testStatus === 'error' && (
-                  <div className="mt-2.5 p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-800">
-                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span>{aiSettingsModal.testMessage}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-3.5 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={onCloseAiSettings}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
-              >
-                Tutup
-              </button>
-              <button
-                type="button"
-                onClick={onCloseAiSettings}
-                className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 shadow-sm transition-all cursor-pointer"
-              >
-                Simpan & Gunakan
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {/* 9. Project Codebase Scan & Flow Generation Modal */}
-      {projectScanModal.isOpen ? (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-xl w-full flex flex-col overflow-hidden max-h-[90vh]">
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-indigo-50 to-purple-50">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-xs">
-                  <FolderCode className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">
-                    Analisis Alur Codingan Project
-                  </h3>
-                  <div className="text-[11px] text-indigo-700 font-semibold flex items-center gap-1.5 mt-0.5">
-                    <span>Folder: <strong>{projectScanModal.folderName}</strong></span>
-                    <span className="text-slate-300">•</span>
-                    <span>{projectScanModal.files.length} file terbaca</span>
-                  </div>
-                </div>
-              </div>
-
-              {!projectScanModal.isGenerating && (
-                <button
-                  type="button"
-                  onClick={onCloseProjectScanModal}
-                  className="w-8 h-8 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-
-            {/* Body */}
-            <div className="p-6 space-y-4 overflow-y-auto flex-1">
-              {/* Multi-Tab Architecture Notice */}
-              <div className="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-1.5 text-xs text-indigo-950">
-                <div className="font-bold flex items-center gap-1.5 text-indigo-800">
-                  <Sparkles className="w-4 h-4 text-indigo-600" />
-                  <span>Sistem Pembagian Tab Terstruktur:</span>
-                </div>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Codingan tidak akan ditumpuk jadi satu diagram raksasa yang membingungkan. Hermes AI akan membaginya ke dalam beberapa Tab:
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px]">
-                  <div className="bg-white p-2 rounded-lg border border-indigo-100 flex items-start gap-1.5 shadow-2xs">
-                    <span className="text-indigo-600 font-bold">1.</span>
-                    <div>
-                      <strong className="text-slate-800">Arsitektur E2E (Overview)</strong>
-                      <div className="text-slate-500 text-[10px]">Alur besar: Client → API Gateway → Service → DB</div>
-                    </div>
-                  </div>
-                  <div className="bg-white p-2 rounded-lg border border-indigo-100 flex items-start gap-1.5 shadow-2xs">
-                    <span className="text-indigo-600 font-bold">2+.</span>
-                    <div>
-                      <strong className="text-slate-800">Detail Fitur / Modul</strong>
-                      <div className="text-slate-500 text-[10px]">Tab mendalam: Auth, Business Logic, DB Tables</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Progress & Live Status */}
-              {(projectScanModal.isScanning || projectScanModal.isGenerating) && (
-                <div className="space-y-2 p-3 bg-purple-50/60 border border-purple-200 rounded-xl">
-                  <div className="flex items-center justify-between text-xs font-semibold text-purple-900">
-                    <span className="flex items-center gap-1.5">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
-                      <span>{projectScanModal.generationStep}</span>
-                    </span>
-                    <span className="font-mono text-purple-700">{projectScanModal.progressPercent}%</span>
-                  </div>
-                  <div className="w-full h-2 bg-purple-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-300"
-                      style={{ width: `${projectScanModal.progressPercent}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Scanned Files List Preview */}
-              <div>
-                <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-2">
-                  <span>File Codingan yang Dipindai</span>
-                  <span className="text-[11px] font-normal text-slate-500">
-                    {projectScanModal.files.length} file siap dianalisis
-                  </span>
-                </div>
-
-                <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-slate-50/50">
-                  {projectScanModal.files.map((file, idx) => (
-                    <div
-                      key={idx}
-                      className="px-3 py-1.5 flex items-center justify-between text-xs hover:bg-white transition-colors"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <FileCode className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                        <span className="font-mono text-slate-700 truncate">{file.path}</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-mono shrink-0 ml-2">
-                        {Math.round(file.size / 1024)} KB
-                      </span>
-                    </div>
-                  ))}
-
-                  {projectScanModal.files.length === 0 && (
-                    <div className="p-4 text-center text-xs text-slate-400">
-                      Belum ada file yang terdeteksi
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {projectScanModal.errorMessage && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-800">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>{projectScanModal.errorMessage}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={onOpenProjectFolder}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-indigo-600 hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                Pilih Folder Lain...
-              </button>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={projectScanModal.isGenerating}
-                  onClick={onCloseProjectScanModal}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  disabled={projectScanModal.isGenerating || projectScanModal.files.length === 0}
-                  onClick={onGenerateFlowFromProject}
-                  className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-sm hover:shadow transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  {projectScanModal.isGenerating ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4" />
-                  )}
-                  <span>Generate Multi-Tab Flowchart</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {/* 8. Share View-Only Link Modal */}
       {shareModal.isOpen ? (
@@ -4104,27 +4264,22 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
       {/* 11. Jira / Kanban Task Creation & Edit Modal */}
       {kanbanTaskModal.isOpen ? (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
-                  <LayoutDashboard className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">
-                    {kanbanTaskModal.taskId ? 'Edit Tiket Jira' : 'Buat Tiket Jira / Task Baru'}
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Koneksikan task ini ke alur flowchart (dari node mana ke mana)
-                  </p>
-                </div>
+            <div className="px-6 py-3.5 border-b border-slate-200/80 flex items-center justify-between bg-white shrink-0">
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                <LayoutDashboard className="w-4 h-4 text-slate-600" />
+                <span>Task Board</span>
+                <span className="text-slate-300">/</span>
+                <span className="text-slate-900 font-semibold">
+                  {kanbanTaskModal.taskId ? 'Edit Tiket' : 'Tiket Baru'}
+                </span>
               </div>
 
               <button
                 type="button"
                 onClick={onCloseKanbanTaskModal}
-                className="w-8 h-8 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -4134,115 +4289,221 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             <form onSubmit={onSaveKanbanTask} className="flex-1 overflow-y-auto p-6 space-y-4">
               {/* Judul Tiket */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Judul Tiket / Task <span className="text-rose-500">*</span>
-                </label>
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Validasi Kredensial & Error Screen Login"
+                  placeholder="Judul tiket..."
                   value={kanbanTaskModal.title}
                   onChange={(e) => onUpdateKanbanTaskField('title', e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all"
+                  className="w-full text-base font-semibold text-slate-900 placeholder:text-slate-400 placeholder:font-normal px-3 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 focus:border-slate-400 rounded-xl focus:outline-hidden transition-colors"
                   autoFocus
                 />
               </div>
 
               {/* Deskripsi */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Deskripsi Tiket
-                </label>
                 <textarea
                   rows={2}
-                  placeholder="Catatan pengerjaan, scope, atau acceptance criteria..."
+                  placeholder="Tambahkan deskripsi atau catatan pengerjaan..."
                   value={kanbanTaskModal.description}
                   onChange={(e) => onUpdateKanbanTaskField('description', e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden resize-none transition-all"
+                  className="w-full text-xs text-slate-700 placeholder:text-slate-400 px-3 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 focus:border-slate-400 rounded-xl focus:outline-hidden resize-none transition-colors"
                 />
               </div>
 
-              {/* Status, Prioritas, & Assignee */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Status Kolom
-                  </label>
-                  <select
-                    value={kanbanTaskModal.status}
-                    onChange={(e) => onUpdateKanbanTaskField('status', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden cursor-pointer"
-                  >
-                    <option value="todo">📋 To Do</option>
-                    <option value="in_progress">⏳ In Progress</option>
-                    <option value="review">🔍 In Review</option>
-                    <option value="done">✅ Done</option>
-                  </select>
+              {/* Metadata / Attributes Grid */}
+              <div className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/60 space-y-3">
+                {/* Row 1: Status, Prioritas, Sprint, Assignee */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-500 mb-1">
+                      Status
+                    </label>
+                    <select
+                      value={kanbanTaskModal.status}
+                      onChange={(e) => onUpdateKanbanTaskField('status', e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden cursor-pointer"
+                    >
+                      <option value="todo">To Do</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="review">In Review</option>
+                      <option value="done">Done</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-500 mb-1">
+                      Prioritas
+                    </label>
+                    <select
+                      value={kanbanTaskModal.priority}
+                      onChange={(e) => onUpdateKanbanTaskField('priority', e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden cursor-pointer"
+                    >
+                      <option value="urgent">Urgent (P1)</option>
+                      <option value="high">High (P2)</option>
+                      <option value="medium">Medium (P3)</option>
+                      <option value="low">Low (P4)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-500 mb-1">
+                      Sprint
+                    </label>
+                    <input
+                      type="text"
+                      list="modal-sprint-list"
+                      placeholder="Sprint 1"
+                      value={kanbanTaskModal.sprint}
+                      onChange={(e) => onUpdateKanbanTaskField('sprint', e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden"
+                    />
+                    <datalist id="modal-sprint-list">
+                      <option value="Sprint 1" />
+                      <option value="Sprint 2" />
+                      <option value="Sprint 3" />
+                      <option value="Backlog" />
+                    </datalist>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-500 mb-1">
+                      Assignee
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Nama PIC"
+                      value={kanbanTaskModal.assignee}
+                      onChange={(e) => onUpdateKanbanTaskField('assignee', e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Prioritas
-                  </label>
-                  <select
-                    value={kanbanTaskModal.priority}
-                    onChange={(e) => onUpdateKanbanTaskField('priority', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden cursor-pointer"
-                  >
-                    <option value="urgent">🔴 Urgent</option>
-                    <option value="high">🟠 High</option>
-                    <option value="medium">🟡 Medium</option>
-                    <option value="low">⚪ Low</option>
-                  </select>
+                {/* Row 2: Tipe, Story Points, Durasi, Tenggat */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-200/60">
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-500 mb-1">
+                      Tipe Tiket
+                    </label>
+                    <select
+                      value={kanbanTaskModal.issueType}
+                      onChange={(e) => onUpdateKanbanTaskField('issueType', e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden cursor-pointer"
+                    >
+                      <option value="story">Story</option>
+                      <option value="task">Task</option>
+                      <option value="bug">Bug</option>
+                      <option value="epic">Epic</option>
+                      <option value="improvement">Improvement</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-500 mb-1 flex items-center justify-between">
+                      <span>Story Points</span>
+                      <Zap className="w-3 h-3 text-slate-400" />
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 3"
+                      value={kanbanTaskModal.storyPoints}
+                      onChange={(e) => onUpdateKanbanTaskField('storyPoints', e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-500 mb-1 flex items-center justify-between">
+                      <span>Estimasi</span>
+                      <Clock className="w-3 h-3 text-slate-400" />
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 2 Hari"
+                      value={kanbanTaskModal.duration}
+                      onChange={(e) => onUpdateKanbanTaskField('duration', e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-500 mb-1 flex items-center justify-between">
+                      <span>Tenggat</span>
+                      <Calendar className="w-3 h-3 text-slate-400" />
+                    </label>
+                    <input
+                      type="date"
+                      value={kanbanTaskModal.dueDate}
+                      onChange={(e) => onUpdateKanbanTaskField('dueDate', e.target.value)}
+                      className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden cursor-pointer"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Assignee
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Nama penanggung jawab"
-                    value={kanbanTaskModal.assignee}
-                    onChange={(e) => onUpdateKanbanTaskField('assignee', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-                  />
+                {/* Tags */}
+                <div className="pt-2 border-t border-slate-200/60">
+                  <div className="flex items-center gap-2">
+                    <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Tags / Labels (pisahkan dengan koma: Frontend, API, Auth)"
+                      value={kanbanTaskModal.tags}
+                      onChange={(e) => onUpdateKanbanTaskField('tags', e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* 🔗 KONEKSI KE WORKFLOW (DARI NODE MANA KE MANA) */}
-              <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-3">
-                <div className="flex items-center gap-2">
-                  <Workflow className="w-4 h-4 text-indigo-600" />
-                  <span className="text-xs font-bold text-indigo-950 uppercase tracking-wider">
-                    Koneksi ke Alur Kerja (Workflow Linkage)
+              {/* Kriteria Penerimaan (Acceptance Criteria) */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <CheckSquare className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Kriteria Penerimaan (Acceptance Criteria)</span>
                   </span>
+                  <span className="text-[10px] text-slate-400">Opsional</span>
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="• Kriteria atau syarat selesai..."
+                  value={kanbanTaskModal.acceptanceCriteria}
+                  onChange={(e) => onUpdateKanbanTaskField('acceptanceCriteria', e.target.value)}
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-slate-400 focus:outline-hidden resize-none transition-colors"
+                />
+              </div>
+
+              {/* Tautan Alur Kerja (Workflow Linkage) */}
+              <div className="p-3.5 bg-slate-50/70 border border-slate-200 rounded-xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+                    <Workflow className="w-3.5 h-3.5 text-slate-600" />
+                    <span>Tautan Diagram Alur (Workflow Link)</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500">Hubungkan tiket ke langkah flowchart</span>
                 </div>
 
                 {/* Pilih Tab Flowchart */}
-                <div>
-                  <label className="block text-[11px] font-bold text-indigo-900 mb-1">
-                    1. Pilih Tab / Diagram Workflow
-                  </label>
-                  <select
-                    value={kanbanTaskModal.linkedWorkflowTabId}
-                    onChange={(e) => {
-                      onUpdateKanbanTaskField('linkedWorkflowTabId', e.target.value);
-                      onUpdateKanbanTaskField('linkedSourceNodeId', '');
-                      onUpdateKanbanTaskField('linkedTargetNodeId', '');
-                    }}
-                    className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden cursor-pointer"
-                  >
-                    <option value="">(Pilih tab workflow...)</option>
-                    {tabs
-                      .filter((t) => t.type !== 'kanban')
-                      .map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.title} ({t.type.toUpperCase()})
-                        </option>
-                      ))}
-                  </select>
-                </div>
+                <select
+                  value={kanbanTaskModal.linkedWorkflowTabId}
+                  onChange={(e) => {
+                    onUpdateKanbanTaskField('linkedWorkflowTabId', e.target.value);
+                    onUpdateKanbanTaskField('linkedSourceNodeId', '');
+                    onUpdateKanbanTaskField('linkedTargetNodeId', '');
+                  }}
+                  className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden cursor-pointer"
+                >
+                  <option value="">(Pilih diagram alur...)</option>
+                  {tabs
+                    .filter((t) => t.type !== 'kanban')
+                    .map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.title} ({t.type.toUpperCase()})
+                      </option>
+                    ))}
+                </select>
 
                 {/* Target Tab Nodes Picker */}
                 {(() => {
@@ -4257,21 +4518,41 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   );
 
                   return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                       {/* Dari Node Mana */}
                       <div>
-                        <label className="block text-[11px] font-bold text-indigo-900 mb-1">
-                          2. Dari Node Mana (Trigger)
+                        <label className="block text-[10.5px] font-medium text-slate-500 mb-1">
+                          Node Asal (Trigger)
                         </label>
                         <select
                           value={kanbanTaskModal.linkedSourceNodeId}
                           onChange={(e) => {
-                            onUpdateKanbanTaskField('linkedSourceNodeId', e.target.value);
+                            const chosenId = e.target.value;
+                            onUpdateKanbanTaskField('linkedSourceNodeId', chosenId);
                             onUpdateKanbanTaskField('linkedTargetNodeId', '');
+                            const chosenNode = flowNodes.find((n) => n.id === chosenId);
+                            if (chosenNode) {
+                              if (!kanbanTaskModal.title) {
+                                onUpdateKanbanTaskField('title', chosenNode.label);
+                              }
+                              if (!kanbanTaskModal.description && chosenNode.description) {
+                                onUpdateKanbanTaskField('description', chosenNode.description);
+                              }
+                              if (!kanbanTaskModal.tags && chosenNode.moduleCategory) {
+                                onUpdateKanbanTaskField('tags', chosenNode.moduleCategory);
+                              }
+                              const outgoing = flowEdges.find((ed) => ed.sourceNodeId === chosenId);
+                              if (outgoing) {
+                                onUpdateKanbanTaskField('linkedTargetNodeId', outgoing.targetNodeId);
+                                if (outgoing.label) {
+                                  onUpdateKanbanTaskField('linkedEdgeLabel', outgoing.label);
+                                }
+                              }
+                            }
                           }}
-                          className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden cursor-pointer"
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden cursor-pointer"
                         >
-                          <option value="">(Pilih Node Asal)</option>
+                          <option value="">(Pilih node asal)</option>
                           {flowNodes.map((n) => (
                             <option key={n.id} value={n.id}>
                               {n.label} ({n.type})
@@ -4282,8 +4563,8 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
 
                       {/* Ke Node Mana */}
                       <div>
-                        <label className="block text-[11px] font-bold text-indigo-900 mb-1">
-                          3. Ke Node Mana (Transisi)
+                        <label className="block text-[10.5px] font-medium text-slate-500 mb-1">
+                          Node Tujuan (Transisi)
                         </label>
                         <select
                           value={kanbanTaskModal.linkedTargetNodeId}
@@ -4299,7 +4580,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                               onUpdateKanbanTaskField('linkedEdgeLabel', edge.label);
                             }
                           }}
-                          className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden cursor-pointer"
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-hidden cursor-pointer"
                         >
                           <option value="">(Hanya node ini - tanpa transisi)</option>
                           {outgoingEdges.length > 0 && (
@@ -4314,7 +4595,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                               })}
                             </optgroup>
                           )}
-                          <optgroup label="Seluruh Node di Diagram:">
+                          <optgroup label="Semua Node:">
                             {flowNodes
                               .filter((n) => n.id !== kanbanTaskModal.linkedSourceNodeId)
                               .map((n) => (
@@ -4329,19 +4610,19 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   );
                 })()}
 
-                {/* Connection Live Preview Pill */}
+                {/* Connection Live Preview */}
                 {kanbanTaskModal.linkedSourceNodeId && (
-                  <div className="pt-2 border-t border-indigo-200/60 flex items-center gap-2 text-xs text-indigo-950 font-semibold flex-wrap">
-                    <span className="text-[11px] text-indigo-700">Preview:</span>
-                    <span className="px-2 py-0.5 rounded-md bg-white border border-indigo-200 shadow-2xs">
+                  <div className="pt-2 border-t border-slate-200 flex items-center gap-1.5 text-xs text-slate-700 flex-wrap">
+                    <span className="text-[10px] text-slate-400">Tautan:</span>
+                    <span className="px-2 py-0.5 rounded bg-white border border-slate-200 text-[11px] font-medium">
                       {tabs
                         .find((t) => t.id === kanbanTaskModal.linkedWorkflowTabId)
                         ?.nodes.find((n) => n.id === kanbanTaskModal.linkedSourceNodeId)?.label || 'Node Asal'}
                     </span>
                     {kanbanTaskModal.linkedTargetNodeId && (
                       <>
-                        <ArrowRight className="w-3.5 h-3.5 text-indigo-500" />
-                        <span className="px-2 py-0.5 rounded-md bg-white border border-indigo-200 shadow-2xs">
+                        <ArrowRight className="w-3 h-3 text-slate-400" />
+                        <span className="px-2 py-0.5 rounded bg-white border border-slate-200 text-[11px] font-medium">
                           {tabs
                             .find((t) => t.id === kanbanTaskModal.linkedWorkflowTabId)
                             ?.nodes.find((n) => n.id === kanbanTaskModal.linkedTargetNodeId)?.label ||
@@ -4354,20 +4635,39 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={onCloseKanbanTaskModal}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm cursor-pointer hover:scale-102 transition-all active:scale-98"
-                >
-                  {kanbanTaskModal.taskId ? 'Simpan Perubahan' : 'Buat Tiket'}
-                </button>
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
+                <div>
+                  {kanbanTaskModal.taskId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (kanbanTaskModal.taskId) {
+                          onDeleteKanbanTask(kanbanTaskModal.taskId);
+                        }
+                        onCloseKanbanTaskModal();
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Hapus Tiket</span>
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onCloseKanbanTaskModal}
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 transition-colors cursor-pointer shadow-xs"
+                  >
+                    {kanbanTaskModal.taskId ? 'Simpan Perubahan' : 'Buat Tiket'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

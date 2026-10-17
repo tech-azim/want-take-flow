@@ -26,6 +26,8 @@ import type {
   KanbanTaskModalData,
   KanbanTaskStatus,
   SwimlaneLane,
+  EditEdgeModalData,
+  EdgeEndpointDragState,
 } from './ErpFlowGen.type';
 import { SCREEN_MOCKUP_PRESETS } from './ErpFlowGen.mockups';
 import {
@@ -140,8 +142,8 @@ export type UseErpFlowGenReturn = {
   handleDeleteSelectedEdge: () => void;
   handleStartNodeDrag: (event: React.MouseEvent<HTMLDivElement>, nodeId: string) => void;
   handleStartNodeResize: (event: React.MouseEvent, nodeId: string, mode?: 'both' | 'horizontal' | 'vertical') => void;
-  handleStartConnection: (event: React.MouseEvent<HTMLButtonElement>, nodeId: string) => void;
-  handleCompleteConnection: (targetNodeId: string) => void;
+  handleStartConnection: (event: React.MouseEvent, nodeId: string, sourceAnchor?: 'top' | 'bottom' | 'left' | 'right') => void;
+  handleCompleteConnection: (targetNodeId: string, targetAnchor?: 'top' | 'bottom' | 'left' | 'right') => void;
   handleCanvasMouseDown: (event: React.MouseEvent<HTMLDivElement>) => void;
   handleCanvasMouseMove: (event: React.MouseEvent<HTMLDivElement>) => void;
   handleCanvasMouseUp: () => void;
@@ -184,6 +186,9 @@ export type UseErpFlowGenReturn = {
   handleFolderInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   isViewOnly: boolean;
   handleToggleViewOnly: () => void;
+  projectSubView: 'flowchart' | 'kanban';
+  handleSetProjectSubView: (mode: 'flowchart' | 'kanban') => void;
+  handleGenerateTasksFromNodes: () => void;
   shareModal: ShareModalData;
   handleOpenShareModal: () => void;
   handleCloseShareModal: () => void;
@@ -202,9 +207,11 @@ export type UseErpFlowGenReturn = {
   kanbanTaskModal: KanbanTaskModalData;
   kanbanSearchQuery: string;
   kanbanPriorityFilter: string;
+  kanbanSprintFilter: string;
   kanbanLinkFilter: boolean;
   onSetKanbanSearchQuery: (query: string) => void;
   onSetKanbanPriorityFilter: (filter: string) => void;
+  onSetKanbanSprintFilter: (filter: string) => void;
   onSetKanbanLinkFilter: (linkedOnly: boolean) => void;
   onOpenCreateKanbanTask: (defaultStatus?: KanbanTaskStatus, defaultSourceNodeId?: string) => void;
   onOpenEditKanbanTask: (taskId: string) => void;
@@ -214,6 +221,29 @@ export type UseErpFlowGenReturn = {
   onDeleteKanbanTask: (taskId: string) => void;
   onMoveKanbanTaskStatus: (taskId: string, newStatus: KanbanTaskStatus) => void;
   onJumpToLinkedWorkflow: (tabId: string, nodeId?: string, targetNodeId?: string) => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  handleUndo: () => void;
+  handleRedo: () => void;
+  connectorStyle: 'orthogonal' | 'curved' | 'straight';
+  handleSetConnectorStyle: (style: 'orthogonal' | 'curved' | 'straight') => void;
+  handleSelectEdge: (edgeId: string) => void;
+  handleDeleteEdgeById: (edgeId: string) => void;
+  editEdgeModal: EditEdgeModalData;
+  handleOpenEditEdgeModal: (edgeId: string) => void;
+  handleCloseEditEdgeModal: () => void;
+  handleUpdateEditEdgeField: (field: keyof EditEdgeModalData, value: string) => void;
+  handleSaveEditEdge: (e?: React.FormEvent) => void;
+  handleFlipEdgeDirection: () => void;
+  handleStartEdgeWaypointDrag: (event: React.MouseEvent, edgeId: string) => void;
+  handleResetEdgeWaypoint: (edgeId: string) => void;
+  handleSetEdgeTargetAnchor: (edgeId: string, anchor: 'auto' | 'top' | 'bottom' | 'left' | 'right') => void;
+  handleSetEdgeSourceAnchor: (edgeId: string, anchor: 'auto' | 'top' | 'bottom' | 'left' | 'right') => void;
+  edgeEndpointDragState: EdgeEndpointDragState;
+  handleStartEdgeEndpointDrag: (event: React.MouseEvent, edgeId: string, endpointType: 'source' | 'target') => void;
+  handleUpdateEdgeLabel: (edgeId: string, label: string) => void;
+  handleUpdateEdgeColor: (edgeId: string, color: string) => void;
+  handleResetEdgeAnchors: (edgeId: string) => void;
 };
 
 /**
@@ -244,8 +274,97 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     }
   }, [activeTabId]);
 
+  // --- Undo & Redo History Management ---
+  const [historyPast, setHistoryPast] = useState<FlowProjectTab[][]>([]);
+  const [historyFuture, setHistoryFuture] = useState<FlowProjectTab[][]>([]);
+  const tabsRef = useRef(tabs);
+  tabsRef.current = tabs;
+
+  const dragSnapshotRef = useRef<FlowProjectTab[] | null>(null);
+  const hasMovedDuringDrag = useRef<boolean>(false);
+
+  const recordHistory = useCallback((): void => {
+    setHistoryPast((prev) => {
+      const next = [...prev, tabsRef.current];
+      return next.length > 30 ? next.slice(next.length - 30) : next;
+    });
+    setHistoryFuture([]);
+  }, []);
+
+  const handleUndo = useCallback((): void => {
+    setHistoryPast((past) => {
+      if (past.length === 0) return past;
+      const previous = past[past.length - 1];
+      const newPast = past.slice(0, past.length - 1);
+      setHistoryFuture((future) => [tabsRef.current, ...future]);
+      setTabs(previous);
+      if (!previous.some((t) => t.id === activeTabId)) {
+        setActiveTabId(previous[0]?.id || '');
+      }
+      return newPast;
+    });
+  }, [activeTabId]);
+
+  const handleRedo = useCallback((): void => {
+    setHistoryFuture((future) => {
+      if (future.length === 0) return future;
+      const next = future[0];
+      const newFuture = future.slice(1);
+      setHistoryPast((past) => [...past, tabsRef.current]);
+      setTabs(next);
+      if (!next.some((t) => t.id === activeTabId)) {
+        setActiveTabId(next[0]?.id || '');
+      }
+      return newFuture;
+    });
+  }, [activeTabId]);
+
+  const canUndo = historyPast.length > 0;
+  const canRedo = historyFuture.length > 0;
+
+  // Global Keyboard Shortcuts for Undo (Cmd/Ctrl+Z) & Redo (Cmd+Shift+Z / Ctrl+Y)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      const activeEl = document.activeElement;
+      const isTyping =
+        activeEl instanceof HTMLInputElement ||
+        activeEl instanceof HTMLTextAreaElement ||
+        (activeEl && (activeEl as HTMLElement).isContentEditable);
+      if (isTyping) return;
+
+      const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+      const isModifier = isMac ? e.metaKey : e.ctrlKey;
+
+      if (isModifier && e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          handleRedo();
+        } else {
+          e.preventDefault();
+          handleUndo();
+        }
+      } else if (isModifier && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleUndo, handleRedo]);
+
   const [selectedNodeId, setSelectedNodeId] = useState<string>('start_node');
   const [selectedEdgeId, setSelectedEdgeId] = useState<string>('');
+  const [connectorStyle, setConnectorStyle] = useState<'orthogonal' | 'curved' | 'straight'>('orthogonal');
+  const [editEdgeModal, setEditEdgeModal] = useState<EditEdgeModalData>({
+    isOpen: false,
+    edgeId: '',
+    sourceNodeId: '',
+    targetNodeId: '',
+    label: '',
+  });
   const [isHelpModalOpen, setIsHelpModalOpen] = useState<boolean>(false);
   const [isExportingPng, setIsExportingPng] = useState<boolean>(false);
 
@@ -332,7 +451,15 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     description: '',
     status: 'todo',
     priority: 'medium',
+    issueType: 'task',
+    sprint: 'Sprint 1',
+    duration: '3 Hari',
+    storyPoints: '3',
+    startDate: '',
+    dueDate: '',
+    acceptanceCriteria: '',
     assignee: 'Budi Santoso',
+    tags: '',
     linkedWorkflowTabId: '',
     linkedSourceNodeId: '',
     linkedTargetNodeId: '',
@@ -341,7 +468,63 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
   const [kanbanSearchQuery, setKanbanSearchQuery] = useState<string>('');
   const [kanbanPriorityFilter, setKanbanPriorityFilter] = useState<string>('all');
+  const [kanbanSprintFilter, setKanbanSprintFilter] = useState<string>('all');
   const [kanbanLinkFilter, setKanbanLinkFilter] = useState<boolean>(false);
+
+  // 5. Project SubView Mode ('flowchart' vs 'kanban' task board)
+  const [projectSubView, setProjectSubView] = useState<'flowchart' | 'kanban'>('flowchart');
+
+  const handleSetProjectSubView = useCallback((mode: 'flowchart' | 'kanban'): void => {
+    setProjectSubView(mode);
+  }, []);
+
+  const handleGenerateTasksFromNodes = useCallback((): void => {
+    recordHistory();
+    const currentTab = tabs.find((t) => t.id === activeTabId);
+    if (!currentTab) return;
+    const currentTasks = currentTab.kanbanTasks || [];
+    const existingSourceNodeIds = new Set(
+      currentTasks.map((t) => t.linkedSourceNodeId).filter(Boolean),
+    );
+
+    const newTasks: KanbanTask[] = [];
+    currentTab.nodes.forEach((node, index) => {
+      if (existingSourceNodeIds.has(node.id)) return;
+      const taskKey = `TASK-${(currentTasks.length + newTasks.length + 1)
+        .toString()
+        .padStart(3, '0')}`;
+      newTasks.push({
+        id: `task_${Date.now()}_${index}`,
+        key: taskKey,
+        title: node.label || `Langkah ${index + 1}`,
+        description:
+          node.description || `Implementasi alur untuk langkah: ${node.label}`,
+        status: index === 0 ? 'in_progress' : 'todo',
+        priority: node.type === 'decision' ? 'high' : 'medium',
+        issueType: node.type === 'decision' ? 'story' : 'task',
+        sprint: kanbanSprintFilter !== 'all' ? kanbanSprintFilter : 'Sprint 1',
+        duration: node.type === 'decision' ? '3 Hari' : '2 Hari',
+        storyPoints: node.type === 'decision' ? 5 : 3,
+        startDate: new Date().toISOString().split('T')[0],
+        assignee: 'Budi Santoso',
+        linkedWorkflowTabId: currentTab.id,
+        linkedWorkflowTabTitle: currentTab.title,
+        linkedSourceNodeId: node.id,
+        linkedSourceNodeLabel: node.label,
+        createdAt: new Date().toISOString().split('T')[0],
+      });
+    });
+
+    if (newTasks.length > 0) {
+      setTabs((prev) =>
+        prev.map((t) =>
+          t.id === activeTabId
+            ? { ...t, kanbanTasks: [...(t.kanbanTasks || []), ...newTasks] }
+            : t,
+        ),
+      );
+    }
+  }, [tabs, activeTabId, recordHistory]);
 
   const [aiConfig, setAiConfig] = useState<HermesAiConfig>(() => {
     if (typeof window === 'undefined') return DEFAULT_AI_CONFIG;
@@ -501,6 +684,25 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     initialDims: { width: 380, height: 240 },
   });
 
+  const [edgeWaypointDragState, setEdgeWaypointDragState] = useState<{
+    isDragging: boolean;
+    edgeId: string;
+    startPos: Position;
+    initialWaypointOffset: Position;
+  }>({
+    isDragging: false,
+    edgeId: '',
+    startPos: { x: 0, y: 0 },
+    initialWaypointOffset: { x: 0, y: 0 },
+  });
+
+  const [edgeEndpointDragState, setEdgeEndpointDragState] = useState<EdgeEndpointDragState>({
+    isDragging: false,
+    edgeId: '',
+    endpointType: 'target',
+    currentPos: { x: 0, y: 0 },
+  });
+
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const mainContainerRef = useRef<HTMLElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -547,12 +749,20 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     return () => window.removeEventListener('resize', centerCanvas);
   }, []);
 
-  // Tab Handlers
-  const handleSelectTab = useCallback((tabId: string): void => {
-    setActiveTabId(tabId);
-    setSelectedNodeId('');
-    setSelectedEdgeId('');
-  }, []);
+  const handleSelectTab = useCallback(
+    (tabId: string): void => {
+      setActiveTabId(tabId);
+      setSelectedNodeId('');
+      setSelectedEdgeId('');
+      const target = tabs.find((t) => t.id === tabId);
+      if (target?.type === 'kanban') {
+        setProjectSubView('kanban');
+      } else {
+        setProjectSubView('flowchart');
+      }
+    },
+    [tabs],
+  );
 
   const handleAddTabClick = useCallback((): void => {
     setCreateProjectModal({
@@ -576,6 +786,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   const handleConfirmCreateProject = useCallback(
     (e?: React.FormEvent): void => {
       if (e) e.preventDefault();
+      recordHistory();
       const title = createProjectModal.projectName.trim() || `Flow Project ${tabs.length + 1}`;
       const newProj = createInitialProject(createProjectModal.projectType, title);
       setTabs((prev) => [...prev, newProj]);
@@ -584,12 +795,13 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       setSelectedEdgeId('');
       setCreateProjectModal((prev) => ({ ...prev, isOpen: false }));
     },
-    [createProjectModal, tabs.length],
+    [createProjectModal, tabs.length, recordHistory],
   );
 
   const handleCloseTab = useCallback(
     (tabId: string, event: React.MouseEvent): void => {
       event.stopPropagation();
+      recordHistory();
       if (tabs.length <= 1) {
         const freshTab = createInitialProject('userflow', 'Project 1');
         setTabs([freshTab]);
@@ -604,7 +816,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         setActiveTabId(remainingTabs[0].id);
       }
     },
-    [tabs, activeTabId],
+    [tabs, activeTabId, recordHistory],
   );
 
   const handleCloneTab = useCallback(
@@ -612,6 +824,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       const sourceTab = tabs.find((t) => t.id === tabId);
       if (!sourceTab) return;
 
+      recordHistory();
       const newTabId = _generateUniqueId('flow_project');
 
       // Remap node IDs to guarantee no cross-tab ID collisions
@@ -688,7 +901,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       setSelectedNodeId(clonedNodes[0]?.id || '');
       setSelectedEdgeId('');
     },
-    [tabs],
+    [tabs, recordHistory],
   );
 
   // Tab Rename Handlers (Double-click or pen icon)
@@ -715,13 +928,14 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     (tabId: string): void => {
       const trimmed = editingTabState.title.trim();
       if (trimmed) {
+        recordHistory();
         setTabs((prev) =>
           prev.map((t) => (t.id === tabId ? { ...t, title: trimmed } : t)),
         );
       }
       setEditingTabState({ tabId: '', title: '' });
     },
-    [editingTabState.title],
+    [editingTabState.title, recordHistory],
   );
 
   const handleCancelRenameTab = useCallback((): void => {
@@ -981,6 +1195,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
   const handleToggleDecisionSwap = useCallback(
     (nodeId: string): void => {
+      recordHistory();
       setTabs((prevTabs) =>
         prevTabs.map((t) => {
           if (t.id !== activeTabId) return t;
@@ -993,7 +1208,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         }),
       );
     },
-    [activeTabId],
+    [activeTabId, recordHistory],
   );
 
   const handleCloseAddNodeModal = useCallback((): void => {
@@ -1010,6 +1225,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   const handleSubmitAddNode = useCallback(
     (e?: React.FormEvent): void => {
       if (e) e.preventDefault();
+      recordHistory();
 
       const sourceNode = _findNodeById(nodes, addNodeModal.sourceNodeId);
 
@@ -1186,6 +1402,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       if (e) e.preventDefault();
       if (!editNodeModal.label.trim()) return;
 
+      recordHistory();
       const defaultDims = NODE_DIMENSIONS[editNodeModal.type] ?? { width: 220, height: 80 };
       const finalWidth = editNodeModal.width ? Number(editNodeModal.width) : defaultDims.width;
       const finalHeight = editNodeModal.height ? Number(editNodeModal.height) : defaultDims.height;
@@ -1217,7 +1434,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
       setEditNodeModal((prev) => ({ ...prev, isOpen: false }));
     },
-    [editNodeModal, activeTabId],
+    [editNodeModal, activeTabId, recordHistory],
   );
 
   // Mockup Presets & Custom Upload Handlers
@@ -1372,6 +1589,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     const idToDelete = editNodeModal.nodeId;
     if (!idToDelete) return;
 
+    recordHistory();
     setTabs((prevTabs) =>
       prevTabs.map((t) => {
         if (t.id !== activeTabId) return t;
@@ -1388,7 +1606,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     setSelectedNodeId('');
     setSelectedEdgeId('');
     setEditNodeModal((prev) => ({ ...prev, isOpen: false }));
-  }, [editNodeModal.nodeId, activeTabId]);
+  }, [editNodeModal.nodeId, activeTabId, recordHistory]);
 
   // Swimlane adjustments
   const handleUpdateTableWidth = useCallback(
@@ -1408,6 +1626,8 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     (event: React.MouseEvent): void => {
       event.preventDefault();
       event.stopPropagation();
+      dragSnapshotRef.current = tabsRef.current;
+      hasMovedDuringDrag.current = false;
       setPanningState({
         isPanning: false,
         panStart: { x: 0, y: 0 },
@@ -1427,6 +1647,8 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     (event: React.MouseEvent, laneId: string, initialHeight: number): void => {
       event.preventDefault();
       event.stopPropagation();
+      dragSnapshotRef.current = tabsRef.current;
+      hasMovedDuringDrag.current = false;
       setPanningState({
         isPanning: false,
         panStart: { x: 0, y: 0 },
@@ -1481,6 +1703,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
   // Group Frame Handlers
   const handleAddGroupFrame = useCallback((): void => {
+    recordHistory();
     const newId = _generateUniqueId('group');
     let posX = 200;
     let posY = 100;
@@ -1524,10 +1747,11 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       ),
     );
     setSelectedGroupId(newId);
-  }, [selectedNodeId, nodes, transform, activeTab.groups, activeTabId]);
+  }, [selectedNodeId, nodes, transform, activeTab.groups, activeTabId, recordHistory]);
 
   const handleUpdateGroupTitle = useCallback(
     (groupId: string, title: string): void => {
+      recordHistory();
       setTabs((prev) =>
         prev.map((t) =>
           t.id === activeTabId
@@ -1541,11 +1765,12 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         ),
       );
     },
-    [activeTabId],
+    [activeTabId, recordHistory],
   );
 
   const handleUpdateGroupColor = useCallback(
     (groupId: string, colorTheme: NodeColorTheme): void => {
+      recordHistory();
       setTabs((prev) =>
         prev.map((t) =>
           t.id === activeTabId
@@ -1559,12 +1784,13 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         ),
       );
     },
-    [activeTabId],
+    [activeTabId, recordHistory],
   );
 
   const handleDeleteGroupFrame = useCallback(
     (groupId: string): void => {
       if (isViewOnly) return;
+      recordHistory();
       setTabs((prev) =>
         prev.map((t) =>
           t.id === activeTabId
@@ -1579,7 +1805,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         setSelectedGroupId('');
       }
     },
-    [isViewOnly, activeTabId, selectedGroupId],
+    [isViewOnly, activeTabId, selectedGroupId, recordHistory],
   );
 
   const handleStartGroupDrag = useCallback(
@@ -1597,6 +1823,8 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
       event.preventDefault();
       event.stopPropagation();
+      dragSnapshotRef.current = tabsRef.current;
+      hasMovedDuringDrag.current = false;
       setPanningState({ isPanning: false, panStart: { x: 0, y: 0 }, initialTransform: { x: 0, y: 0 } });
 
       const targetGroup = (activeTab.groups || []).find((g) => g.id === groupId);
@@ -1653,6 +1881,8 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       if (isViewOnly) return;
       event.preventDefault();
       event.stopPropagation();
+      dragSnapshotRef.current = tabsRef.current;
+      hasMovedDuringDrag.current = false;
       setPanningState({ isPanning: false, panStart: { x: 0, y: 0 }, initialTransform: { x: 0, y: 0 } });
 
       const targetGroup = (activeTab.groups || []).find((g) => g.id === groupId);
@@ -1672,6 +1902,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
   const handleUpdateNodeLabel = useCallback(
     (nodeId: string, label: string): void => {
+      recordHistory();
       setTabs((prev) =>
         prev.map((t) =>
           t.id === activeTabId
@@ -1680,11 +1911,12 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         ),
       );
     },
-    [activeTabId],
+    [activeTabId, recordHistory],
   );
 
   const handleUpdateNodeCategory = useCallback(
     (nodeId: string, moduleCategory: string): void => {
+      recordHistory();
       setTabs((prev) =>
         prev.map((t) =>
           t.id === activeTabId
@@ -1693,11 +1925,12 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         ),
       );
     },
-    [activeTabId],
+    [activeTabId, recordHistory],
   );
 
   const handleUpdateNodeColor = useCallback(
     (nodeId: string, colorTheme: NodeColorTheme): void => {
+      recordHistory();
       setTabs((prev) =>
         prev.map((t) =>
           t.id === activeTabId
@@ -1706,13 +1939,14 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         ),
       );
     },
-    [activeTabId],
+    [activeTabId, recordHistory],
   );
 
   const handleDeleteSelectedNode = useCallback((): void => {
     if (isViewOnly) return;
     if (!selectedNodeId) return;
 
+    recordHistory();
     setTabs((prev) =>
       prev.map((t) => {
         if (t.id !== activeTabId) return t;
@@ -1728,12 +1962,13 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     );
 
     setSelectedNodeId('');
-  }, [isViewOnly, selectedNodeId, activeTabId]);
+  }, [isViewOnly, selectedNodeId, activeTabId, recordHistory]);
 
   const handleDeleteSelectedEdge = useCallback((): void => {
     if (isViewOnly) return;
     if (!selectedEdgeId) return;
 
+    recordHistory();
     setTabs((prev) =>
       prev.map((t) => {
         if (t.id !== activeTabId) return t;
@@ -1745,7 +1980,319 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     );
 
     setSelectedEdgeId('');
-  }, [isViewOnly, selectedEdgeId, activeTabId]);
+  }, [isViewOnly, selectedEdgeId, activeTabId, recordHistory]);
+
+  const handleSetConnectorStyle = useCallback((style: 'orthogonal' | 'curved' | 'straight'): void => {
+    setConnectorStyle(style);
+  }, []);
+
+  const handleSelectEdge = useCallback((edgeId: string): void => {
+    setSelectedEdgeId(edgeId);
+    setSelectedNodeId('');
+  }, []);
+
+  const handleOpenEditEdgeModal = useCallback(
+    (_edgeId: string): void => {
+      // Direct manipulation is used instead of modal popup
+    },
+    [],
+  );
+
+  const handleCloseEditEdgeModal = useCallback((): void => {
+    setEditEdgeModal((prev) => ({ ...prev, isOpen: false }));
+  }, []);
+
+  const handleUpdateEditEdgeField = useCallback(
+    (field: keyof EditEdgeModalData, value: string): void => {
+      setEditEdgeModal((prev) => ({ ...prev, [field]: value }));
+    },
+    [],
+  );
+
+  const handleSaveEditEdge = useCallback(
+    (e?: React.FormEvent): void => {
+      if (e) e.preventDefault();
+      if (!editEdgeModal.edgeId || !editEdgeModal.sourceNodeId || !editEdgeModal.targetNodeId) return;
+      if (editEdgeModal.sourceNodeId === editEdgeModal.targetNodeId) return;
+
+      recordHistory();
+      setTabs((prevTabs) =>
+        prevTabs.map((t) => {
+          if (t.id !== activeTabId) return t;
+          return {
+            ...t,
+            edges: t.edges.map((edge) => {
+              if (edge.id !== editEdgeModal.edgeId) return edge;
+              return {
+                ...edge,
+                sourceNodeId: editEdgeModal.sourceNodeId,
+                targetNodeId: editEdgeModal.targetNodeId,
+                label: editEdgeModal.label.trim(),
+                sourceAnchor: editEdgeModal.sourceAnchor || 'auto',
+                targetAnchor: editEdgeModal.targetAnchor || 'auto',
+              };
+            }),
+          };
+        }),
+      );
+      setEditEdgeModal((prev) => ({ ...prev, isOpen: false }));
+    },
+    [editEdgeModal, activeTabId, recordHistory],
+  );
+
+  const handleUpdateEdgeLabel = useCallback(
+    (edgeId: string, label: string): void => {
+      recordHistory();
+      setTabs((prevTabs) =>
+        prevTabs.map((t) => {
+          if (t.id !== activeTabId) return t;
+          return {
+            ...t,
+            edges: t.edges.map((edge) => {
+              if (edge.id !== edgeId) return edge;
+              return {
+                ...edge,
+                label,
+              };
+            }),
+          };
+        }),
+      );
+    },
+    [activeTabId, recordHistory],
+  );
+
+  const handleUpdateEdgeColor = useCallback(
+    (edgeId: string, color: string): void => {
+      recordHistory();
+      setTabs((prevTabs) =>
+        prevTabs.map((t) => {
+          if (t.id !== activeTabId) return t;
+          return {
+            ...t,
+            edges: t.edges.map((edge) => {
+              if (edge.id !== edgeId) return edge;
+              return {
+                ...edge,
+                color,
+              };
+            }),
+          };
+        }),
+      );
+    },
+    [activeTabId, recordHistory],
+  );
+
+  const handleSetEdgeTargetAnchor = useCallback(
+    (edgeId: string, anchor: 'auto' | 'top' | 'bottom' | 'left' | 'right'): void => {
+      if (isViewOnly) return;
+      recordHistory();
+      setTabs((prevTabs) =>
+        prevTabs.map((t) => {
+          if (t.id !== activeTabId) return t;
+          return {
+            ...t,
+            edges: t.edges.map((ed) => {
+              if (ed.id !== edgeId) return ed;
+              return {
+                ...ed,
+                targetAnchor: anchor,
+              };
+            }),
+          };
+        }),
+      );
+    },
+    [isViewOnly, activeTabId, recordHistory],
+  );
+
+  const handleSetEdgeSourceAnchor = useCallback(
+    (edgeId: string, anchor: 'auto' | 'top' | 'bottom' | 'left' | 'right'): void => {
+      if (isViewOnly) return;
+      recordHistory();
+      setTabs((prevTabs) =>
+        prevTabs.map((t) => {
+          if (t.id !== activeTabId) return t;
+          return {
+            ...t,
+            edges: t.edges.map((ed) => {
+              if (ed.id !== edgeId) return ed;
+              return {
+                ...ed,
+                sourceAnchor: anchor,
+              };
+            }),
+          };
+        }),
+      );
+    },
+    [isViewOnly, activeTabId, recordHistory],
+  );
+
+  const handleResetEdgeAnchors = useCallback(
+    (edgeId: string): void => {
+      if (isViewOnly) return;
+      recordHistory();
+      setTabs((prevTabs) =>
+        prevTabs.map((t) => {
+          if (t.id !== activeTabId) return t;
+          return {
+            ...t,
+            edges: t.edges.map((ed) => {
+              if (ed.id !== edgeId) return ed;
+              return {
+                ...ed,
+                sourceAnchor: 'auto',
+                targetAnchor: 'auto',
+                waypointOffset: { x: 0, y: 0 },
+              };
+            }),
+          };
+        }),
+      );
+    },
+    [isViewOnly, activeTabId, recordHistory],
+  );
+
+  const handleDeleteEdgeById = useCallback(
+    (edgeId: string): void => {
+      if (isViewOnly) return;
+      recordHistory();
+      setTabs((prevTabs) =>
+        prevTabs.map((t) => {
+          if (t.id !== activeTabId) return t;
+          return {
+            ...t,
+            edges: t.edges.filter((edge) => edge.id !== edgeId),
+          };
+        }),
+      );
+      if (selectedEdgeId === edgeId) {
+        setSelectedEdgeId('');
+      }
+      if (editEdgeModal.isOpen && editEdgeModal.edgeId === edgeId) {
+        setEditEdgeModal((prev) => ({ ...prev, isOpen: false }));
+      }
+    },
+    [isViewOnly, activeTabId, recordHistory, selectedEdgeId, editEdgeModal],
+  );
+
+  const handleFlipEdgeDirection = useCallback((): void => {
+    setEditEdgeModal((prev) => ({
+      ...prev,
+      sourceNodeId: prev.targetNodeId,
+      targetNodeId: prev.sourceNodeId,
+    }));
+  }, []);
+
+  const handleStartEdgeWaypointDrag = useCallback(
+    (event: React.MouseEvent, edgeId: string): void => {
+      if (isViewOnly) return;
+      event.preventDefault();
+      event.stopPropagation();
+
+      dragSnapshotRef.current = JSON.parse(JSON.stringify(tabs));
+      hasMovedDuringDrag.current = false;
+
+      setSelectedEdgeId(edgeId);
+      setSelectedNodeId('');
+
+      const activeEdges = activeTab.edges || [];
+      const currentEdge = activeEdges.find((e) => e.id === edgeId);
+      const initialOffset = currentEdge?.waypointOffset ?? { x: 0, y: 0 };
+
+      setEdgeWaypointDragState({
+        isDragging: true,
+        edgeId,
+        startPos: { x: event.clientX, y: event.clientY },
+        initialWaypointOffset: { ...initialOffset },
+      });
+    },
+    [isViewOnly, tabs, activeTab.edges],
+  );
+
+  const handleResetEdgeWaypoint = useCallback(
+    (edgeId: string): void => {
+      if (isViewOnly) return;
+      recordHistory();
+      setTabs((prevTabs) =>
+        prevTabs.map((t) => {
+          if (t.id !== activeTabId) return t;
+          return {
+            ...t,
+            edges: t.edges.map((ed) => {
+              if (ed.id !== edgeId) return ed;
+              const { waypointOffset, ...rest } = ed;
+              return rest;
+            }),
+          };
+        }),
+      );
+    },
+    [isViewOnly, activeTabId, recordHistory],
+  );
+
+  const handleStartEdgeEndpointDrag = useCallback(
+    (event: React.MouseEvent, edgeId: string, endpointType: 'source' | 'target'): void => {
+      if (isViewOnly) return;
+      event.preventDefault();
+      event.stopPropagation();
+
+      dragSnapshotRef.current = JSON.parse(JSON.stringify(tabs));
+      hasMovedDuringDrag.current = false;
+      setSelectedEdgeId(edgeId);
+      setSelectedNodeId('');
+
+      const clientX = event.clientX;
+      const clientY = event.clientY;
+      const rect = mainContainerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
+      const canvasX = (clientX - rect.left - transform.x) / transform.scale;
+      const canvasY = (clientY - rect.top - transform.y) / transform.scale;
+
+      const edge = activeTab.edges.find((e) => e.id === edgeId);
+      const initialNodeId = endpointType === 'target' ? edge?.targetNodeId : edge?.sourceNodeId;
+      const initialAnchor = endpointType === 'target' ? edge?.targetAnchor : edge?.sourceAnchor;
+      const sanitizedAnchor = initialAnchor && initialAnchor !== 'auto' ? initialAnchor : undefined;
+
+      setEdgeEndpointDragState({
+        isDragging: true,
+        edgeId,
+        endpointType,
+        currentPos: { x: canvasX, y: canvasY },
+        candidateNodeId: initialNodeId,
+        candidateAnchor: sanitizedAnchor,
+      });
+    },
+    [isViewOnly, tabs, activeTab.edges, transform],
+  );
+
+  // Keyboard shortcut listener for deleting selected Node or Edge
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      const activeEl = document.activeElement;
+      const isTyping =
+        activeEl instanceof HTMLInputElement ||
+        activeEl instanceof HTMLTextAreaElement ||
+        (activeEl && (activeEl as HTMLElement).isContentEditable);
+      if (isTyping) return;
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedEdgeId) {
+          e.preventDefault();
+          handleDeleteSelectedEdge();
+        } else if (selectedNodeId) {
+          e.preventDefault();
+          handleDeleteSelectedNode();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedEdgeId, selectedNodeId, handleDeleteSelectedEdge, handleDeleteSelectedNode]);
 
   // Fast Butter-Smooth Dragging
   const handleStartNodeDrag = useCallback(
@@ -1763,6 +2310,8 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
       event.preventDefault();
       event.stopPropagation();
+      dragSnapshotRef.current = tabsRef.current;
+      hasMovedDuringDrag.current = false;
       const targetNode = _findNodeById(nodes, nodeId);
       if (!targetNode) return;
 
@@ -1822,6 +2371,8 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       if (isViewOnly) return;
       event.preventDefault();
       event.stopPropagation();
+      dragSnapshotRef.current = tabsRef.current;
+      hasMovedDuringDrag.current = false;
       setPanningState({
         isPanning: false,
         panStart: { x: 0, y: 0 },
@@ -1843,7 +2394,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   );
 
   const handleStartConnection = useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>, nodeId: string): void => {
+    (event: React.MouseEvent, nodeId: string, sourceAnchor?: 'top' | 'bottom' | 'left' | 'right'): void => {
       if (isViewOnly) return;
       event.stopPropagation();
       const mouseX = (event.clientX - transform.x) / transform.scale;
@@ -1852,6 +2403,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       setConnectingState({
         isConnecting: true,
         sourceNodeId: nodeId,
+        sourceAnchor,
         currentMousePosition: { x: mouseX, y: mouseY },
       });
     },
@@ -1859,26 +2411,34 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   );
 
   const handleCompleteConnection = useCallback(
-    (targetNodeId: string): void => {
+    (targetNodeId: string, targetAnchor?: 'top' | 'bottom' | 'left' | 'right'): void => {
       if (!connectingState.isConnecting) return;
 
       const sourceId = connectingState.sourceNodeId;
       if (sourceId && sourceId !== targetNodeId) {
         const isDuplicate = edges.some(
-          (edge) => edge.sourceNodeId === sourceId && edge.targetNodeId === targetNodeId,
+          (edge) =>
+            edge.sourceNodeId === sourceId &&
+            edge.targetNodeId === targetNodeId &&
+            (edge.sourceAnchor || 'auto') === (connectingState.sourceAnchor || 'auto') &&
+            (edge.targetAnchor || 'auto') === (targetAnchor || 'auto'),
         );
 
         if (!isDuplicate) {
+          recordHistory();
           const newEdge: FlowEdge = {
             id: _generateUniqueId('edge'),
             sourceNodeId: sourceId,
             targetNodeId,
-            label: 'Alur Proses',
+            sourceAnchor: connectingState.sourceAnchor,
+            targetAnchor: targetAnchor || 'auto',
+            label: 'Lanjut',
           };
 
           setTabs((prev) =>
             prev.map((t) => (t.id === activeTabId ? { ...t, edges: [...t.edges, newEdge] } : t)),
           );
+          setSelectedEdgeId(newEdge.id);
         }
       }
 
@@ -1888,7 +2448,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         currentMousePosition: { x: 0, y: 0 },
       });
     },
-    [connectingState, edges, activeTabId],
+    [connectingState, edges, activeTabId, recordHistory],
   );
 
   const handleCanvasMouseDown = useCallback(
@@ -1899,7 +2459,8 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         resizingState.isResizing ||
         tableResizingState.isResizing ||
         groupDraggingState.isDragging ||
-        groupResizingState.isResizing
+        groupResizingState.isResizing ||
+        edgeWaypointDragState.isDragging
       ) {
         return;
       }
@@ -1945,6 +2506,17 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   );
 
   const handleCanvasMouseUp = useCallback((): void => {
+    if (hasMovedDuringDrag.current && dragSnapshotRef.current) {
+      const snap = dragSnapshotRef.current;
+      setHistoryPast((prev) => {
+        const next = [...prev, snap];
+        return next.length > 30 ? next.slice(next.length - 30) : next;
+      });
+      setHistoryFuture([]);
+    }
+    dragSnapshotRef.current = null;
+    hasMovedDuringDrag.current = false;
+
     if (draggingState.isDragging) {
       setDraggingState({
         isDragging: false,
@@ -2007,11 +2579,29 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       });
     }
 
+    if (edgeWaypointDragState.isDragging) {
+      setEdgeWaypointDragState({
+        isDragging: false,
+        edgeId: '',
+        startPos: { x: 0, y: 0 },
+        initialWaypointOffset: { x: 0, y: 0 },
+      });
+    }
+
     if (connectingState.isConnecting) {
       setConnectingState({
         isConnecting: false,
         sourceNodeId: '',
         currentMousePosition: { x: 0, y: 0 },
+      });
+    }
+
+    if (edgeEndpointDragState.isDragging) {
+      setEdgeEndpointDragState({
+        isDragging: false,
+        edgeId: '',
+        endpointType: 'target',
+        currentPos: { x: 0, y: 0 },
       });
     }
   }, [
@@ -2023,6 +2613,9 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     groupResizingState.isResizing,
     panningState.isPanning,
     connectingState.isConnecting,
+    edgeWaypointDragState.isDragging,
+    edgeEndpointDragState.isDragging,
+    recordHistory,
   ]);
 
   // Window-level mousemove & mouseup listeners for 100% rock-solid drag & drop without drops
@@ -2034,12 +2627,18 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       !tableResizingState.isResizing &&
       !laneResizingState.isResizing &&
       !groupDraggingState.isDragging &&
-      !groupResizingState.isResizing
+      !groupResizingState.isResizing &&
+      !edgeWaypointDragState.isDragging &&
+      !edgeEndpointDragState.isDragging &&
+      !connectingState.isConnecting
     ) {
       return;
     }
 
     const onWindowMouseMove = (event: MouseEvent): void => {
+      if (!panningState.isPanning) {
+        hasMovedDuringDrag.current = true;
+      }
       // 1. Table width resizing (Butter-smooth with rAF)
       if (tableResizingState.isResizing) {
         if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -2235,10 +2834,149 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
               : t,
           ),
         );
+      } else if (edgeWaypointDragState.isDragging && edgeWaypointDragState.edgeId) {
+        // 8. Edge waypoint / bend dragging (Butter-smooth with rAF)
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        const clientX = event.clientX;
+        const clientY = event.clientY;
+
+        rafRef.current = requestAnimationFrame(() => {
+          const deltaX = (clientX - edgeWaypointDragState.startPos.x) / transform.scale;
+          const deltaY = (clientY - edgeWaypointDragState.startPos.y) / transform.scale;
+          const updatedX = Math.round(edgeWaypointDragState.initialWaypointOffset.x + deltaX);
+          const updatedY = Math.round(edgeWaypointDragState.initialWaypointOffset.y + deltaY);
+
+          setTabs((prevTabs) =>
+            prevTabs.map((t) => {
+              if (t.id !== activeTabId) return t;
+              return {
+                ...t,
+                edges: t.edges.map((ed) =>
+                  ed.id === edgeWaypointDragState.edgeId
+                    ? { ...ed, waypointOffset: { x: updatedX, y: updatedY } }
+                    : ed,
+                ),
+              };
+            }),
+          );
+        });
+      } else if (edgeEndpointDragState.isDragging && edgeEndpointDragState.edgeId) {
+        // 9. Edge endpoint dragging (drag the circular handle at arrowhead or origin)
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        const clientX = event.clientX;
+        const clientY = event.clientY;
+
+        rafRef.current = requestAnimationFrame(() => {
+          const rect = mainContainerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
+          const canvasX = (clientX - rect.left - transform.x) / transform.scale;
+          const canvasY = (clientY - rect.top - transform.y) / transform.scale;
+
+          let bestNodeId: string | undefined;
+          let bestAnchor: 'top' | 'bottom' | 'left' | 'right' | undefined;
+          let bestDist = Infinity;
+
+          activeTab.nodes.forEach((n) => {
+            const dims = _getNodeDimensions(n);
+            const ports: { anchor: 'top' | 'bottom' | 'left' | 'right'; x: number; y: number }[] = [
+              { anchor: 'top', x: n.position.x + dims.width / 2, y: n.position.y },
+              { anchor: 'bottom', x: n.position.x + dims.width / 2, y: n.position.y + dims.height },
+              { anchor: 'left', x: n.position.x, y: n.position.y + dims.height / 2 },
+              { anchor: 'right', x: n.position.x + dims.width, y: n.position.y + dims.height / 2 },
+            ];
+
+            ports.forEach((p) => {
+              const d = Math.hypot(canvasX - p.x, canvasY - p.y);
+              if (d < bestDist) {
+                bestDist = d;
+                bestNodeId = n.id;
+                bestAnchor = p.anchor;
+              }
+            });
+          });
+
+          // Magnetic snapping threshold (within 140px)
+          const snappedNodeId = bestDist < 140 ? bestNodeId : undefined;
+          const snappedAnchor = bestDist < 140 ? bestAnchor : undefined;
+
+          setEdgeEndpointDragState((prev) => ({
+            ...prev,
+            currentPos: { x: canvasX, y: canvasY },
+            candidateNodeId: snappedNodeId,
+            candidateAnchor: snappedAnchor,
+          }));
+
+          if (snappedNodeId && snappedAnchor) {
+            setTabs((prevTabs) =>
+              prevTabs.map((t) => {
+                if (t.id !== activeTabId) return t;
+                return {
+                  ...t,
+                  edges: t.edges.map((ed) => {
+                    if (ed.id !== edgeEndpointDragState.edgeId) return ed;
+                    if (edgeEndpointDragState.endpointType === 'target') {
+                      return {
+                        ...ed,
+                        targetNodeId: snappedNodeId,
+                        targetAnchor: snappedAnchor,
+                      };
+                    } else {
+                      return {
+                        ...ed,
+                        sourceNodeId: snappedNodeId,
+                        sourceAnchor: snappedAnchor,
+                      };
+                    }
+                  }),
+                };
+              }),
+            );
+          }
+        });
+      } else if (connectingState.isConnecting && connectingState.sourceNodeId) {
+        // 10. Direct Drag-to-Connect from node handle or plus button
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        const clientX = event.clientX;
+        const clientY = event.clientY;
+        rafRef.current = requestAnimationFrame(() => {
+          const rect = mainContainerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
+          const mouseX = (clientX - rect.left - transform.x) / transform.scale;
+          const mouseY = (clientY - rect.top - transform.y) / transform.scale;
+
+          let candidateId: string | undefined;
+          activeTab.nodes.forEach((n) => {
+            if (n.id === connectingState.sourceNodeId) return;
+            const dims = _getNodeDimensions(n);
+            const inside =
+              mouseX >= n.position.x - 20 &&
+              mouseX <= n.position.x + dims.width + 20 &&
+              mouseY >= n.position.y - 20 &&
+              mouseY <= n.position.y + dims.height + 20;
+            if (inside) {
+              candidateId = n.id;
+            }
+          });
+
+          setConnectingState((prev) => ({
+            ...prev,
+            currentMousePosition: { x: mouseX, y: mouseY },
+            candidateTargetNodeId: candidateId,
+          }));
+        });
       }
     };
 
     const onWindowMouseUp = (): void => {
+      if (connectingState.isConnecting) {
+        if (connectingState.candidateTargetNodeId) {
+          handleCompleteConnection(connectingState.candidateTargetNodeId);
+        } else {
+          setConnectingState({
+            isConnecting: false,
+            sourceNodeId: '',
+            currentMousePosition: { x: 0, y: 0 },
+          });
+        }
+      }
       handleCanvasMouseUp();
     };
 
@@ -2255,9 +2993,14 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     tableResizingState,
     laneResizingState,
     panningState,
+    edgeWaypointDragState,
+    edgeEndpointDragState,
+    connectingState,
+    activeTab.nodes,
     transform,
     activeTabId,
     handleCanvasMouseUp,
+    handleCompleteConnection,
   ]);
 
   // Zoom controls
@@ -2464,13 +3207,15 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   );
 
   const handleLoadTemplate = useCallback((): void => {
+    recordHistory();
     const freshTab = createInitialProject(activeTab.type, activeTab.title);
     setTabs((prev) => prev.map((t) => (t.id === activeTabId ? freshTab : t)));
     setSelectedNodeId('start_node');
     setSelectedEdgeId('');
-  }, [activeTab.type, activeTab.title, activeTabId]);
+  }, [activeTab.type, activeTab.title, activeTabId, recordHistory]);
 
   const handleClearCanvas = useCallback((): void => {
+    recordHistory();
     setTabs((prev) =>
       prev.map((t) =>
         t.id === activeTabId ? { ...t, nodes: [], edges: [], showGhostSkeleton: false } : t,
@@ -2478,10 +3223,11 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     );
     setSelectedNodeId('');
     setSelectedEdgeId('');
-  }, [activeTabId]);
+  }, [activeTabId, recordHistory]);
 
   const handleAddSwimlane = useCallback(
     (name: string, color = '#6366f1'): void => {
+      recordHistory();
       setTabs((prev) =>
         prev.map((t) => {
           if (t.id !== activeTabId) return t;
@@ -2496,11 +3242,12 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         }),
       );
     },
-    [activeTabId],
+    [activeTabId, recordHistory],
   );
 
   const handleUpdateSwimlaneName = useCallback(
     (laneId: string, name: string): void => {
+      recordHistory();
       setTabs((prev) =>
         prev.map((t) => {
           if (t.id !== activeTabId) return t;
@@ -2511,11 +3258,12 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         }),
       );
     },
-    [activeTabId],
+    [activeTabId, recordHistory],
   );
 
   const handleDeleteSwimlane = useCallback(
     (laneId: string): void => {
+      recordHistory();
       setTabs((prev) =>
         prev.map((t) => {
           if (t.id !== activeTabId) return t;
@@ -2526,7 +3274,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         }),
       );
     },
-    [activeTabId],
+    [activeTabId, recordHistory],
   );
 
   const handleToggleHelpModal = useCallback((): void => {
@@ -2627,24 +3375,65 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   // Jira / Kanban Handlers
   const handleOpenCreateKanbanTask = useCallback(
     (defaultStatus: KanbanTaskStatus = 'todo', defaultSourceNodeId?: string): void => {
-      const firstFlowTab = tabs.find((t) => t.type !== 'kanban');
-      const defaultTabId = firstFlowTab?.id || '';
+      // 1. Identify which workflow tab this task connects to
+      let targetTab = defaultSourceNodeId
+        ? tabs.find((t) => t.type !== 'kanban' && t.nodes?.some((n) => n.id === defaultSourceNodeId))
+        : undefined;
+
+      if (!targetTab) {
+        targetTab = tabs.find((t) => t.id === activeTabId && t.type !== 'kanban');
+      }
+
+      if (!targetTab) {
+        targetTab = tabs.find((t) => t.type !== 'kanban');
+      }
+
+      const defaultTabId = targetTab?.id || '';
+
+      // 2. Locate node details for auto-filling
+      const sourceNode = defaultSourceNodeId
+        ? targetTab?.nodes?.find((n) => n.id === defaultSourceNodeId)
+        : undefined;
+
+      // 3. Find outgoing edge and target node if any
+      const outgoingEdge = defaultSourceNodeId
+        ? targetTab?.edges?.find((e) => e.sourceNodeId === defaultSourceNodeId)
+        : undefined;
+      const targetNode = outgoingEdge
+        ? targetTab?.nodes?.find((n) => n.id === outgoingEdge.targetNodeId)
+        : undefined;
+
+      // 4. Auto-fill title, description, tags, and story points from node
+      const autoTitle = sourceNode ? sourceNode.label : '';
+      const autoDescription = sourceNode?.description || '';
+      const autoTags = sourceNode?.moduleCategory || '';
+      const autoIssueType = sourceNode?.type === 'decision' ? 'story' : 'task';
+      const autoDuration = sourceNode?.type === 'decision' ? '3 Hari' : '2 Hari';
+      const autoStoryPoints = sourceNode?.type === 'decision' ? '5' : '3';
 
       setKanbanTaskModal({
         isOpen: true,
         taskId: '',
-        title: '',
-        description: '',
+        title: autoTitle,
+        description: autoDescription,
         status: defaultStatus,
-        priority: 'medium',
+        priority: sourceNode?.type === 'decision' ? 'high' : 'medium',
+        issueType: autoIssueType,
+        sprint: kanbanSprintFilter !== 'all' ? kanbanSprintFilter : 'Sprint 1',
+        duration: autoDuration,
+        storyPoints: autoStoryPoints,
+        startDate: new Date().toISOString().split('T')[0],
+        dueDate: '',
+        acceptanceCriteria: '',
         assignee: 'Budi Santoso',
+        tags: autoTags,
         linkedWorkflowTabId: defaultTabId,
         linkedSourceNodeId: defaultSourceNodeId || '',
-        linkedTargetNodeId: '',
-        linkedEdgeLabel: '',
+        linkedTargetNodeId: targetNode ? targetNode.id : '',
+        linkedEdgeLabel: outgoingEdge?.label || '',
       });
     },
-    [tabs],
+    [tabs, activeTabId, kanbanSprintFilter],
   );
 
   const handleOpenEditKanbanTask = useCallback(
@@ -2660,7 +3449,15 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         description: task.description,
         status: task.status,
         priority: task.priority,
+        issueType: task.issueType || 'task',
+        sprint: task.sprint || 'Sprint 1',
+        duration: task.duration || '',
+        storyPoints: task.storyPoints != null ? String(task.storyPoints) : '',
+        startDate: task.startDate || '',
+        dueDate: task.dueDate || '',
+        acceptanceCriteria: task.acceptanceCriteria || '',
         assignee: task.assignee || '',
+        tags: (task.tags || []).join(', '),
         linkedWorkflowTabId: task.linkedWorkflowTabId || tabs.find((t) => t.type !== 'kanban')?.id || '',
         linkedSourceNodeId: task.linkedSourceNodeId || '',
         linkedTargetNodeId: task.linkedTargetNodeId || '',
@@ -2686,6 +3483,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       if (e) e.preventDefault();
       if (!kanbanTaskModal.title.trim()) return;
 
+      recordHistory();
       const linkedTab = tabs.find((t) => t.id === kanbanTaskModal.linkedWorkflowTabId);
       const sourceNode = linkedTab?.nodes.find((n) => n.id === kanbanTaskModal.linkedSourceNodeId);
       const targetNode = linkedTab?.nodes.find((n) => n.id === kanbanTaskModal.linkedTargetNodeId);
@@ -2697,6 +3495,19 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         );
         if (matchingEdge) edgeLabel = matchingEdge.label;
       }
+
+      const parsedTags = kanbanTaskModal.tags.trim()
+        ? kanbanTaskModal.tags
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean)
+        : undefined;
+
+      const parsedStoryPoints = kanbanTaskModal.storyPoints.trim()
+        ? !isNaN(Number(kanbanTaskModal.storyPoints))
+          ? Number(kanbanTaskModal.storyPoints)
+          : kanbanTaskModal.storyPoints.trim()
+        : undefined;
 
       setTabs((prevTabs) =>
         prevTabs.map((tab) => {
@@ -2712,7 +3523,15 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
                 description: kanbanTaskModal.description.trim(),
                 status: kanbanTaskModal.status,
                 priority: kanbanTaskModal.priority,
+                issueType: kanbanTaskModal.issueType,
+                sprint: kanbanTaskModal.sprint.trim() || undefined,
+                duration: kanbanTaskModal.duration.trim() || undefined,
+                storyPoints: parsedStoryPoints,
+                startDate: kanbanTaskModal.startDate.trim() || undefined,
+                dueDate: kanbanTaskModal.dueDate.trim() || undefined,
+                acceptanceCriteria: kanbanTaskModal.acceptanceCriteria.trim() || undefined,
                 assignee: kanbanTaskModal.assignee.trim(),
+                tags: parsedTags,
                 linkedWorkflowTabId: linkedTab?.id,
                 linkedWorkflowTabTitle: linkedTab?.title,
                 linkedSourceNodeId: sourceNode?.id,
@@ -2733,7 +3552,15 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
               description: kanbanTaskModal.description.trim(),
               status: kanbanTaskModal.status,
               priority: kanbanTaskModal.priority,
+              issueType: kanbanTaskModal.issueType,
+              sprint: kanbanTaskModal.sprint.trim() || undefined,
+              duration: kanbanTaskModal.duration.trim() || undefined,
+              storyPoints: parsedStoryPoints,
+              startDate: kanbanTaskModal.startDate.trim() || undefined,
+              dueDate: kanbanTaskModal.dueDate.trim() || undefined,
+              acceptanceCriteria: kanbanTaskModal.acceptanceCriteria.trim() || undefined,
               assignee: kanbanTaskModal.assignee.trim(),
+              tags: parsedTags,
               linkedWorkflowTabId: linkedTab?.id,
               linkedWorkflowTabTitle: linkedTab?.title,
               linkedSourceNodeId: sourceNode?.id,
@@ -2750,11 +3577,12 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
       setKanbanTaskModal((prev) => ({ ...prev, isOpen: false }));
     },
-    [kanbanTaskModal, tabs, activeTabId],
+    [kanbanTaskModal, tabs, activeTabId, recordHistory],
   );
 
   const handleDeleteKanbanTask = useCallback(
     (taskId: string): void => {
+      recordHistory();
       setTabs((prevTabs) =>
         prevTabs.map((tab) => {
           if (tab.id !== activeTabId) return tab;
@@ -2765,11 +3593,12 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         }),
       );
     },
-    [activeTabId],
+    [activeTabId, recordHistory],
   );
 
   const handleMoveKanbanTaskStatus = useCallback(
     (taskId: string, newStatus: KanbanTaskStatus): void => {
+      recordHistory();
       setTabs((prevTabs) =>
         prevTabs.map((tab) => {
           if (tab.id !== activeTabId) return tab;
@@ -2782,7 +3611,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         }),
       );
     },
-    [activeTabId],
+    [activeTabId, recordHistory],
   );
 
   const handleJumpToLinkedWorkflow = useCallback(
@@ -2794,6 +3623,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       if (!foundTab) return;
 
       setActiveTabId(foundTab.id);
+      setProjectSubView('flowchart');
 
       if (nodeId) {
         setSelectedNodeId(nodeId);
@@ -2925,6 +3755,9 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     handleFolderInputChange,
     isViewOnly,
     handleToggleViewOnly,
+    projectSubView,
+    handleSetProjectSubView,
+    handleGenerateTasksFromNodes,
     shareModal,
     handleOpenShareModal,
     handleCloseShareModal,
@@ -2943,9 +3776,11 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     kanbanTaskModal,
     kanbanSearchQuery,
     kanbanPriorityFilter,
+    kanbanSprintFilter,
     kanbanLinkFilter,
     onSetKanbanSearchQuery: setKanbanSearchQuery,
     onSetKanbanPriorityFilter: setKanbanPriorityFilter,
+    onSetKanbanSprintFilter: setKanbanSprintFilter,
     onSetKanbanLinkFilter: setKanbanLinkFilter,
     onOpenCreateKanbanTask: handleOpenCreateKanbanTask,
     onOpenEditKanbanTask: handleOpenEditKanbanTask,
@@ -2955,5 +3790,28 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     onDeleteKanbanTask: handleDeleteKanbanTask,
     onMoveKanbanTaskStatus: handleMoveKanbanTaskStatus,
     onJumpToLinkedWorkflow: handleJumpToLinkedWorkflow,
+    canUndo,
+    canRedo,
+    handleUndo,
+    handleRedo,
+    connectorStyle,
+    handleSetConnectorStyle,
+    handleSelectEdge,
+    handleDeleteEdgeById,
+    editEdgeModal,
+    handleOpenEditEdgeModal,
+    handleCloseEditEdgeModal,
+    handleUpdateEditEdgeField,
+    handleSaveEditEdge,
+    handleFlipEdgeDirection,
+    handleStartEdgeWaypointDrag,
+    handleResetEdgeWaypoint,
+    handleSetEdgeTargetAnchor,
+    handleSetEdgeSourceAnchor,
+    edgeEndpointDragState,
+    handleStartEdgeEndpointDrag,
+    handleUpdateEdgeLabel,
+    handleUpdateEdgeColor,
+    handleResetEdgeAnchors,
   };
 };

@@ -20,7 +20,7 @@ import {
   Trash2,
   GripHorizontal,
 } from 'lucide-react';
-import type { FlowNode, FlowEdge, Position, FlowProjectTab, SwimlaneLane } from './ErpFlowGen.type';
+import type { FlowNode, FlowEdge, Position, FlowProjectTab, SwimlaneLane, EdgeEndpointDragState } from './ErpFlowGen.type';
 import type { GhostSkeletonTemplate } from './ErpFlowGen.config';
 import { _calculateEdgePath, _getNodeDimensions } from './ErpFlowGen.utils';
 
@@ -92,21 +92,51 @@ export const _renderCategoryBadge = (category: string): React.ReactElement => {
 export const _renderConnectingPath = (
   sourceNode: FlowNode,
   currentMouse: Position,
+  sourceAnchor?: 'top' | 'bottom' | 'left' | 'right',
 ): React.ReactElement => {
   const dims = _getNodeDimensions(sourceNode);
-  const startX = sourceNode.position.x + dims.width;
-  const startY = sourceNode.position.y + dims.height / 2;
+  const ports = {
+    top: { x: sourceNode.position.x + dims.width / 2, y: sourceNode.position.y },
+    bottom: { x: sourceNode.position.x + dims.width / 2, y: sourceNode.position.y + dims.height },
+    left: { x: sourceNode.position.x, y: sourceNode.position.y + dims.height / 2 },
+    right: { x: sourceNode.position.x + dims.width, y: sourceNode.position.y + dims.height / 2 },
+  };
+
+  let startX: number;
+  let startY: number;
+
+  if (sourceAnchor && ports[sourceAnchor]) {
+    startX = ports[sourceAnchor].x;
+    startY = ports[sourceAnchor].y;
+  } else {
+    let bestDist = Infinity;
+    startX = ports.bottom.x;
+    startY = ports.bottom.y;
+    Object.values(ports).forEach((p) => {
+      const d = Math.hypot(p.x - currentMouse.x, p.y - currentMouse.y);
+      if (d < bestDist) {
+        bestDist = d;
+        startX = p.x;
+        startY = p.y;
+      }
+    });
+  }
+
   const pathD = `M ${startX} ${startY} L ${currentMouse.x} ${currentMouse.y}`;
 
   return (
-    <path
-      d={pathD}
-      stroke="#6366f1"
-      strokeWidth={2.5}
-      strokeDasharray="5 5"
-      fill="none"
-      className="animate-pulse"
-    />
+    <g className="pointer-events-none">
+      <path
+        d={pathD}
+        stroke="#4f46e5"
+        strokeWidth={3}
+        strokeDasharray="6 4"
+        fill="none"
+        markerEnd="url(#erp-arrow-marker)"
+      />
+      <circle cx={startX} cy={startY} r={5} fill="#4f46e5" />
+      <circle cx={currentMouse.x} cy={currentMouse.y} r={5} fill="#4f46e5" />
+    </g>
   );
 };
 
@@ -121,6 +151,16 @@ export const _renderEdgeCurve = (
   edge: FlowEdge,
   nodes: FlowNode[],
   isSelected: boolean,
+  onSelectEdge?: (edgeId: string) => void,
+  _onOpenEditEdge?: (edgeId: string) => void,
+  _onDeleteEdge?: (edgeId: string) => void,
+  connectorStyle: 'orthogonal' | 'curved' | 'straight' = 'orthogonal',
+  onStartEdgeWaypointDrag?: (e: React.MouseEvent, edgeId: string) => void,
+  onResetEdgeWaypoint?: (edgeId: string) => void,
+  _onSetEdgeTargetAnchor?: (edgeId: string, anchor: 'auto' | 'top' | 'bottom' | 'left' | 'right') => void,
+  onStartEdgeEndpointDrag?: (e: React.MouseEvent, edgeId: string, endpointType: 'source' | 'target') => void,
+  _edgeEndpointDragState?: EdgeEndpointDragState,
+  onUpdateEdgeLabel?: (edgeId: string, label: string) => void,
 ): React.ReactElement | null => {
   const sourceNode = nodes.find((node) => node.id === edge.sourceNodeId);
   const targetNode = nodes.find((node) => node.id === edge.targetNodeId);
@@ -129,7 +169,14 @@ export const _renderEdgeCurve = (
     return null;
   }
 
-  const geometry = _calculateEdgePath(sourceNode, targetNode);
+  const geometry = _calculateEdgePath(
+    sourceNode,
+    targetNode,
+    connectorStyle,
+    edge.waypointOffset,
+    edge.sourceAnchor,
+    edge.targetAnchor,
+  );
   const labelLower = edge.label.toLowerCase();
   const isBranchYes =
     labelLower.includes('yes') ||
@@ -155,71 +202,303 @@ export const _renderEdgeCurve = (
 
   const strokeColor = isSelected
     ? '#4f46e5'
+    : edge.color
+    ? edge.color
     : isBranchYes
     ? '#10b981'
     : isBranchNo
     ? '#f43f5e'
     : '#64748b';
 
-  const markerId = isSelected
-    ? 'url(#erp-arrow-marker)'
+  const markerColor = isSelected
+    ? '#4f46e5'
+    : edge.color
+    ? edge.color
     : isBranchYes
-    ? 'url(#erp-arrow-marker-emerald)'
+    ? '#10b981'
     : isBranchNo
-    ? 'url(#erp-arrow-marker-rose)'
-    : 'url(#erp-arrow-marker)';
+    ? '#f43f5e'
+    : '#64748b';
 
-  const displayLabel = isBranchYes && !edge.label.startsWith('✓')
-    ? `✓ ${edge.label}`
-    : isBranchNo && !edge.label.startsWith('✕')
-    ? `✕ ${edge.label}`
-    : edge.label;
+  const getMarkerId = (color: string) => {
+    switch (color) {
+      case '#4f46e5':
+        return 'url(#erp-arrow-marker-indigo)';
+      case '#10b981':
+        return 'url(#erp-arrow-marker-emerald)';
+      case '#f43f5e':
+        return 'url(#erp-arrow-marker-rose)';
+      case '#f59e0b':
+        return 'url(#erp-arrow-marker-amber)';
+      case '#8b5cf6':
+        return 'url(#erp-arrow-marker-purple)';
+      default:
+        return 'url(#erp-arrow-marker)';
+    }
+  };
+  const markerId = getMarkerId(markerColor);
+
+  const hasCustomWaypoint = Boolean(
+    edge.waypointOffset && (edge.waypointOffset.x !== 0 || edge.waypointOffset.y !== 0),
+  );
 
   return (
-    <g key={edge.id} className="cursor-pointer group">
-      {/* Background thicker hover path */}
+    <g
+      key={edge.id}
+      className="cursor-pointer group pointer-events-auto"
+      style={{ pointerEvents: 'all' }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelectEdge?.(edge.id);
+      }}
+    >
+      {/* Background thicker hover path for easy clicking & dragging */}
       <path
         d={geometry.pathD}
         fill="none"
         stroke="transparent"
-        strokeWidth={22}
+        strokeWidth={36}
+        className={`pointer-events-auto ${isSelected ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
+        style={{ pointerEvents: 'stroke' }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelectEdge?.(edge.id);
+        }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          onStartEdgeWaypointDrag?.(e, edge.id);
+        }}
       />
+
+      {/* Selection outer glow */}
+      {isSelected && (
+        <path
+          d={geometry.pathD}
+          fill="none"
+          stroke="#6366f1"
+          strokeWidth={8}
+          opacity={0.3}
+          className="pointer-events-none"
+        />
+      )}
+
       {/* Visual visible path */}
       <path
         d={geometry.pathD}
         fill="none"
         stroke={strokeColor}
-        strokeWidth={isSelected ? 3 : 2}
+        strokeWidth={isSelected ? 3.5 : 2}
         markerEnd={markerId}
         className="transition-colors group-hover:stroke-indigo-600"
       />
-      {/* Edge label pill */}
-      {edge.label ? (
-        <g transform={`translate(${geometry.midX}, ${geometry.midY})`}>
-          <rect
-            x={-displayLabel.length * 3.7 - 12}
-            y={-11}
-            width={displayLabel.length * 7.4 + 24}
-            height={22}
-            rx={11}
-            fill={isBranchYes ? '#f0fdf4' : isBranchNo ? '#fff1f2' : '#ffffff'}
-            stroke={strokeColor}
-            strokeWidth={1.5}
-            className="filter drop-shadow-sm"
+
+      {/* Interactive Arrowhead Endpoint Drag Handle ("Buletin di ujung garis untuk pindahin") */}
+      {geometry.endX !== undefined && geometry.endY !== undefined && (
+        <g
+          className="cursor-grab active:cursor-grabbing group/target-handle pointer-events-auto"
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            onStartEdgeEndpointDrag?.(e, edge.id, 'target');
+          }}
+        >
+          <title>Tarik titik bulat ini untuk memindahkan ujung panah ke sisi atau kotak lain</title>
+          {/* Large hit area for easy grabbing */}
+          <circle
+            cx={geometry.endX}
+            cy={geometry.endY}
+            r={24}
+            fill="transparent"
+            className="cursor-grab active:cursor-grabbing pointer-events-auto"
           />
-          <text
-            x={0}
-            y={4}
-            textAnchor="middle"
-            fontSize="10"
-            fontWeight="700"
-            fill={isBranchYes ? '#047857' : isBranchNo ? '#be123c' : '#334155'}
-            className="select-none pointer-events-none tracking-tight font-sans"
-          >
-            {displayLabel}
-          </text>
+          {/* Subtle outer glow ring */}
+          <circle
+            cx={geometry.endX}
+            cy={geometry.endY}
+            r={isSelected ? 13 : 9}
+            fill="#4f46e5"
+            className={`transition-all duration-150 pointer-events-none ${
+              isSelected ? 'opacity-35 scale-100' : 'opacity-0 group-hover:opacity-25'
+            }`}
+          />
+          {/* Circular handle ("buletin") */}
+          <circle
+            cx={geometry.endX}
+            cy={geometry.endY}
+            r={isSelected ? 7.5 : 5.5}
+            fill="#ffffff"
+            stroke="#4f46e5"
+            strokeWidth={2.5}
+            className={`transition-all duration-150 filter drop-shadow-md pointer-events-none ${
+              isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-90'
+            }`}
+          />
+          {/* Center bullet dot */}
+          <circle
+            cx={geometry.endX}
+            cy={geometry.endY}
+            r={3}
+            fill="#4f46e5"
+            className={`transition-opacity duration-150 pointer-events-none ${
+              isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'
+            }`}
+          />
         </g>
-      ) : null}
+      )}
+
+      {/* Interactive Source Origin Drag Handle ("Buletin di pangkal garis untuk pindahin") */}
+      {geometry.startX !== undefined && geometry.startY !== undefined && (
+        <g
+          className="cursor-grab active:cursor-grabbing group/source-handle pointer-events-auto"
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            onStartEdgeEndpointDrag?.(e, edge.id, 'source');
+          }}
+        >
+          <title>Tarik titik bulat ini untuk memindahkan pangkal garis ke sisi atau kotak lain</title>
+          {/* Large hit area */}
+          <circle
+            cx={geometry.startX}
+            cy={geometry.startY}
+            r={24}
+            fill="transparent"
+            className="cursor-grab active:cursor-grabbing pointer-events-auto"
+          />
+          {/* Subtle outer glow ring */}
+          <circle
+            cx={geometry.startX}
+            cy={geometry.startY}
+            r={isSelected ? 13 : 9}
+            fill="#6366f1"
+            className={`transition-all duration-150 pointer-events-none ${
+              isSelected ? 'opacity-35 scale-100' : 'opacity-0 group-hover:opacity-25'
+            }`}
+          />
+          {/* Circular handle ("buletin") */}
+          <circle
+            cx={geometry.startX}
+            cy={geometry.startY}
+            r={isSelected ? 7.5 : 5.5}
+            fill="#ffffff"
+            stroke="#6366f1"
+            strokeWidth={2.5}
+            className={`transition-all duration-150 filter drop-shadow-md pointer-events-none ${
+              isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-90'
+            }`}
+          />
+          {/* Center bullet dot */}
+          <circle
+            cx={geometry.startX}
+            cy={geometry.startY}
+            r={3}
+            fill="#6366f1"
+            className={`transition-opacity duration-150 pointer-events-none ${
+              isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'
+            }`}
+          />
+        </g>
+      )}
+
+      {/* Interactive Waypoint Drag Handle on the bend/midpoint */}
+      <g
+        className="cursor-grab active:cursor-grabbing"
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          onStartEdgeWaypointDrag?.(e, edge.id);
+        }}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          onResetEdgeWaypoint?.(edge.id);
+        }}
+      >
+        {/* Invisible wider hit target */}
+        <circle
+          cx={geometry.midX}
+          cy={geometry.midY}
+          r={18}
+          fill="transparent"
+        />
+
+        {/* Outer subtle glow */}
+        <circle
+          cx={geometry.midX}
+          cy={geometry.midY}
+          r={isSelected ? 10 : 8}
+          fill={isSelected ? '#6366f1' : '#3b82f6'}
+          className={`transition-opacity duration-150 ${
+            isSelected || hasCustomWaypoint ? 'opacity-35' : 'opacity-0 group-hover:opacity-30'
+          }`}
+        />
+
+        {/* Drag handle diamond */}
+        <rect
+          x={geometry.midX - (isSelected ? 5 : 4)}
+          y={geometry.midY - (isSelected ? 5 : 4)}
+          width={isSelected ? 10 : 8}
+          height={isSelected ? 10 : 8}
+          rx={2}
+          transform={`rotate(45, ${geometry.midX}, ${geometry.midY})`}
+          fill={hasCustomWaypoint ? '#4f46e5' : '#ffffff'}
+          stroke={isSelected ? '#4338ca' : '#64748b'}
+          strokeWidth={1.5}
+          className={`filter drop-shadow-md transition-opacity duration-150 ${
+            isSelected || hasCustomWaypoint ? 'opacity-100' : 'opacity-40 group-hover:opacity-90'
+          }`}
+        />
+      </g>
+
+      {/* Edge label pill - Direct Inline Editable (Like Group Frame Title) */}
+      {(Boolean(edge.label) || isSelected) && (
+        <foreignObject
+          x={geometry.midX - 90}
+          y={geometry.midY - 15}
+          width={180}
+          height={30}
+          className="overflow-visible pointer-events-auto"
+        >
+          <div className="flex items-center justify-center w-full h-full">
+            <div
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border shadow-xs transition-all select-none ${
+                edge.color === '#10b981' || (!edge.color && isBranchYes)
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                  : edge.color === '#f43f5e' || (!edge.color && isBranchNo)
+                  ? 'bg-rose-50 border-rose-300 text-rose-800'
+                  : edge.color === '#f59e0b'
+                  ? 'bg-amber-50 border-amber-300 text-amber-800'
+                  : edge.color === '#8b5cf6'
+                  ? 'bg-purple-50 border-purple-300 text-purple-800'
+                  : edge.color === '#4f46e5'
+                  ? 'bg-indigo-50 border-indigo-300 text-indigo-800'
+                  : 'bg-white border-slate-300 text-slate-800 hover:border-slate-400'
+              } ${isSelected ? 'ring-2 ring-indigo-400 border-indigo-500 shadow-md' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectEdge?.(edge.id);
+              }}
+            >
+              {isBranchYes ? (
+                <span className="text-xs font-bold text-emerald-600 select-none shrink-0">✓</span>
+              ) : isBranchNo ? (
+                <span className="text-xs font-bold text-rose-600 select-none shrink-0">✕</span>
+              ) : null}
+
+              <input
+                type="text"
+                value={edge.label}
+                onChange={(e) => onUpdateEdgeLabel?.(edge.id, e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectEdge?.(edge.id);
+                }}
+                placeholder="Tulis label..."
+                className="bg-transparent border-none outline-none text-xs font-bold text-center transition-all cursor-text placeholder:text-slate-400 placeholder:font-normal placeholder:text-[10px]"
+                title="Klik untuk langsung ubah teks label garis ini"
+                style={{ width: `${Math.max(48, Math.min(130, (edge.label ? edge.label.length * 8 + 8 : 64)))}px` }}
+              />
+            </div>
+          </div>
+        </foreignObject>
+      )}
     </g>
   );
 };
