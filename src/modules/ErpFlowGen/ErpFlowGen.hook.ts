@@ -29,7 +29,9 @@ import type {
   SwimlaneLane,
   EditEdgeModalData,
   EdgeEndpointDragState,
+  MultiplayerState,
 } from './ErpFlowGen.type';
+import { _getLocalPeerIdentity } from './ErpFlowGen.multiplayer';
 import { SCREEN_MOCKUP_PRESETS } from './ErpFlowGen.mockups';
 import {
   DEFAULT_AI_CONFIG,
@@ -250,6 +252,12 @@ export type UseErpFlowGenReturn = {
   handleUpdateEdgeLabel: (edgeId: string, label: string) => void;
   handleUpdateEdgeColor: (edgeId: string, color: string) => void;
   handleResetEdgeAnchors: (edgeId: string) => void;
+  multiplayerState: MultiplayerState;
+  onToggleMultiplayer: (enabled?: boolean) => void;
+  onSetRoomId: (roomId: string) => void;
+  onUpdateCurrentUserName: (name: string) => void;
+  onStartFollowPeer: (peerId: string) => void;
+  onStopFollowPeer: () => void;
 };
 
 /**
@@ -263,6 +271,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   const [activeTabId, setActiveTabId] = useState<string>(() =>
     _loadPersistedActiveTabId(tabs[0]?.id || ''),
   );
+  const isReceivingRemoteSyncRef = useRef<boolean>(false);
 
   useEffect(() => {
     const now = Date.now();
@@ -273,14 +282,39 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       console.warn('Failed writing tabs to localStorage:', err);
     }
 
-    // Debounced sync to WTF gateway or dev server
+    // Debounced sync to WTF gateway and live multiplayer peers
     const timer = setTimeout(() => {
       fetch('/api/diagram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tabs, updatedAt: now, clientId: BROWSER_CLIENT_ID }),
       }).catch(() => {});
-    }, 800);
+
+      // Broadcast document update to remote multiplayer peers (unless we just received it from a remote peer)
+      if (isReceivingRemoteSyncRef.current) {
+        isReceivingRemoteSyncRef.current = false;
+        return;
+      }
+
+      if (multiplayerStateRef.current?.isEnabled) {
+        const docMsg = {
+          type: 'DOCUMENT_UPDATE',
+          peerId: multiplayerStateRef.current.currentUser.peerId,
+          tabs,
+          updatedAt: now,
+        };
+        try {
+          broadcastChannelRef.current?.postMessage(docMsg);
+        } catch (_) {}
+        try {
+          fetch('/api/multiplayer/message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(docMsg),
+          }).catch(() => {});
+        } catch (_) {}
+      }
+    }, 600);
 
     return () => clearTimeout(timer);
   }, [tabs]);
@@ -475,6 +509,8 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   }, [handleUndo, handleRedo]);
 
   const [selectedNodeId, setSelectedNodeId] = useState<string>('start_node');
+  const selectedNodeIdRef = useRef<string>(selectedNodeId);
+  selectedNodeIdRef.current = selectedNodeId;
   const [selectedEdgeId, setSelectedEdgeId] = useState<string>('');
   const [connectorStyle, setConnectorStyle] = useState<'orthogonal' | 'curved' | 'straight'>('orthogonal');
   const [editEdgeModal, setEditEdgeModal] = useState<EditEdgeModalData>({
@@ -546,7 +582,28 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     isOpen: false,
     shareUrl: '',
     isCopied: false,
+    isMultiplayer: true,
   });
+
+  // Multiplayer Collaboration State (Version 2)
+  const [multiplayerState, setMultiplayerState] = useState<MultiplayerState>(() => {
+    const identity = _getLocalPeerIdentity();
+    const queryRoom =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('room')
+        : null;
+    return {
+      isEnabled: true, // Always active out-of-the-box for seamless tab/incognito collaboration
+      roomId: queryRoom || 'team-collab',
+      currentUser: identity,
+      peers: {},
+      followedPeerId: undefined,
+    };
+  });
+  const multiplayerStateRef = useRef<MultiplayerState>(multiplayerState);
+  multiplayerStateRef.current = multiplayerState;
+  const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
+  const lastCursorBroadcastRef = useRef<number>(0);
 
   // Hovered node state for screen mockup tooltip / popover
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -694,6 +751,8 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   const edges = activeTab.edges;
   const showGhostSkeleton = activeTab.showGhostSkeleton;
   const transform = activeTab.transform || { x: 40, y: 30, scale: 1 };
+  const transformRef = useRef<CanvasTransform>(transform);
+  transformRef.current = transform;
 
   // 4b. Flowchart Runner Simulation Loop
   useEffect(() => {
@@ -1572,14 +1631,18 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
   // Mode View-Only & Share Modal Handlers
   const handleOpenShareModal = useCallback((): void => {
+    const roomId = multiplayerStateRef.current.roomId || 'team-collab';
     const url =
       typeof window !== 'undefined'
-        ? `${window.location.origin}${window.location.pathname}?mode=view`
+        ? `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(roomId)}`
         : '';
+    setMultiplayerState((prev) => ({ ...prev, isEnabled: true, roomId }));
     setShareModal({
       isOpen: true,
       shareUrl: url,
       isCopied: false,
+      isMultiplayer: true,
+      activeRoomId: roomId,
     });
   }, []);
 
@@ -1596,6 +1659,84 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       }, 2500);
     }
   }, [shareModal.shareUrl]);
+
+  const handleToggleMultiplayer = useCallback((enabled?: boolean): void => {
+    setMultiplayerState((prev) => {
+      const next = enabled !== undefined ? enabled : !prev.isEnabled;
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        if (next) {
+          url.searchParams.set('room', prev.roomId);
+        } else {
+          url.searchParams.delete('room');
+        }
+        window.history.replaceState({}, '', url.toString());
+      }
+      return { ...prev, isEnabled: next };
+    });
+  }, []);
+
+  const handleSetRoomId = useCallback((roomId: string): void => {
+    const trimmed = roomId.trim() || 'team-collab';
+    setMultiplayerState((prev) => {
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('room', trimmed);
+        window.history.replaceState({}, '', url.toString());
+      }
+      return { ...prev, roomId: trimmed };
+    });
+  }, []);
+
+  const handleUpdateCurrentUserName = useCallback((name: string): void => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('wtf_peer_name', trimmed);
+    }
+    setMultiplayerState((prev) => ({
+      ...prev,
+      currentUser: { ...prev.currentUser, name: trimmed },
+    }));
+  }, []);
+
+  const handleStartFollowPeer = useCallback((peerId: string): void => {
+    setMultiplayerState((prev) => {
+      const nextFollowId = prev.followedPeerId === peerId ? undefined : peerId;
+      if (nextFollowId) {
+        const targetPeer = prev.peers[nextFollowId];
+        // Automatically switch to the followed collaborator's active workflow tab
+        if (targetPeer?.activeTabId && targetPeer.activeTabId !== activeTabIdRef.current) {
+          setActiveTabId(targetPeer.activeTabId);
+        }
+        if (targetPeer && targetPeer.cursor && mainContainerRef.current) {
+          const containerRect = mainContainerRef.current.getBoundingClientRect();
+          const currentScale = transformRef.current.scale;
+          const targetX = Math.round(containerRect.width / 2 - targetPeer.cursor.x * currentScale);
+          const targetY = Math.round(containerRect.height / 2 - targetPeer.cursor.y * currentScale);
+          setTabs((prevTabs) =>
+            prevTabs.map((t) =>
+              t.id === activeTabIdRef.current
+                ? {
+                    ...t,
+                    transform: {
+                      ...t.transform,
+                      x: targetX,
+                      y: targetY,
+                    },
+                  }
+                : t,
+            ),
+          );
+        }
+      }
+      return { ...prev, followedPeerId: nextFollowId };
+    });
+  }, []);
+
+  const handleStopFollowPeer = useCallback((): void => {
+    setMultiplayerState((prev) => ({ ...prev, followedPeerId: undefined }));
+  }, []);
 
   const handleToggleViewOnly = useCallback((): void => {
     setIsViewOnly((prev) => {
@@ -2610,6 +2751,10 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
   const handleCanvasMouseDown = useCallback(
     (event: React.MouseEvent<HTMLDivElement>): void => {
+      if (multiplayerStateRef.current.followedPeerId) {
+        setMultiplayerState((prev) => ({ ...prev, followedPeerId: undefined }));
+      }
+
       if (
         event.defaultPrevented ||
         draggingState.isDragging ||
@@ -3462,6 +3607,10 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
   const handleWheelPan = useCallback(
     (deltaX: number, deltaY: number): void => {
+      if (multiplayerStateRef.current.followedPeerId) {
+        setMultiplayerState((prev) => ({ ...prev, followedPeerId: undefined }));
+      }
+
       setTabs((prev) =>
         prev.map((t) =>
           t.id === activeTabId
@@ -3482,6 +3631,10 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
   const handleWheelZoom = useCallback(
     (clientX: number, clientY: number, zoomFactor: number): void => {
+      if (multiplayerStateRef.current.followedPeerId) {
+        setMultiplayerState((prev) => ({ ...prev, followedPeerId: undefined }));
+      }
+
       setTabs((prev) =>
         prev.map((t) => {
           if (t.id !== activeTabId) return t;
@@ -3536,6 +3689,289 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       el.removeEventListener('wheel', handleWheel);
     };
   }, [handleWheelZoom, handleWheelPan]);
+
+  // Real-time Multiplayer Synchronization (Version 2 - Dual BroadcastChannel & SSE Relay)
+  useEffect(() => {
+    if (!multiplayerState.isEnabled || !multiplayerState.roomId) return;
+    if (typeof window === 'undefined') return;
+
+    const localUser = multiplayerState.currentUser;
+    const channelName = `wtf_multiplayer_room_${multiplayerState.roomId}`;
+    let channel: BroadcastChannel | null = null;
+    try {
+      if (typeof window.BroadcastChannel !== 'undefined') {
+        channel = new BroadcastChannel(channelName);
+        broadcastChannelRef.current = channel;
+      }
+    } catch (_) {}
+
+    // Dual-channel broadcast function (local BroadcastChannel + HTTP server relay for Incognito/Cross-context)
+    const broadcastMessage = (msg: Record<string, any>) => {
+      try {
+        channel?.postMessage(msg);
+      } catch (_) {}
+
+      try {
+        fetch('/api/multiplayer/message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(msg),
+        }).catch(() => {});
+      } catch (_) {}
+    };
+
+    // 1. Announce presence on join and request live document synchronization
+    broadcastMessage({
+      type: 'PRESENCE',
+      peerId: localUser.peerId,
+      name: localUser.name,
+      color: localUser.color,
+      activeTabId: activeTabIdRef.current,
+      selectedNodeId: selectedNodeIdRef.current,
+      lastActive: Date.now(),
+      requestSync: true,
+    });
+
+    // 2. Incoming message dispatcher
+    const processIncomingMessage = (msg: any) => {
+      if (!msg || typeof msg !== 'object') return;
+      if (msg.peerId === localUser.peerId) return;
+
+      if (msg.type === 'PRESENCE') {
+        setMultiplayerState((prev) => ({
+          ...prev,
+          peers: {
+            ...prev.peers,
+            [msg.peerId]: {
+              peerId: msg.peerId,
+              name: msg.name,
+              color: msg.color,
+              avatar: msg.avatar,
+              cursor: prev.peers[msg.peerId]?.cursor || null,
+              activeTabId: msg.activeTabId,
+              selectedNodeId: msg.selectedNodeId,
+              lastActive: Date.now(),
+            },
+          },
+        }));
+
+        // If a newly joined collaborator requests live diagram sync, send them our current live tabs & diagram state!
+        if (msg.requestSync && tabsRef.current && tabsRef.current.length > 0) {
+          broadcastMessage({
+            type: 'SYNC_DOCUMENT',
+            peerId: localUser.peerId,
+            targetPeerId: msg.peerId,
+            tabs: tabsRef.current,
+            activeTabId: activeTabIdRef.current,
+            updatedAt: Date.now(),
+          });
+        }
+      } else if (msg.type === 'SYNC_DOCUMENT') {
+        if (!msg.targetPeerId || msg.targetPeerId === localUser.peerId) {
+          if (Array.isArray(msg.tabs) && msg.tabs.length > 0) {
+            isReceivingRemoteSyncRef.current = true;
+            const sanitizedTabs = msg.tabs.map(_sanitizeTab);
+            setTabs(sanitizedTabs);
+            if (msg.activeTabId && sanitizedTabs.some((t: FlowProjectTab) => t.id === msg.activeTabId)) {
+              setActiveTabId(msg.activeTabId);
+            }
+          }
+        }
+      } else if (msg.type === 'DOCUMENT_UPDATE') {
+        if (Array.isArray(msg.tabs) && msg.tabs.length > 0) {
+          isReceivingRemoteSyncRef.current = true;
+          const sanitizedTabs = msg.tabs.map(_sanitizeTab);
+          setTabs(sanitizedTabs);
+        }
+      } else if (msg.type === 'CURSOR_MOVE') {
+        setMultiplayerState((prev) => {
+          const existingPeer = prev.peers[msg.peerId] || {
+            peerId: msg.peerId,
+            name: msg.name || 'Collaborator',
+            color: msg.color || '#4f46e5',
+            activeTabId: msg.activeTabId,
+            lastActive: Date.now(),
+            cursor: null,
+          };
+
+          return {
+            ...prev,
+            peers: {
+              ...prev.peers,
+              [msg.peerId]: {
+                ...existingPeer,
+                name: msg.name || existingPeer.name,
+                color: msg.color || existingPeer.color,
+                cursor: msg.cursor,
+                activeTabId: msg.activeTabId || existingPeer.activeTabId,
+                selectedNodeId: msg.selectedNodeId,
+                lastActive: Date.now(),
+              },
+            },
+          };
+        });
+
+        // Follow Mode camera & active workflow tab smooth tracking
+        if (multiplayerStateRef.current.followedPeerId === msg.peerId) {
+          // If the collaborator being followed switches tabs, automatically switch tab too!
+          if (msg.activeTabId && msg.activeTabId !== activeTabIdRef.current) {
+            setActiveTabId(msg.activeTabId);
+          }
+
+          if (msg.cursor && mainContainerRef.current) {
+            const containerRect = mainContainerRef.current.getBoundingClientRect();
+            const currentScale = transformRef.current.scale || 1;
+            const targetX = Math.round(containerRect.width / 2 - msg.cursor.x * currentScale);
+            const targetY = Math.round(containerRect.height / 2 - msg.cursor.y * currentScale);
+            setTabs((prevTabs) =>
+              prevTabs.map((t) =>
+                t.id === activeTabIdRef.current
+                  ? {
+                      ...t,
+                      transform: {
+                        ...t.transform,
+                        x: Math.round(t.transform.x + (targetX - t.transform.x) * 0.35),
+                        y: Math.round(t.transform.y + (targetY - t.transform.y) * 0.35),
+                      },
+                    }
+                  : t,
+              ),
+            );
+          }
+        }
+      } else if (msg.type === 'PEER_LEAVE') {
+        setMultiplayerState((prev) => {
+          const nextPeers = { ...prev.peers };
+          delete nextPeers[msg.peerId];
+          return {
+            ...prev,
+            peers: nextPeers,
+            followedPeerId: prev.followedPeerId === msg.peerId ? undefined : prev.followedPeerId,
+          };
+        });
+      }
+    };
+
+    if (channel) {
+      channel.onmessage = (event) => {
+        processIncomingMessage(event.data);
+      };
+    }
+
+    // Connect to Server SSE Relay for Cross-Context / Incognito Sync
+    let eventSource: EventSource | null = null;
+    try {
+      if (typeof window.EventSource !== 'undefined') {
+        eventSource = new EventSource('/api/multiplayer/events');
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            processIncomingMessage(data);
+          } catch (_) {}
+        };
+      }
+    } catch (_) {}
+
+    // 3. Heartbeat & Dead Peer Pruning
+    const heartbeatInterval = setInterval(() => {
+      broadcastMessage({
+        type: 'PRESENCE',
+        peerId: localUser.peerId,
+        name: localUser.name,
+        color: localUser.color,
+        activeTabId: activeTabIdRef.current,
+        selectedNodeId: selectedNodeIdRef.current,
+        lastActive: Date.now(),
+      });
+    }, 2000);
+
+    const pruneInterval = setInterval(() => {
+      const now = Date.now();
+      setMultiplayerState((prev) => {
+        let hasExpired = false;
+        const nextPeers = { ...prev.peers };
+        Object.keys(nextPeers).forEach((id) => {
+          if (now - nextPeers[id].lastActive > 5000) {
+            delete nextPeers[id];
+            hasExpired = true;
+          }
+        });
+        if (!hasExpired) return prev;
+        return {
+          ...prev,
+          peers: nextPeers,
+          followedPeerId:
+            prev.followedPeerId && !nextPeers[prev.followedPeerId]
+              ? undefined
+              : prev.followedPeerId,
+        };
+      });
+    }, 2500);
+
+    // 4. Cursor movement listener (attached to window to guarantee active capture across canvas)
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      if (!mainContainerRef.current) return;
+      const rect = mainContainerRef.current.getBoundingClientRect();
+
+      // Check if mouse is within canvas container area
+      if (
+        e.clientX < rect.left ||
+        e.clientX > rect.right ||
+        e.clientY < rect.top ||
+        e.clientY > rect.bottom
+      ) {
+        return;
+      }
+
+      const currentScale = transformRef.current.scale || 1;
+      const currentTrans = transformRef.current;
+      const canvasX = Math.round((e.clientX - rect.left - currentTrans.x) / currentScale);
+      const canvasY = Math.round((e.clientY - rect.top - currentTrans.y) / currentScale);
+
+      const now = Date.now();
+      if (now - lastCursorBroadcastRef.current > 30) {
+        lastCursorBroadcastRef.current = now;
+        broadcastMessage({
+          type: 'CURSOR_MOVE',
+          peerId: localUser.peerId,
+          name: localUser.name,
+          color: localUser.color,
+          cursor: { x: canvasX, y: canvasY },
+          activeTabId: activeTabIdRef.current,
+          selectedNodeId: selectedNodeIdRef.current,
+        });
+      }
+    };
+
+    const handleWindowMouseLeave = () => {
+      broadcastMessage({
+        type: 'CURSOR_MOVE',
+        peerId: localUser.peerId,
+        cursor: null,
+      });
+    };
+
+    window.addEventListener('mousemove', handleWindowMouseMove);
+    document.addEventListener('mouseleave', handleWindowMouseLeave);
+
+    return () => {
+      broadcastMessage({
+        type: 'PEER_LEAVE',
+        peerId: localUser.peerId,
+      });
+      clearInterval(heartbeatInterval);
+      clearInterval(pruneInterval);
+      window.removeEventListener('mousemove', handleWindowMouseMove);
+      document.removeEventListener('mouseleave', handleWindowMouseLeave);
+      if (eventSource) {
+        eventSource.close();
+      }
+      if (channel) {
+        channel.close();
+      }
+      broadcastChannelRef.current = null;
+    };
+  }, [multiplayerState.isEnabled, multiplayerState.roomId, multiplayerState.currentUser]);
 
   // Export PNG
   const handleExportPng = useCallback(async (): Promise<void> => {
@@ -4246,5 +4682,11 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
     handleUpdateEdgeLabel,
     handleUpdateEdgeColor,
     handleResetEdgeAnchors,
+    multiplayerState,
+    onToggleMultiplayer: handleToggleMultiplayer,
+    onSetRoomId: handleSetRoomId,
+    onUpdateCurrentUserName: handleUpdateCurrentUserName,
+    onStartFollowPeer: handleStartFollowPeer,
+    onStopFollowPeer: handleStopFollowPeer,
   };
 };

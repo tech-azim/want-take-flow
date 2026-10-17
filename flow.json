@@ -1,388 +1,610 @@
 {
-  "name": "Daily Food App - Architecture & Workflow Flowcharts",
+  "name": "Daily App - Architecture & Workflow Flowcharts",
   "version": "1.0.0",
   "tabs": [
     {
       "id": "tab_e2e_overview",
       "title": "1. E2E System Overview",
       "type": "flowchart",
-      "transform": { "x": 40, "y": 30, "scale": 1.0 },
+      "transform": { "x": 60, "y": 30, "scale": 0.95 },
       "nodes": [
         {
-          "id": "node_user_app",
+          "id": "node_app_launch",
           "type": "start",
-          "label": "Buka Aplikasi Daily Food",
-          "description": "User memilih restoran, menu harian, atau paket langganan sehat",
-          "position": { "x": 360, "y": 60 },
+          "label": "User Opens Daily App",
+          "description": "Loads today's agenda, habits, and time-block schedule from local cache",
+          "position": { "x": 380, "y": 60 },
           "colorTheme": "indigo"
         },
         {
-          "id": "node_cart_checkout",
+          "id": "node_cache_check",
+          "type": "decision",
+          "label": "Local Cache Valid?",
+          "description": "Checks if local SQLite storage matches today's date and is non-stale",
+          "position": { "x": 380, "y": 200 },
+          "colorTheme": "amber"
+        },
+        {
+          "id": "node_instant_render",
           "type": "process",
-          "label": "Keranjang & Checkout",
-          "description": "Pilih porsi, request tanpa MSG/alergi, dan atur jam pengantaran",
-          "position": { "x": 360, "y": 200 },
-          "colorTheme": "blue"
+          "label": "Instant Dashboard Render",
+          "description": "Renders habit checklist, streak widgets, and daily score in under 16ms",
+          "position": { "x": 100, "y": 340 },
+          "colorTheme": "emerald"
         },
         {
           "id": "node_api_gateway",
           "type": "process",
-          "label": "API Gateway & Auth Service",
-          "description": "Validasi JWT token, rate limiting, dan routing request ke microservices",
-          "position": { "x": 360, "y": 340 },
+          "label": "API Gateway & Sync Service",
+          "description": "Validates session token and fetches remote changes from cloud servers",
+          "position": { "x": 380, "y": 340 },
           "colorTheme": "purple"
         },
         {
-          "id": "node_check_stock",
-          "type": "decision",
-          "label": "Bahan & Kuota Siap?",
-          "description": "Cek stok bahan dapur dan kuota porsi harian merchant",
-          "position": { "x": 360, "y": 480 },
-          "colorTheme": "amber"
-        },
-        {
-          "id": "node_sold_out",
-          "type": "end",
-          "label": "Notifikasi Menu Habis",
-          "description": "Tampilkan opsi ganti menu alternatif atau refund ke e-wallet",
-          "position": { "x": 80, "y": 480 },
-          "colorTheme": "rose"
-        },
-        {
-          "id": "node_payment_proc",
+          "id": "node_habit_engine",
           "type": "process",
-          "label": "Payment Gateway (QRIS / VA)",
-          "description": "Membuat invoice dan mendengarkan webhook callback transaksi",
-          "position": { "x": 360, "y": 640 },
-          "colorTheme": "cyan"
-        },
-        {
-          "id": "node_kitchen_dispatch",
-          "type": "process",
-          "label": "Order Masuk ke Dapur (KDS)",
-          "description": "Kitchen Display System print tiket masak & estimasi selesai",
-          "position": { "x": 360, "y": 790 },
-          "colorTheme": "emerald"
-        },
-        {
-          "id": "node_driver_match",
-          "type": "process",
-          "label": "Dispatch & Driver Matching",
-          "description": "Algoritma mencocokkan kurir terdekat dengan sistem batching rute",
-          "position": { "x": 360, "y": 940 },
+          "label": "Habit & Planner Engine",
+          "description": "Calculates streaks, XP rewards, time completion, and recurring rules",
+          "position": { "x": 380, "y": 480 },
           "colorTheme": "blue"
         },
         {
-          "id": "node_delivered_success",
+          "id": "node_conflict_check",
+          "type": "decision",
+          "label": "Sync Conflict Detected?",
+          "description": "Compares vector clocks and timestamps across multi-device updates",
+          "position": { "x": 380, "y": 620 },
+          "colorTheme": "amber"
+        },
+        {
+          "id": "node_crdt_resolver",
+          "type": "process",
+          "label": "LWW Conflict Resolution",
+          "description": "Applies Last-Write-Wins and merges non-conflicting habit check-ins",
+          "position": { "x": 100, "y": 620 },
+          "colorTheme": "rose"
+        },
+        {
+          "id": "node_smart_nudge",
+          "type": "process",
+          "label": "Smart Nudge & Reminders",
+          "description": "Schedules contextual local push notifications based on user activity hours",
+          "position": { "x": 380, "y": 760 },
+          "colorTheme": "cyan"
+        },
+        {
+          "id": "node_daily_complete",
           "type": "end",
-          "label": "Makanan Tiba & Rating",
-          "description": "Konfirmasi foto serah terima, poin loyalti, dan review rasa makanan",
-          "position": { "x": 360, "y": 1090 },
+          "label": "Daily Goal Achieved",
+          "description": "Updates streak counter, awards daily XP, and backs up state to cloud",
+          "position": { "x": 380, "y": 900 },
           "colorTheme": "emerald"
         }
       ],
       "edges": [
         {
-          "id": "e1",
-          "sourceNodeId": "node_user_app",
-          "targetNodeId": "node_cart_checkout",
-          "label": "Pilih Menu"
-        },
-        {
-          "id": "e2",
-          "sourceNodeId": "node_cart_checkout",
-          "targetNodeId": "node_api_gateway",
-          "label": "POST /api/v1/orders"
-        },
-        {
-          "id": "e3",
-          "sourceNodeId": "node_api_gateway",
-          "targetNodeId": "node_check_stock",
-          "label": "Cek Ketersediaan"
-        },
-        {
-          "id": "e4_sold",
-          "sourceNodeId": "node_check_stock",
-          "targetNodeId": "node_sold_out",
-          "label": "Stok Habis",
-          "color": "#f43f5e",
-          "sourceAnchor": "left",
-          "targetAnchor": "right"
-        },
-        {
-          "id": "e4_ok",
-          "sourceNodeId": "node_check_stock",
-          "targetNodeId": "node_payment_proc",
-          "label": "Stok Aman",
-          "color": "#10b981",
+          "id": "e_launch_cache",
+          "sourceNodeId": "node_app_launch",
+          "targetNodeId": "node_cache_check",
           "sourceAnchor": "bottom",
-          "targetAnchor": "top"
+          "targetAnchor": "top",
+          "label": "Check Local State"
         },
         {
-          "id": "e5",
-          "sourceNodeId": "node_payment_proc",
-          "targetNodeId": "node_kitchen_dispatch",
-          "label": "Payment Lunas"
+          "id": "e_cache_yes",
+          "sourceNodeId": "node_cache_check",
+          "targetNodeId": "node_instant_render",
+          "sourceAnchor": "left",
+          "targetAnchor": "top",
+          "label": "Yes (Cache Hit)",
+          "color": "#10b981"
         },
         {
-          "id": "e6",
-          "sourceNodeId": "node_kitchen_dispatch",
-          "targetNodeId": "node_driver_match",
-          "label": "Makanan Selesai Dipacking"
+          "id": "e_cache_no",
+          "sourceNodeId": "node_cache_check",
+          "targetNodeId": "node_api_gateway",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "label": "No / Background Sync",
+          "color": "#6366f1"
         },
         {
-          "id": "e7",
-          "sourceNodeId": "node_driver_match",
-          "targetNodeId": "node_delivered_success",
-          "label": "Antar ke Konsumen"
+          "id": "e_render_engine",
+          "sourceNodeId": "node_instant_render",
+          "targetNodeId": "node_habit_engine",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "left",
+          "label": "User Interaction"
+        },
+        {
+          "id": "e_gateway_engine",
+          "sourceNodeId": "node_api_gateway",
+          "targetNodeId": "node_habit_engine",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "label": "Hydrate Remote State"
+        },
+        {
+          "id": "e_engine_conflict",
+          "sourceNodeId": "node_habit_engine",
+          "targetNodeId": "node_conflict_check",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "label": "Verify Consistency"
+        },
+        {
+          "id": "e_conflict_yes",
+          "sourceNodeId": "node_conflict_check",
+          "targetNodeId": "node_crdt_resolver",
+          "sourceAnchor": "left",
+          "targetAnchor": "right",
+          "label": "Yes (Conflict)",
+          "color": "#f43f5e"
+        },
+        {
+          "id": "e_conflict_no",
+          "sourceNodeId": "node_conflict_check",
+          "targetNodeId": "node_smart_nudge",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "label": "Clean Sync",
+          "color": "#10b981"
+        },
+        {
+          "id": "e_resolver_nudge",
+          "sourceNodeId": "node_crdt_resolver",
+          "targetNodeId": "node_smart_nudge",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "left",
+          "label": "Resolved Delta"
+        },
+        {
+          "id": "e_nudge_complete",
+          "sourceNodeId": "node_smart_nudge",
+          "targetNodeId": "node_daily_complete",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "label": "All Habits Completed"
         }
       ],
       "groups": [
         {
-          "id": "grp_client_app",
-          "title": "Aplikasi Pengguna (Mobile / Web)",
-          "position": { "x": 300, "y": 20 },
-          "width": 340,
-          "height": 280,
-          "colorTheme": "indigo"
-        },
-        {
-          "id": "grp_core_backend",
-          "title": "Core Services & Payment Hub",
-          "position": { "x": 40, "y": 310 },
-          "width": 600,
-          "height": 430,
-          "colorTheme": "purple"
-        },
-        {
-          "id": "grp_kitchen_courier",
-          "title": "Operasional Dapur & Pengiriman",
-          "position": { "x": 280, "y": 750 },
-          "width": 380,
-          "height": 430,
+          "id": "grp_mobile_client",
+          "title": "Mobile Client (Offline-First Layer)",
+          "position": { "x": 70, "y": 270 },
+          "width": 240,
+          "height": 450,
           "colorTheme": "emerald"
+        },
+        {
+          "id": "grp_cloud_services",
+          "title": "Cloud Backend & Smart Nudge Services",
+          "position": { "x": 340, "y": 280 },
+          "width": 260,
+          "height": 550,
+          "colorTheme": "indigo"
         }
       ]
     },
     {
-      "id": "tab_subscription_flow",
-      "title": "2. Langganan Katering Harian (Meal Plan)",
+      "id": "tab_habit_workflow",
+      "title": "2. Habit & Task Completion Flow",
       "type": "flowchart",
-      "transform": { "x": 40, "y": 30, "scale": 1.0 },
+      "transform": { "x": 60, "y": 30, "scale": 0.95 },
       "nodes": [
         {
-          "id": "sub_start",
+          "id": "node_h_tap",
           "type": "start",
-          "label": "Pilih Paket Katering Harian",
-          "description": "Pilihan: 5 Hari / 20 Hari (Keto, Diet Mayo, Clean Eating, Halal Regular)",
+          "label": "Tap Item Checkbox",
+          "description": "User checks off a morning routine item, fitness habit, or urgent task",
           "position": { "x": 360, "y": 60 },
           "colorTheme": "indigo"
         },
         {
-          "id": "sub_pref",
-          "type": "process",
-          "label": "Set Preferensi & Jadwal Kirim",
-          "description": "Atur jam pengantaran makan siang (11:00) atau makan malam (17:30)",
+          "id": "node_h_item_type",
+          "type": "decision",
+          "label": "Item Type?",
+          "description": "Determines whether the item is a recurring habit or a one-time to-do task",
           "position": { "x": 360, "y": 200 },
-          "colorTheme": "blue"
-        },
-        {
-          "id": "sub_cron_cutoff",
-          "type": "process",
-          "label": "Daily Cron Cut-off (Pukul 06:00)",
-          "description": "Sistem otomatis lock menu hari ini dan batching bahan belanja harian",
-          "position": { "x": 360, "y": 340 },
           "colorTheme": "amber"
         },
         {
-          "id": "sub_check_pause",
-          "type": "decision",
-          "label": "Status Langganan Aktif?",
-          "description": "Cek apakah user mengajukan jeda (pause) langganan H-1",
-          "position": { "x": 360, "y": 480 },
+          "id": "node_h_task_done",
+          "type": "process",
+          "label": "Mark Task Complete",
+          "description": "Archives to-do item and updates daily project task completion metric",
+          "position": { "x": 120, "y": 340 },
+          "colorTheme": "blue"
+        },
+        {
+          "id": "node_h_streak_calc",
+          "type": "process",
+          "label": "Calculate Habit Streak & XP",
+          "description": "Increments daily streak, applies streak multiplier, and awards user XP",
+          "position": { "x": 360, "y": 340 },
           "colorTheme": "purple"
         },
         {
-          "id": "sub_paused_node",
-          "type": "end",
-          "label": "Jadwal Ditunda (Paused)",
-          "description": "Sisa kuota hari tidak berkurang dan dialihkan ke jadwal berikutnya",
-          "position": { "x": 80, "y": 480 },
-          "colorTheme": "slate"
+          "id": "node_h_milestone",
+          "type": "decision",
+          "label": "Milestone Reached?",
+          "description": "Checks if user reached 7-day, 30-day, or 100-day consistency streak",
+          "position": { "x": 360, "y": 480 },
+          "colorTheme": "amber"
         },
         {
-          "id": "sub_kitchen_batch",
+          "id": "node_h_confetti",
           "type": "process",
-          "label": "Batching Masak Massal Dapur",
-          "description": "Dapur memproduksi berdasarkan rekap nutrisi & porsi otomatis",
-          "position": { "x": 360, "y": 640 },
+          "label": "Award Badge & Celebration",
+          "description": "Triggers confetti animation, haptic vibration, and unlocks achievement badge",
+          "position": { "x": 620, "y": 480 },
           "colorTheme": "emerald"
         },
         {
-          "id": "sub_route_opt",
+          "id": "node_h_daily_score",
           "type": "process",
-          "label": "Route Clustering & Bulk Dispatch",
-          "description": "Optimasi rute kurir mengantar 10-15 alamat katering berdekatan",
-          "position": { "x": 360, "y": 780 },
+          "label": "Aggregate Daily Productivity Score",
+          "description": "Recomputes daily completion percentage and updates lockscreen widget",
+          "position": { "x": 360, "y": 620 },
           "colorTheme": "cyan"
         },
         {
-          "id": "sub_done",
+          "id": "node_h_end",
           "type": "end",
-          "label": "Makanan Diterima Pelanggan",
-          "description": "Pengurangan saldo kuota harian & notifikasi menu besok",
-          "position": { "x": 360, "y": 920 },
+          "label": "State Saved & Widget Synced",
+          "description": "Persists to local database and broadcasts updated stats to wearable watch",
+          "position": { "x": 360, "y": 760 },
           "colorTheme": "emerald"
         }
       ],
       "edges": [
         {
-          "id": "se1",
-          "sourceNodeId": "sub_start",
-          "targetNodeId": "sub_pref",
-          "label": "Simpan Paket"
-        },
-        {
-          "id": "se2",
-          "sourceNodeId": "sub_pref",
-          "targetNodeId": "sub_cron_cutoff",
-          "label": "Aktivasi Langganan"
-        },
-        {
-          "id": "se3",
-          "sourceNodeId": "sub_cron_cutoff",
-          "targetNodeId": "sub_check_pause",
-          "label": "Validasi Harian"
-        },
-        {
-          "id": "se4_pause",
-          "sourceNodeId": "sub_check_pause",
-          "targetNodeId": "sub_paused_node",
-          "label": "User Sedang Cuti/Pause",
-          "color": "#64748b",
-          "sourceAnchor": "left",
-          "targetAnchor": "right"
-        },
-        {
-          "id": "se4_active",
-          "sourceNodeId": "sub_check_pause",
-          "targetNodeId": "sub_kitchen_batch",
-          "label": "Aktif (Kirim Hari Ini)",
-          "color": "#10b981",
+          "id": "eh_tap_type",
+          "sourceNodeId": "node_h_tap",
+          "targetNodeId": "node_h_item_type",
           "sourceAnchor": "bottom",
-          "targetAnchor": "top"
+          "targetAnchor": "top",
+          "label": "Process Action"
         },
         {
-          "id": "se5",
-          "sourceNodeId": "sub_kitchen_batch",
-          "targetNodeId": "sub_route_opt",
-          "label": "Packing Box Siap"
+          "id": "eh_type_task",
+          "sourceNodeId": "node_h_item_type",
+          "targetNodeId": "node_h_task_done",
+          "sourceAnchor": "left",
+          "targetAnchor": "top",
+          "label": "To-Do Task",
+          "color": "#3b82f6"
         },
         {
-          "id": "se6",
-          "sourceNodeId": "sub_route_opt",
-          "targetNodeId": "sub_done",
-          "label": "Selesai Antar"
-        }
-      ],
-      "groups": [
-        {
-          "id": "grp_sub_schedule",
-          "title": "Manajemen Jadwal & Meal Plan Scheduler",
-          "position": { "x": 40, "y": 20 },
-          "width": 640,
-          "height": 550,
-          "colorTheme": "purple"
+          "id": "eh_type_habit",
+          "sourceNodeId": "node_h_item_type",
+          "targetNodeId": "node_h_streak_calc",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "label": "Habit Tracker",
+          "color": "#8b5cf6"
         },
         {
-          "id": "grp_sub_fulfillment",
-          "title": "Produksi Katering & Pengantaran Terjadwal",
-          "position": { "x": 280, "y": 590 },
-          "width": 380,
-          "height": 420,
-          "colorTheme": "cyan"
+          "id": "eh_task_score",
+          "sourceNodeId": "node_h_task_done",
+          "targetNodeId": "node_h_daily_score",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "left",
+          "label": "Task Archived"
+        },
+        {
+          "id": "eh_streak_milestone",
+          "sourceNodeId": "node_h_streak_calc",
+          "targetNodeId": "node_h_milestone",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "label": "Evaluate Goals"
+        },
+        {
+          "id": "eh_milestone_yes",
+          "sourceNodeId": "node_h_milestone",
+          "targetNodeId": "node_h_confetti",
+          "sourceAnchor": "right",
+          "targetAnchor": "left",
+          "label": "Yes (Milestone)",
+          "color": "#10b981"
+        },
+        {
+          "id": "eh_milestone_no",
+          "sourceNodeId": "node_h_milestone",
+          "targetNodeId": "node_h_daily_score",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "label": "Regular Streak Increment",
+          "color": "#64748b"
+        },
+        {
+          "id": "eh_confetti_score",
+          "sourceNodeId": "node_h_confetti",
+          "targetNodeId": "node_h_daily_score",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "right",
+          "label": "Badge Unlocked"
+        },
+        {
+          "id": "eh_score_end",
+          "sourceNodeId": "node_h_daily_score",
+          "targetNodeId": "node_h_end",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "label": "Save Changes"
         }
       ]
     },
     {
-      "id": "tab_dailyfood_tasks",
-      "title": "3. Daily Food Project Tasks",
+      "id": "tab_sync_pipeline",
+      "title": "3. Offline-First Sync Architecture",
+      "type": "flowchart",
+      "transform": { "x": 60, "y": 30, "scale": 0.95 },
+      "nodes": [
+        {
+          "id": "node_s_action",
+          "type": "start",
+          "label": "Local Mutation Triggered",
+          "description": "User creates a new habit, reschedules time-block, or checks off items",
+          "position": { "x": 360, "y": 60 },
+          "colorTheme": "indigo"
+        },
+        {
+          "id": "node_s_queue",
+          "type": "process",
+          "label": "Append to Local SQLite Queue",
+          "description": "Persists mutation with client-side UUID, timestamp, and pending status",
+          "position": { "x": 360, "y": 200 },
+          "colorTheme": "blue"
+        },
+        {
+          "id": "node_s_network",
+          "type": "decision",
+          "label": "Network Online?",
+          "description": "Checks device connectivity via NetInfo event listener",
+          "position": { "x": 360, "y": 340 },
+          "colorTheme": "amber"
+        },
+        {
+          "id": "node_s_offline",
+          "type": "process",
+          "label": "Store in Offline Outbox",
+          "description": "App continues working 100% offline; registers background sync task",
+          "position": { "x": 100, "y": 480 },
+          "colorTheme": "slate"
+        },
+        {
+          "id": "node_s_batch",
+          "type": "process",
+          "label": "Dispatch Batch Sync Request",
+          "description": "Packages pending mutation queue into compressed JSON payload",
+          "position": { "x": 360, "y": 480 },
+          "colorTheme": "purple"
+        },
+        {
+          "id": "node_s_server_valid",
+          "type": "decision",
+          "label": "Server Schema & Auth Valid?",
+          "description": "Validates payload signature, JWT token, and idempotency key",
+          "position": { "x": 360, "y": 620 },
+          "colorTheme": "amber"
+        },
+        {
+          "id": "node_s_retry",
+          "type": "process",
+          "label": "Exponential Backoff Retry",
+          "description": "Handles 5xx rate limits or transient errors with jittered retry policy",
+          "position": { "x": 620, "y": 620 },
+          "colorTheme": "rose"
+        },
+        {
+          "id": "node_s_commit",
+          "type": "process",
+          "label": "Commit to Postgres & Redis",
+          "description": "Updates server record, writes audit log, and publishes WebSocket event",
+          "position": { "x": 360, "y": 760 },
+          "colorTheme": "cyan"
+        },
+        {
+          "id": "node_s_end",
+          "type": "end",
+          "label": "Local Outbox Cleared",
+          "description": "Marks local items as synced and notifies other devices via push",
+          "position": { "x": 360, "y": 900 },
+          "colorTheme": "emerald"
+        }
+      ],
+      "edges": [
+        {
+          "id": "es_action_queue",
+          "sourceNodeId": "node_s_action",
+          "targetNodeId": "node_s_queue",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "label": "Write Ahead Log"
+        },
+        {
+          "id": "es_queue_net",
+          "sourceNodeId": "node_s_queue",
+          "targetNodeId": "node_s_network",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "label": "Check Connection"
+        },
+        {
+          "id": "es_net_offline",
+          "sourceNodeId": "node_s_network",
+          "targetNodeId": "node_s_offline",
+          "sourceAnchor": "left",
+          "targetAnchor": "top",
+          "label": "Offline",
+          "color": "#64748b"
+        },
+        {
+          "id": "es_net_online",
+          "sourceNodeId": "node_s_network",
+          "targetNodeId": "node_s_batch",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "label": "Online",
+          "color": "#10b981"
+        },
+        {
+          "id": "es_offline_retry",
+          "sourceNodeId": "node_s_offline",
+          "targetNodeId": "node_s_batch",
+          "sourceAnchor": "right",
+          "targetAnchor": "left",
+          "label": "On Reconnect"
+        },
+        {
+          "id": "es_batch_valid",
+          "sourceNodeId": "node_s_batch",
+          "targetNodeId": "node_s_server_valid",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "label": "HTTPS POST /sync"
+        },
+        {
+          "id": "es_valid_fail",
+          "sourceNodeId": "node_s_server_valid",
+          "targetNodeId": "node_s_retry",
+          "sourceAnchor": "right",
+          "targetAnchor": "left",
+          "label": "503 / Network Error",
+          "color": "#f43f5e"
+        },
+        {
+          "id": "es_valid_ok",
+          "sourceNodeId": "node_s_server_valid",
+          "targetNodeId": "node_s_commit",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "label": "200 OK (Accepted)",
+          "color": "#10b981"
+        },
+        {
+          "id": "es_retry_batch",
+          "sourceNodeId": "node_s_retry",
+          "targetNodeId": "node_s_batch",
+          "sourceAnchor": "top",
+          "targetAnchor": "right",
+          "label": "Retry Queue",
+          "color": "#f59e0b"
+        },
+        {
+          "id": "es_commit_end",
+          "sourceNodeId": "node_s_commit",
+          "targetNodeId": "node_s_end",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "label": "Sync Complete"
+        }
+      ]
+    },
+    {
+      "id": "tab_project_tasks",
+      "title": "4. Project Tasks Board",
       "type": "kanban",
-      "transform": { "x": 0, "y": 0, "scale": 1.0 },
       "nodes": [],
       "edges": [],
       "kanbanTasks": [
         {
-          "id": "df-101",
-          "title": "Integrasi Webhook QRIS & Payment Settlement",
-          "description": "Callback notifikasi instan dari gateway saat pelanggan bayar QRIS untuk auto-confirm order",
-          "status": "inprogress",
+          "id": "task_1",
+          "title": "Design interactive daily routine checklist UI with haptic feedback",
+          "status": "done",
           "priority": "high",
-          "assignee": "Backend Team",
-          "tag": "Payment"
+          "assignee": "Mobile Engineer",
+          "tags": ["UI/UX", "Mobile", "Haptics"]
         },
         {
-          "id": "df-102",
-          "title": "Fitur Pause / Resume Jadwal Katering",
-          "description": "User bisa cuti langganan makan siang H-1 tanpa hangus sisa kuota hari",
-          "status": "inprogress",
+          "id": "task_2",
+          "title": "Implement biometric FaceID & Fingerprint app lock authentication",
+          "status": "done",
           "priority": "high",
-          "assignee": "Fullstack",
-          "tag": "Subscription"
+          "assignee": "Security Engineer",
+          "tags": ["Auth", "Security", "Biometrics"]
         },
         {
-          "id": "df-103",
-          "title": "Tracking GPS Kurir Real-Time via WebSocket",
-          "description": "Streaming koordinat kurir makanan setiap 3 detik di map aplikasi pelanggan",
-          "status": "todo",
-          "priority": "high",
-          "assignee": "Mobile Team",
-          "tag": "Logistics"
-        },
-        {
-          "id": "df-104",
-          "title": "Kitchen SLA Alert Timer (>20 menit)",
-          "description": "Alarm visual pada Kitchen Display System jika makanan belum selesai dipacking dalam 20 menit",
-          "status": "todo",
-          "priority": "medium",
-          "assignee": "Frontend Dapur",
-          "tag": "Kitchen KDS"
-        },
-        {
-          "id": "df-105",
-          "title": "Kalkulator Nutrisi & Kalori per Porsi Menu",
-          "description": "Perhitungan otomatis total karbohidrat, protein, dan lemak untuk menu makanan diet",
+          "id": "task_3",
+          "title": "Build dark mode & dynamic theme palette with Tailwind CSS",
           "status": "done",
           "priority": "medium",
-          "assignee": "Nutritionist & AI",
-          "tag": "Nutrition"
+          "assignee": "Frontend Engineer",
+          "tags": ["Theme", "Design", "CSS"]
         },
         {
-          "id": "df-106",
-          "title": "Push Notification FCM Status Makanan",
-          "description": "Notifikasi: 'Makanan sedang dimasak', 'Kurir menjemput', dan 'Makanan tiba di depan rumah'",
+          "id": "task_4",
+          "title": "Setup local offline-first SQLite storage with WatermelonDB",
           "status": "done",
           "priority": "high",
-          "assignee": "DevOps / Backend",
-          "tag": "Notifications"
+          "assignee": "Mobile Engineer",
+          "tags": ["SQLite", "Offline", "Storage"]
         },
         {
-          "id": "df-107",
-          "title": "Algoritma Route Clustering Pengiriman Katering",
-          "description": "Pengelompokan 10-15 box katering per wilayah kelurahan agar efisiensi bensin & waktu kurir",
-          "status": "review",
+          "id": "task_5",
+          "title": "Develop smart push notification scheduler using user active hours",
+          "status": "inprogress",
           "priority": "high",
-          "assignee": "Algorithm Engineer",
-          "tag": "Routing"
+          "assignee": "Backend Engineer",
+          "tags": ["Push", "Notifications", "ML"]
         },
         {
-          "id": "df-108",
-          "title": "Integrasi Thermal Bluetooth Printer untuk Struk Dapur",
-          "description": "Auto print resi dapur berisi detail menu, catatan alergi/tanpa bawang, dan nomor meja/kantor",
-          "status": "done",
+          "id": "task_6",
+          "title": "Implement gamification engine: Streak freeze and XP progression system",
+          "status": "inprogress",
+          "priority": "high",
+          "assignee": "Product Engineer",
+          "tags": ["Gamification", "Streaks", "XP"]
+        },
+        {
+          "id": "task_7",
+          "title": "Build multi-device conflict resolution engine (Last-Write-Wins)",
+          "status": "inprogress",
+          "priority": "high",
+          "assignee": "Backend Engineer",
+          "tags": ["Sync", "CRDT", "Distributed"]
+        },
+        {
+          "id": "task_8",
+          "title": "Build drag-and-drop time-blocking calendar agenda view",
+          "status": "todo",
+          "priority": "high",
+          "assignee": "Frontend Engineer",
+          "tags": ["Calendar", "TimeBlock", "UI"]
+        },
+        {
+          "id": "task_9",
+          "title": "Integrate Apple HealthKit and Google Health Connect step counter",
+          "status": "todo",
+          "priority": "medium",
+          "assignee": "Mobile Engineer",
+          "tags": ["HealthKit", "Integration"]
+        },
+        {
+          "id": "task_10",
+          "title": "Implement weekly analytics report & streak breakdown charts",
+          "status": "todo",
+          "priority": "medium",
+          "assignee": "Data Analyst",
+          "tags": ["Analytics", "Charts", "Reporting"]
+        },
+        {
+          "id": "task_11",
+          "title": "Add end-to-end encryption for private daily reflection journal entries",
+          "status": "todo",
+          "priority": "high",
+          "assignee": "Security Engineer",
+          "tags": ["Crypto", "E2EE", "Privacy"]
+        },
+        {
+          "id": "task_12",
+          "title": "Setup automated cloud backup export (Google Drive & iCloud)",
+          "status": "todo",
           "priority": "low",
-          "assignee": "Hardware / App",
-          "tag": "Kitchen"
+          "assignee": "DevOps Engineer",
+          "tags": ["Backup", "iCloud", "Export"]
         }
       ]
     }

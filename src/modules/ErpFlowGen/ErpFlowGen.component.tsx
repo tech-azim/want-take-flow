@@ -54,7 +54,10 @@ import {
   Zap,
   Tag,
   CheckSquare,
+  Users,
+  Radio,
 } from 'lucide-react';
+import { _renderRemotePeerCursor } from './ErpFlowGen.multiplayer';
 import type {
   FlowNode,
   FlowEdge,
@@ -2090,6 +2093,12 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
     onUpdateEdgeColor,
     onResetEdgeAnchors: _onResetEdgeAnchors,
     onSetEdgeSourceAnchor: _onSetEdgeSourceAnchor,
+    multiplayerState,
+    onToggleMultiplayer,
+    onSetRoomId,
+    onUpdateCurrentUserName,
+    onStartFollowPeer,
+    onStopFollowPeer,
   } = props;
 
   const currentSkeleton = SKELETON_TEMPLATES[activeTab.type];
@@ -2487,15 +2496,51 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             <span className="hidden sm:inline">{isExportingPng ? 'Rendering...' : 'Export PNG'}</span>
           </button>
 
-          {/* Share View-Only Link Button */}
+          {/* Multiplayer Collaborators Avatar Stack (Version 2) */}
+          {multiplayerState?.isEnabled && (
+            <div className="flex items-center -space-x-1.5 overflow-hidden pl-1 pr-0.5 shrink-0">
+              {/* Local User Pill / Avatar */}
+              <div
+                title={`You: ${multiplayerState.currentUser.name} (Active in room: ${multiplayerState.roomId})`}
+                style={{ backgroundColor: multiplayerState.currentUser.color }}
+                className="w-7 h-7 rounded-full text-white text-[11px] font-bold border-2 border-white flex items-center justify-center shadow-xs select-none cursor-pointer"
+              >
+                {multiplayerState.currentUser.name.charAt(0).toUpperCase()}
+              </div>
+
+              {/* Remote Peer Avatars */}
+              {Object.values(multiplayerState.peers).map((peer) => {
+                const isFollowed = multiplayerState.followedPeerId === peer.peerId;
+                return (
+                  <button
+                    key={peer.peerId}
+                    type="button"
+                    onClick={() => onStartFollowPeer?.(peer.peerId)}
+                    title={`${peer.name} (${isFollowed ? 'Following - Click to unfollow' : 'Click to follow'})`}
+                    style={{ backgroundColor: peer.color }}
+                    className={`w-7 h-7 rounded-full text-white text-[11px] font-bold border-2 border-white flex items-center justify-center shadow-xs select-none transition-all cursor-pointer hover:scale-115 hover:z-20 ${
+                      isFollowed ? 'ring-2 ring-indigo-500 ring-offset-1 z-10 scale-105' : ''
+                    }`}
+                  >
+                    {peer.name.charAt(0).toUpperCase()}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Share Collaboration / View-Only Link Button */}
           <button
             type="button"
             onClick={onOpenShareModal}
-            title="Share Flowchart (View-Only Mode)"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
+            title="Share Flowchart & Live Collaboration"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0 relative"
           >
             <Share2 className="w-3.5 h-3.5 text-purple-600" />
             <span className="hidden lg:inline">Share</span>
+            {multiplayerState?.isEnabled && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 absolute -top-0.5 -right-0.5 ring-2 ring-white animate-pulse" />
+            )}
           </button>
 
           {/* Help Button */}
@@ -3429,6 +3474,17 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               );
             })()}
 
+            {/* Multiplayer Remote Cursors Layer (Canvas Coordinates, Version 2) */}
+            {multiplayerState?.isEnabled &&
+              Object.values(multiplayerState.peers).map((peer) => {
+                if (peer.activeTabId && peer.activeTabId !== activeTab.id) return null;
+                return _renderRemotePeerCursor(
+                  peer,
+                  multiplayerState.followedPeerId === peer.peerId,
+                  transform?.scale ?? 1,
+                );
+              })}
+
             {/* Floating Auto-Focus Notification when user is dragged far from diagram */}
             {isFarFromStart && (
               <div
@@ -3443,6 +3499,26 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 >
                   <Target className="w-3.5 h-3.5" />
                   <span>Focus on Start</span>
+                </button>
+              </div>
+            )}
+
+            {/* Floating Follow Mode Banner (Version 2) */}
+            {multiplayerState?.followedPeerId && multiplayerState.peers[multiplayerState.followedPeerId] && (
+              <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2.5 px-4 py-2 rounded-full bg-slate-900/95 text-white backdrop-blur-md border border-slate-700/80 shadow-2xl text-xs font-semibold select-none pointer-events-auto animate-in fade-in slide-in-from-bottom-2">
+                <span
+                  className="w-2.5 h-2.5 rounded-full animate-ping"
+                  style={{ backgroundColor: multiplayerState.peers[multiplayerState.followedPeerId].color }}
+                />
+                <span>
+                  Following <strong style={{ color: multiplayerState.peers[multiplayerState.followedPeerId].color }}>{multiplayerState.peers[multiplayerState.followedPeerId].name}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={onStopFollowPeer}
+                  className="ml-2 px-2.5 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-medium transition-colors cursor-pointer"
+                >
+                  Stop Following
                 </button>
               </div>
             )}
@@ -4145,9 +4221,71 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
 
             {/* Body */}
             <div className="p-6 space-y-4">
+              {/* Multiplayer Collaboration Mode Toggle */}
+              <div className="p-3 bg-purple-50/80 rounded-xl border border-purple-200 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center">
+                    <Radio className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-purple-950 flex items-center gap-1.5">
+                      <span>Multiplayer Collaboration (v2)</span>
+                      {multiplayerState?.isEnabled && (
+                        <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-extrabold">LIVE</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-purple-700">Real-time live cursors &amp; Follow Mode</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onToggleMultiplayer?.()}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    multiplayerState?.isEnabled
+                      ? 'bg-purple-600 text-white shadow-xs'
+                      : 'bg-white text-purple-700 border border-purple-200 hover:bg-purple-100'
+                  }`}
+                >
+                  {multiplayerState?.isEnabled ? 'Enabled' : 'Enable'}
+                </button>
+              </div>
+
+              {/* Room ID and User Display Name settings */}
+              {multiplayerState?.isEnabled && (
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Room Code
+                    </label>
+                    <input
+                      type="text"
+                      value={multiplayerState.roomId}
+                      onChange={(e) => onSetRoomId?.(e.target.value)}
+                      placeholder="e.g. daily-room"
+                      className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-mono text-slate-800 focus:outline-hidden focus:border-purple-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1 flex items-center justify-between">
+                      <span>Your Name</span>
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: multiplayerState.currentUser.color }} />
+                    </label>
+                    <input
+                      type="text"
+                      value={multiplayerState.currentUser.name}
+                      onChange={(e) => onUpdateCurrentUserName?.(e.target.value)}
+                      placeholder="Your name"
+                      className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-hidden focus:border-purple-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Shareable Link Input */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Public View-Only Link
+                  {multiplayerState?.isEnabled ? 'Multiplayer Invite Link' : 'Public View-Only Link'}
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -4174,10 +4312,42 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 </div>
               </div>
 
-              <div className="p-3.5 bg-purple-50/80 rounded-xl border border-purple-200 flex items-start gap-2.5 text-xs text-purple-900">
-                <Lock className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+              {/* Active Collaborators List in Room */}
+              {multiplayerState?.isEnabled && (
+                <div className="pt-1">
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1.5 flex items-center gap-1.5">
+                    <Users className="w-3 h-3 text-slate-500" />
+                    <span>Active Collaborators ({Object.keys(multiplayerState.peers).length + 1}):</span>
+                  </label>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {/* Self */}
+                    <div
+                      style={{ borderColor: multiplayerState.currentUser.color }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 border text-[11px] font-semibold text-slate-800"
+                    >
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: multiplayerState.currentUser.color }} />
+                      <span>{multiplayerState.currentUser.name} (You)</span>
+                    </div>
+
+                    {/* Remote Peers */}
+                    {Object.values(multiplayerState.peers).map((peer) => (
+                      <div
+                        key={peer.peerId}
+                        style={{ borderColor: peer.color }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 border text-[11px] font-semibold text-slate-800"
+                      >
+                        <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: peer.color }} />
+                        <span>{peer.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-start gap-2.5 text-xs text-slate-600">
+                <Lock className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
                 <div className="leading-relaxed">
-                  <strong>Secure &amp; Interactive:</strong> Anyone with the link can explore diagrams in read-only mode without modifying structure. Interactive features like <strong>Zoom, Pan, Tab Switching, Mockup Hover Previews, and Flow Simulation</strong> remain fully functional!
+                  <strong>Figma &amp; Miro Style:</strong> Open this link in another tab or send it to your team. Everyone in the room will see each other's live cursors and can click any user's avatar to follow their camera in real-time!
                 </div>
               </div>
             </div>

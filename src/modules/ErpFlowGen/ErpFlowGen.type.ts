@@ -208,6 +208,31 @@ export type ShareModalData = {
   isOpen: boolean;
   shareUrl: string;
   isCopied: boolean;
+  isMultiplayer?: boolean;
+  activeRoomId?: string;
+};
+
+export type PeerPresence = {
+  peerId: string;
+  name: string;
+  color: string;
+  avatar?: string;
+  cursor: { x: number; y: number } | null;
+  activeTabId: string;
+  selectedNodeId?: string;
+  lastActive: number;
+};
+
+export type MultiplayerState = {
+  isEnabled: boolean;
+  roomId: string;
+  currentUser: {
+    peerId: string;
+    name: string;
+    color: string;
+  };
+  peers: Record<string, PeerPresence>;
+  followedPeerId?: string;
 };
 
 export type FlowRunnerState = {
@@ -472,4 +497,10 @@ export type ErpFlowGenComponentProps = {
   onUpdateEdgeLabel: (edgeId: string, label: string) => void;
   onUpdateEdgeColor: (edgeId: string, color: string) => void;
   onResetEdgeAnchors?: (edgeId: string) => void;
+  multiplayerState: MultiplayerState;
+  onToggleMultiplayer: (enabled?: boolean) => void;
+  onSetRoomId: (roomId: string) => void;
+  onUpdateCurrentUserName: (name: string) => void;
+  onStartFollowPeer: (peerId: string) => void;
+  onStopFollowPeer: () => void;
 };

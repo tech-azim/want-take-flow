@@ -593,6 +593,7 @@ function handleGatewayStart(args) {
   }
 
   let sseClients = [];
+  let multiplayerClients = [];
 
   const broadcastDiagramUpdate = (payload) => {
     const dataStr = `data: ${JSON.stringify({ type: 'DIAGRAM_UPDATE', payload })}\n\n`;
@@ -632,6 +633,45 @@ function handleGatewayStart(args) {
       sseClients.push(res);
       req.on('close', () => {
         sseClients = sseClients.filter((c) => c !== res);
+      });
+      return;
+    }
+
+    // Multiplayer real-time relay for Cross-Context / Incognito synchronization
+    if (pathname === '/api/multiplayer/events') {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+      });
+      res.write(': connected\n\n');
+      multiplayerClients.push(res);
+      req.on('close', () => {
+        multiplayerClients = multiplayerClients.filter((c) => c !== res);
+      });
+      return;
+    }
+
+    if (pathname === '/api/multiplayer/message' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const dataStr = `data: ${body}\n\n`;
+          multiplayerClients = multiplayerClients.filter((client) => {
+            try {
+              client.write(dataStr);
+              return true;
+            } catch (_) {
+              return false;
+            }
+          });
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true }));
+        } catch (err) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err.message }));
+        }
       });
       return;
     }

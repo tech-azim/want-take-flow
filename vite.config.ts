@@ -56,6 +56,50 @@ function wtfDevGatewayPlugin() {
           return;
         }
 
+        // Multiplayer real-time relay for Cross-Context / Incognito synchronization
+        if (url.pathname === '/api/multiplayer/events') {
+          res.setHeader('Content-Type', 'text/event-stream');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.setHeader('Connection', 'keep-alive');
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.write(': connected\n\n');
+          if (!server._multiplayerClients) {
+            server._multiplayerClients = [];
+          }
+          server._multiplayerClients.push(res);
+          req.on('close', () => {
+            if (server._multiplayerClients) {
+              server._multiplayerClients = server._multiplayerClients.filter((c: any) => c !== res);
+            }
+          });
+          return;
+        }
+
+        if (url.pathname === '/api/multiplayer/message' && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const dataStr = `data: ${body}\n\n`;
+              if (server._multiplayerClients) {
+                server._multiplayerClients.forEach((client: any) => {
+                  try {
+                    client.write(dataStr);
+                  } catch (_) {}
+                });
+              }
+              res.setHeader('Content-Type', 'application/json');
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              res.end(JSON.stringify({ ok: true }));
+            } catch (err: any) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: err.message }));
+            }
+          });
+          return;
+        }
+
         next();
       });
     },

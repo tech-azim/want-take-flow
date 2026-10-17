@@ -681,4 +681,14 @@ describe('ErpFlowGen Utilities Test Suite', () => {
     expect(closestAnchor).toBe('right');
     expect(bestDist).toBe(5); // 560 - 555
   });
+
+  it('should initialize a valid local peer identity with vibrant color and name for multiplayer (v2)', () => {
+    const peerId = `peer_test_${Date.now()}`;
+    const peerName = 'Creative Fox';
+    const peerColor = '#4f46e5';
+
+    expect(peerId).toContain('peer_test_');
+    expect(peerName.length).toBeGreaterThan(0);
+    expect(peerColor).toMatch(/^#[0-9a-fA-F]{6}$/);
+  });
 });

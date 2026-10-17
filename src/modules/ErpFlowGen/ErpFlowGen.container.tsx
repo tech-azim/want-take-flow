@@ -159,6 +159,12 @@ const ErpFlowGenContainer = (): React.ReactElement => {
     handleUpdateEdgeLabel,
     handleUpdateEdgeColor,
     handleResetEdgeAnchors,
+    multiplayerState,
+    onToggleMultiplayer,
+    onSetRoomId,
+    onUpdateCurrentUserName,
+    onStartFollowPeer,
+    onStopFollowPeer,
   } = useErpFlowGen();
 
   return (
@@ -312,6 +318,12 @@ const ErpFlowGenContainer = (): React.ReactElement => {
       onUpdateEdgeLabel={handleUpdateEdgeLabel}
       onUpdateEdgeColor={handleUpdateEdgeColor}
       onResetEdgeAnchors={handleResetEdgeAnchors}
+      multiplayerState={multiplayerState}
+      onToggleMultiplayer={onToggleMultiplayer}
+      onSetRoomId={onSetRoomId}
+      onUpdateCurrentUserName={onUpdateCurrentUserName}
+      onStartFollowPeer={onStartFollowPeer}
+      onStopFollowPeer={onStopFollowPeer}
     />
   );
 };
