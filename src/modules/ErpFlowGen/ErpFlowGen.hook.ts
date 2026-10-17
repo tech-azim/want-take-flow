@@ -55,6 +55,8 @@ import {
   _downloadJsonFile,
   _sanitizeTab,
 } from './ErpFlowGen.utils';
+import { joinRoom } from 'trystero';
+import { DEFAULT_DAILY_APP_TABS } from './ErpFlowGen.defaultFlow';
 
 const STORAGE_KEY = 'erp_flowgen_tabs_v7';
 const ACTIVE_TAB_KEY = 'erp_flowgen_active_tab_id_v7';
@@ -73,6 +75,10 @@ const _loadPersistedTabs = (): FlowProjectTab[] => {
     }
   } catch (err) {
     console.warn('Failed reading localStorage tabs:', err);
+  }
+  // Default to full Daily App flowchart project
+  if (DEFAULT_DAILY_APP_TABS && DEFAULT_DAILY_APP_TABS.length > 0) {
+    return DEFAULT_DAILY_APP_TABS.map(_sanitizeTab);
   }
   return [
     createInitialProject('userflow', 'Amazon Book Order'),
@@ -386,11 +392,16 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       })
       .catch(() => {});
 
-    // 2. Real-time Server-Sent Events (SSE) listener
+    // 2. Real-time Server-Sent Events (SSE) listener (localhost dev only)
     if (!window.EventSource) return;
     let eventSource: EventSource | null = null;
-    try {
-      eventSource = new EventSource('/api/events');
+    const isLocalhost =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+    if (isLocalhost) {
+      try {
+        eventSource = new EventSource('/api/events');
       eventSource.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
@@ -421,6 +432,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         } catch (_) {}
       };
     } catch (_) {}
+  }
 
     return () => {
       if (eventSource) eventSource.close();
@@ -3705,19 +3717,44 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       }
     } catch (_) {}
 
-    // Dual-channel broadcast function (local BroadcastChannel + HTTP server relay for Incognito/Cross-context)
+    // WebRTC Serverless P2P Room (Works on Vercel, static hosting, and across the internet)
+    let trysteroRoom: any = null;
+    let trysteroAction: any = null;
+    try {
+      if (typeof window !== 'undefined' && typeof (window as any).RTCPeerConnection !== 'undefined') {
+        const appId = 'wtf-lamankilat-collab-v2';
+        trysteroRoom = joinRoom({ appId }, multiplayerState.roomId);
+        trysteroAction = trysteroRoom.makeAction('collab');
+      }
+    } catch (err) {
+      console.warn('WebRTC room initialization error:', err);
+    }
+
+    // Unified broadcast function (WebRTC DataChannel + BroadcastChannel + localhost dev server)
     const broadcastMessage = (msg: Record<string, any>) => {
+      // 1. BroadcastChannel (fast local tab-to-tab)
       try {
         channel?.postMessage(msg);
       } catch (_) {}
 
+      // 2. WebRTC P2P DataChannel (internet-wide cross-device multiplayer!)
       try {
-        fetch('/api/multiplayer/message', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(msg),
-        }).catch(() => {});
+        trysteroAction?.send(msg);
       } catch (_) {}
+
+      // 3. Local dev server relay (localhost only)
+      if (
+        typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ) {
+        try {
+          fetch('/api/multiplayer/message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(msg),
+          }).catch(() => {});
+        } catch (_) {}
+      }
     };
 
     // 1. Announce presence on join and request live document synchronization
@@ -3858,19 +3895,56 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       };
     }
 
-    // Connect to Server SSE Relay for Cross-Context / Incognito Sync
+    // WebRTC DataChannel message listener across the internet
+    if (trysteroAction) {
+      trysteroAction.onMessage = (data: any) => {
+        processIncomingMessage(data);
+      };
+    }
+
+    if (trysteroRoom) {
+      trysteroRoom.onPeerJoin = () => {
+        // Broadcast presence and current live document to the newly connected remote peer
+        broadcastMessage({
+          type: 'PRESENCE',
+          peerId: localUser.peerId,
+          name: localUser.name,
+          color: localUser.color,
+          activeTabId: activeTabIdRef.current,
+          selectedNodeId: selectedNodeIdRef.current,
+          lastActive: Date.now(),
+        });
+        if (tabsRef.current && tabsRef.current.length > 0) {
+          broadcastMessage({
+            type: 'SYNC_DOCUMENT',
+            peerId: localUser.peerId,
+            tabs: tabsRef.current,
+            activeTabId: activeTabIdRef.current,
+            updatedAt: Date.now(),
+          });
+        }
+      };
+    }
+
+    // Connect to Server SSE Relay only on localhost (dev server) to prevent 404 retries on Vercel
     let eventSource: EventSource | null = null;
-    try {
-      if (typeof window.EventSource !== 'undefined') {
-        eventSource = new EventSource('/api/multiplayer/events');
-        eventSource.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            processIncomingMessage(data);
-          } catch (_) {}
-        };
-      }
-    } catch (_) {}
+    const isLocalhostHost =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+    if (isLocalhostHost) {
+      try {
+        if (typeof window.EventSource !== 'undefined') {
+          eventSource = new EventSource('/api/multiplayer/events');
+          eventSource.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              processIncomingMessage(data);
+            } catch (_) {}
+          };
+        }
+      } catch (_) {}
+    }
 
     // 3. Heartbeat & Dead Peer Pruning
     const heartbeatInterval = setInterval(() => {
@@ -3891,7 +3965,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         let hasExpired = false;
         const nextPeers = { ...prev.peers };
         Object.keys(nextPeers).forEach((id) => {
-          if (now - nextPeers[id].lastActive > 5000) {
+          if (now - nextPeers[id].lastActive > 6000) {
             delete nextPeers[id];
             hasExpired = true;
           }
@@ -3963,6 +4037,9 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       clearInterval(pruneInterval);
       window.removeEventListener('mousemove', handleWindowMouseMove);
       document.removeEventListener('mouseleave', handleWindowMouseLeave);
+      try {
+        trysteroRoom?.leave();
+      } catch (_) {}
       if (eventSource) {
         eventSource.close();
       }
