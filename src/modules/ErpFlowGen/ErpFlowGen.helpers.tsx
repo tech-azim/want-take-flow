@@ -93,26 +93,28 @@ export const _renderConnectingPath = (
   sourceNode: FlowNode,
   currentMouse: Position,
   sourceAnchor?: 'top' | 'bottom' | 'left' | 'right',
+  candidateTargetNode?: FlowNode,
+  candidateTargetAnchor?: 'top' | 'bottom' | 'left' | 'right',
 ): React.ReactElement => {
-  const dims = _getNodeDimensions(sourceNode);
-  const ports = {
-    top: { x: sourceNode.position.x + dims.width / 2, y: sourceNode.position.y },
-    bottom: { x: sourceNode.position.x + dims.width / 2, y: sourceNode.position.y + dims.height },
-    left: { x: sourceNode.position.x, y: sourceNode.position.y + dims.height / 2 },
-    right: { x: sourceNode.position.x + dims.width, y: sourceNode.position.y + dims.height / 2 },
+  const sourceDims = _getNodeDimensions(sourceNode);
+  const sourcePorts = {
+    top: { x: sourceNode.position.x + sourceDims.width / 2, y: sourceNode.position.y },
+    bottom: { x: sourceNode.position.x + sourceDims.width / 2, y: sourceNode.position.y + sourceDims.height },
+    left: { x: sourceNode.position.x, y: sourceNode.position.y + sourceDims.height / 2 },
+    right: { x: sourceNode.position.x + sourceDims.width, y: sourceNode.position.y + sourceDims.height / 2 },
   };
 
   let startX: number;
   let startY: number;
 
-  if (sourceAnchor && ports[sourceAnchor]) {
-    startX = ports[sourceAnchor].x;
-    startY = ports[sourceAnchor].y;
+  if (sourceAnchor && sourcePorts[sourceAnchor]) {
+    startX = sourcePorts[sourceAnchor].x;
+    startY = sourcePorts[sourceAnchor].y;
   } else {
     let bestDist = Infinity;
-    startX = ports.bottom.x;
-    startY = ports.bottom.y;
-    Object.values(ports).forEach((p) => {
+    startX = sourcePorts.bottom.x;
+    startY = sourcePorts.bottom.y;
+    Object.values(sourcePorts).forEach((p) => {
       const d = Math.hypot(p.x - currentMouse.x, p.y - currentMouse.y);
       if (d < bestDist) {
         bestDist = d;
@@ -122,20 +124,80 @@ export const _renderConnectingPath = (
     });
   }
 
-  const pathD = `M ${startX} ${startY} L ${currentMouse.x} ${currentMouse.y}`;
+  let endX = currentMouse.x;
+  let endY = currentMouse.y;
+
+  if (candidateTargetNode && candidateTargetAnchor) {
+    const targetDims = _getNodeDimensions(candidateTargetNode);
+    const targetPorts = {
+      top: { x: candidateTargetNode.position.x + targetDims.width / 2, y: candidateTargetNode.position.y },
+      bottom: { x: candidateTargetNode.position.x + targetDims.width / 2, y: candidateTargetNode.position.y + targetDims.height },
+      left: { x: candidateTargetNode.position.x, y: candidateTargetNode.position.y + targetDims.height / 2 },
+      right: { x: candidateTargetNode.position.x + targetDims.width, y: candidateTargetNode.position.y + targetDims.height / 2 },
+    };
+    if (targetPorts[candidateTargetAnchor]) {
+      endX = targetPorts[candidateTargetAnchor].x;
+      endY = targetPorts[candidateTargetAnchor].y;
+    }
+  }
+
+  const dx = endX - startX;
+  const dy = endY - startY;
+  const curvature = Math.max(40, Math.min(160, Math.hypot(dx, dy) * 0.4));
+
+  let cx1 = startX;
+  let cy1 = startY;
+  if (sourceAnchor === 'right') {
+    cx1 = startX + curvature;
+  } else if (sourceAnchor === 'left') {
+    cx1 = startX - curvature;
+  } else if (sourceAnchor === 'top') {
+    cy1 = startY - curvature;
+  } else if (sourceAnchor === 'bottom') {
+    cy1 = startY + curvature;
+  } else {
+    cx1 = startX + dx * 0.4;
+    cy1 = startY + dy * 0.1;
+  }
+
+  let cx2 = endX;
+  let cy2 = endY;
+  if (candidateTargetAnchor === 'right') {
+    cx2 = endX + curvature;
+  } else if (candidateTargetAnchor === 'left') {
+    cx2 = endX - curvature;
+  } else if (candidateTargetAnchor === 'top') {
+    cy2 = endY - curvature;
+  } else if (candidateTargetAnchor === 'bottom') {
+    cy2 = endY + curvature;
+  } else {
+    cx2 = endX - dx * 0.4;
+    cy2 = endY - dy * 0.1;
+  }
+
+  const pathD = `M ${startX} ${startY} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${endX} ${endY}`;
 
   return (
     <g className="pointer-events-none">
+      {/* Outer soft glow line for high visibility */}
+      <path
+        d={pathD}
+        stroke="#818cf8"
+        strokeWidth={7}
+        strokeOpacity={0.35}
+        fill="none"
+      />
+      {/* Primary visible dashed connecting path */}
       <path
         d={pathD}
         stroke="#4f46e5"
         strokeWidth={3}
         strokeDasharray="6 4"
         fill="none"
-        markerEnd="url(#erp-arrow-marker)"
+        markerEnd="url(#erp-arrow-marker-indigo)"
       />
-      <circle cx={startX} cy={startY} r={5} fill="#4f46e5" />
-      <circle cx={currentMouse.x} cy={currentMouse.y} r={5} fill="#4f46e5" />
+      <circle cx={startX} cy={startY} r={5} fill="#4f46e5" stroke="#ffffff" strokeWidth={2} />
+      <circle cx={endX} cy={endY} r={6} fill="#4f46e5" stroke="#ffffff" strokeWidth={2} className="animate-pulse" />
     </g>
   );
 };

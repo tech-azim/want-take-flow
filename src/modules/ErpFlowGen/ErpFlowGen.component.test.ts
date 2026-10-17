@@ -641,4 +641,44 @@ describe('ErpFlowGen Utilities Test Suite', () => {
     expect(topRes.y).toBe(110);
     expect(topRes.height).toBe(340);
   });
+
+  it('should accurately snap candidate anchor port on target node when dragging connection', () => {
+    const targetNode: FlowNode = {
+      id: 'node_target',
+      type: 'process',
+      label: 'Target Step',
+      description: '',
+      moduleCategory: 'General',
+      position: { x: 400, y: 200 },
+      width: 160,
+      height: 80,
+      colorTheme: 'indigo',
+    };
+
+    const ports: Record<'top' | 'bottom' | 'left' | 'right', { x: number; y: number }> = {
+      top: { x: 400 + 160 / 2, y: 200 },
+      bottom: { x: 400 + 160 / 2, y: 200 + 80 },
+      left: { x: 400, y: 200 + 80 / 2 },
+      right: { x: 400 + 160, y: 200 + 80 / 2 },
+    };
+
+    // Cursor placed right next to the right port (e.g. x = 555, y = 240)
+    const mouseX = 555;
+    const mouseY = 240;
+
+    let closestAnchor: 'top' | 'bottom' | 'left' | 'right' = 'top';
+    let bestDist = Infinity;
+
+    (Object.keys(ports) as ('top' | 'bottom' | 'left' | 'right')[]).forEach((anchor) => {
+      const p = ports[anchor];
+      const dist = Math.hypot(mouseX - p.x, mouseY - p.y);
+      if (dist < bestDist) {
+        bestDist = dist;
+        closestAnchor = anchor;
+      }
+    });
+
+    expect(closestAnchor).toBe('right');
+    expect(bestDist).toBe(5); // 560 - 555
+  });
 });

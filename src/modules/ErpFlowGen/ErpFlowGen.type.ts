@@ -141,6 +141,7 @@ export type ConnectingState = {
   sourceAnchor?: 'top' | 'bottom' | 'left' | 'right';
   currentMousePosition: Position;
   candidateTargetNodeId?: string;
+  candidateTargetAnchor?: 'top' | 'bottom' | 'left' | 'right';
 };
 
 export type EdgeEndpointDragState = {

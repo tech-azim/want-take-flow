@@ -252,13 +252,14 @@ type CanvasNodeProps = {
   onStartDrag: (event: React.MouseEvent<HTMLDivElement>, nodeId: string) => void;
   onStartResize?: (event: React.MouseEvent, nodeId: string, mode?: 'both' | 'horizontal' | 'vertical') => void;
   onStartConnection?: (event: React.MouseEvent, nodeId: string, sourceAnchor?: 'top' | 'bottom' | 'left' | 'right') => void;
-  onCompleteConnect: (nodeId: string) => void;
+  onCompleteConnect: (nodeId: string, targetAnchor?: 'top' | 'bottom' | 'left' | 'right') => void;
   onOpenAddModal: (nodeId: string, direction: 'right' | 'bottom', defaultEdgeLabel?: string) => void;
   onToggleDecisionSwap?: (nodeId: string) => void;
   flowType?: FlowchartProjectType;
   isViewOnly?: boolean;
   isRunnerActive?: boolean;
   isConnectingCandidate?: boolean;
+  connectingCandidateAnchor?: 'top' | 'bottom' | 'left' | 'right';
   onMouseEnter?: (nodeId: string) => void;
   onMouseLeave?: () => void;
   onOpenCreateKanbanTask?: (defaultStatus?: KanbanTaskStatus, defaultSourceNodeId?: string) => void;
@@ -288,6 +289,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
     isViewOnly,
     isRunnerActive,
     isConnectingCandidate,
+    connectingCandidateAnchor,
     onMouseEnter,
     onMouseLeave,
     onOpenCreateKanbanTask,
@@ -369,7 +371,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
 
   const _handleMouseUp = (): void => {
     if (isViewOnly) return;
-    onCompleteConnect(node.id);
+    onCompleteConnect(node.id, isConnectingCandidate ? connectingCandidateAnchor : undefined);
   };
 
   const nodePositionStyle: React.CSSProperties = {
@@ -462,14 +464,21 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
   const _renderConsistentPlusButtons = (): React.ReactElement => {
     const isPortVisible = isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100';
     const isEndpointDragging = Boolean(edgeEndpointDragState?.isDragging);
-    const isCandidateNode = isEndpointDragging && edgeEndpointDragState?.candidateNodeId === node.id;
-    const candidateAnchor = isCandidateNode ? edgeEndpointDragState?.candidateAnchor : undefined;
+    const isCandidateNode =
+      (isEndpointDragging && edgeEndpointDragState?.candidateNodeId === node.id) ||
+      Boolean(isConnectingCandidate);
+    const candidateAnchor =
+      isEndpointDragging && edgeEndpointDragState?.candidateNodeId === node.id
+        ? edgeEndpointDragState?.candidateAnchor
+        : isConnectingCandidate
+          ? connectingCandidateAnchor
+          : undefined;
 
     return (
       <>
         {_renderScreenBadge()}
 
-        {/* Magnetic Snap Target Indicator when dragging an edge endpoint onto this node */}
+        {/* Magnetic Snap Target Indicator when dragging a connection or edge endpoint onto this node */}
         {isCandidateNode && candidateAnchor && (
           <>
             <div
@@ -507,6 +516,10 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
                 e.stopPropagation();
                 onStartConnection?.(e, node.id, 'top');
               }}
+              onMouseUp={(e) => {
+                e.stopPropagation();
+                onCompleteConnect(node.id, 'top');
+              }}
               className={`absolute -top-3.5 left-1/2 -translate-x-1/2 w-7 h-7 flex items-center justify-center cursor-crosshair z-50 ${isPortVisible} pointer-events-auto`}
             >
               <div className="w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-125 transition-all flex items-center justify-center pointer-events-none">
@@ -521,6 +534,10 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
                 e.preventDefault();
                 e.stopPropagation();
                 onStartConnection?.(e, node.id, 'left');
+              }}
+              onMouseUp={(e) => {
+                e.stopPropagation();
+                onCompleteConnect(node.id, 'left');
               }}
               className={`absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center cursor-crosshair z-50 ${isPortVisible} pointer-events-auto`}
             >
@@ -537,6 +554,10 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
                 e.stopPropagation();
                 onStartConnection?.(e, node.id, 'right');
               }}
+              onMouseUp={(e) => {
+                e.stopPropagation();
+                onCompleteConnect(node.id, 'right');
+              }}
               className={`absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center cursor-crosshair z-50 ${isPortVisible} pointer-events-auto`}
             >
               <div className="w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-125 transition-all flex items-center justify-center pointer-events-none">
@@ -551,6 +572,10 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
                 e.preventDefault();
                 e.stopPropagation();
                 onStartConnection?.(e, node.id, 'bottom');
+              }}
+              onMouseUp={(e) => {
+                e.stopPropagation();
+                onCompleteConnect(node.id, 'bottom');
               }}
               className={`absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 flex items-center justify-center cursor-crosshair z-50 ${isPortVisible} pointer-events-auto`}
             >
@@ -2221,9 +2246,9 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
         {/* Left Section: Logo, Title, Tab Stats, and Undo / Redo */}
         <div className="flex items-center gap-2.5 min-w-0 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-slate-950 border border-slate-800 p-1 flex items-center justify-center shadow-xs shrink-0 hover:scale-105 transition-all">
+            <div className="w-10 h-10 rounded-xl  p-1 flex items-center justify-center shrink-0 hover:scale-105 transition-all">
               <img
-                src="/favicon.svg"
+                src="/logo.png"
                 alt="Want Take Flow Logo"
                 className="w-full h-full object-contain select-none"
               />
@@ -3192,6 +3217,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     isViewOnly={isViewOnly}
                     isRunnerActive={flowRunner.isRunning && flowRunner.currentNodeId === node.id}
                     isConnectingCandidate={connectingState.isConnecting && connectingState.candidateTargetNodeId === node.id}
+                    connectingCandidateAnchor={connectingState.isConnecting && connectingState.candidateTargetNodeId === node.id ? connectingState.candidateTargetAnchor : undefined}
                     onMouseEnter={onNodeMouseEnter}
                     onMouseLeave={onNodeMouseLeave}
                     onOpenCreateKanbanTask={onOpenCreateKanbanTask}
@@ -3201,181 +3227,207 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     edgeEndpointDragState={edgeEndpointDragState}
                   />
                 ))}
-
-                {/* High-Priority Interactive Top Layer for Handles & Live Connection (z-35, always above node cards) */}
-                <svg className={`absolute inset-0 w-full h-full pointer-events-none overflow-visible ${connectingState.isConnecting ? 'z-50' : 'z-35'}`}>
-                  {connectingState.isConnecting ? (
-                    (() => {
-                      const src = nodes.find((n) => n.id === connectingState.sourceNodeId);
-                      return src
-                        ? _renderConnectingPath(src, connectingState.currentMousePosition, connectingState.sourceAnchor)
-                        : null;
-                    })()
-                  ) : null}
-
-                  {/* Live Visual Drag Path when dragging an edge endpoint */}
-                  {edgeEndpointDragState?.isDragging && edgeEndpointDragState.edgeId ? (
-                    (() => {
-                      const draggingEdge = edges.find((e) => e.id === edgeEndpointDragState.edgeId);
-                      if (!draggingEdge) return null;
-                      const fixedNodeId =
-                        edgeEndpointDragState.endpointType === 'target'
-                          ? draggingEdge.sourceNodeId
-                          : draggingEdge.targetNodeId;
-                      const fixedNode = nodes.find((n) => n.id === fixedNodeId);
-                      if (!fixedNode) return null;
-                      const rawAnchor =
-                        edgeEndpointDragState.endpointType === 'target'
-                          ? draggingEdge.sourceAnchor
-                          : draggingEdge.targetAnchor;
-                      const sanitizedAnchor =
-                        rawAnchor && rawAnchor !== 'auto' ? rawAnchor : undefined;
-                      return _renderConnectingPath(
-                        fixedNode,
-                        edgeEndpointDragState.currentPos,
-                        sanitizedAnchor,
-                      );
-                    })()
-                  ) : null}
-
-                  {/* Render top-layer interactive endpoint & waypoint handles for selected or hovered edges */}
-                  {!connectingState.isConnecting ? (
-                    (() => {
-                      const activeEdgeIds = Array.from(
-                        new Set(
-                          [selectedEdgeId, hoveredEdgeId, edgeEndpointDragState?.edgeId].filter(
-                            Boolean,
-                          ) as string[],
-                        ),
-                      );
-                      return activeEdgeIds.map((edgeId) => {
-                        const activeEdge = edges.find((e) => e.id === edgeId);
-                        if (!activeEdge) return null;
-                        return _renderEdgeCurve(
-                          activeEdge,
-                          nodes,
-                          selectedEdgeId === activeEdge.id,
-                          onSelectEdge,
-                          _onOpenEditEdgeModal,
-                          onDeleteEdgeById,
-                          connectorStyle,
-                          onStartEdgeWaypointDrag,
-                          onResetEdgeWaypoint,
-                          onSetEdgeTargetAnchor,
-                          onStartEdgeEndpointDrag,
-                          edgeEndpointDragState,
-                          onUpdateEdgeLabel,
-                          setActiveEdgeLabelToolbarId,
-                          setHoveredEdgeId,
-                        );
-                      });
-                    })()
-                  ) : null}
-                </svg>
-
-                {/* Floating Screen Preview Popover - Only in Preview / View-Only Mode */}
-                {(() => {
-                  if (!isViewOnly) return null;
-
-                  const activeHoverNodeId =
-                    flowRunner.isRunning && flowRunner.currentNodeId
-                      ? flowRunner.currentNodeId
-                      : hoveredNodeId;
-                  if (!activeHoverNodeId) return null;
-                  const hoverNode = nodes.find((n) => n.id === activeHoverNodeId);
-                  if (!hoverNode || !hoverNode.previewImageUrl) return null;
-
-                  const nodeDim = _getNodeDimensions(hoverNode);
-                  const popoverLeft = hoverNode.position.x + nodeDim.width + 16;
-                  const popoverTop = Math.max(10, hoverNode.position.y - 20);
-
-                  return (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        left: `${popoverLeft}px`,
-                        top: `${popoverTop}px`,
-                      }}
-                      className="z-50 max-w-sm sm:max-w-md rounded-2xl bg-slate-950/95 backdrop-blur-md border border-slate-700/80 shadow-2xl p-1.5 animate-in fade-in zoom-in-95 duration-150 pointer-events-none select-none"
-                    >
-                      <img
-                        src={hoverNode.previewImageUrl}
-                        alt={hoverNode.previewImageCaption || hoverNode.label}
-                        className="w-full h-auto object-contain max-h-80 rounded-xl"
-                      />
-                    </div>
-                  );
-                })()}
               </div>
 
-              {/* Floating Color Toolbar for Selected Edge (Shown only when edge label text is clicked) */}
+              {/* High-Priority Interactive Top Layer for Handles & Live Connection (z-50 when connecting, z-35 normally) */}
+              <svg
+                className={`absolute inset-0 pointer-events-none overflow-visible ${connectingState.isConnecting ? 'z-50' : 'z-35'}`}
+                style={{ width: '100%', height: '100%', overflow: 'visible' }}
+              >
+                <defs>
+                  <marker
+                    id="erp-arrow-marker-indigo"
+                    markerWidth="10"
+                    markerHeight="8"
+                    refX="8.5"
+                    refY="4"
+                    orient="auto"
+                    markerUnits="userSpaceOnUse"
+                  >
+                    <polygon points="0 1, 8.5 4, 0 7" fill="#4f46e5" />
+                  </marker>
+                </defs>
+
+                {connectingState.isConnecting ? (
+                  (() => {
+                    const src = nodes.find((n) => n.id === connectingState.sourceNodeId);
+                    const targetNode = connectingState.candidateTargetNodeId
+                      ? nodes.find((n) => n.id === connectingState.candidateTargetNodeId)
+                      : undefined;
+                    return src
+                      ? _renderConnectingPath(
+                        src,
+                        connectingState.currentMousePosition,
+                        connectingState.sourceAnchor,
+                        targetNode,
+                        connectingState.candidateTargetAnchor,
+                      )
+                      : null;
+                  })()
+                ) : null}
+
+                {/* Live Visual Drag Path when dragging an edge endpoint */}
+                {edgeEndpointDragState?.isDragging && edgeEndpointDragState.edgeId ? (
+                  (() => {
+                    const draggingEdge = edges.find((e) => e.id === edgeEndpointDragState.edgeId);
+                    if (!draggingEdge) return null;
+                    const fixedNodeId =
+                      edgeEndpointDragState.endpointType === 'target'
+                        ? draggingEdge.sourceNodeId
+                        : draggingEdge.targetNodeId;
+                    const fixedNode = nodes.find((n) => n.id === fixedNodeId);
+                    if (!fixedNode) return null;
+                    const rawAnchor =
+                      edgeEndpointDragState.endpointType === 'target'
+                        ? draggingEdge.sourceAnchor
+                        : draggingEdge.targetAnchor;
+                    const sanitizedAnchor =
+                      rawAnchor && rawAnchor !== 'auto' ? rawAnchor : undefined;
+                    return _renderConnectingPath(
+                      fixedNode,
+                      edgeEndpointDragState.currentPos,
+                      sanitizedAnchor,
+                    );
+                  })()
+                ) : null}
+
+                {/* Render top-layer interactive endpoint & waypoint handles for selected or hovered edges */}
+                {!connectingState.isConnecting ? (
+                  (() => {
+                    const activeEdgeIds = Array.from(
+                      new Set(
+                        [selectedEdgeId, hoveredEdgeId, edgeEndpointDragState?.edgeId].filter(
+                          Boolean,
+                        ) as string[],
+                      ),
+                    );
+                    return activeEdgeIds.map((edgeId) => {
+                      const activeEdge = edges.find((e) => e.id === edgeId);
+                      if (!activeEdge) return null;
+                      return _renderEdgeCurve(
+                        activeEdge,
+                        nodes,
+                        selectedEdgeId === activeEdge.id,
+                        onSelectEdge,
+                        _onOpenEditEdgeModal,
+                        onDeleteEdgeById,
+                        connectorStyle,
+                        onStartEdgeWaypointDrag,
+                        onResetEdgeWaypoint,
+                        onSetEdgeTargetAnchor,
+                        onStartEdgeEndpointDrag,
+                        edgeEndpointDragState,
+                        onUpdateEdgeLabel,
+                        setActiveEdgeLabelToolbarId,
+                        setHoveredEdgeId,
+                      );
+                    });
+                  })()
+                ) : null}
+              </svg>
+
+              {/* Floating Screen Preview Popover - Only in Preview / View-Only Mode */}
               {(() => {
-                if (!selectedEdgeId || isViewOnly || activeEdgeLabelToolbarId !== selectedEdgeId) return null;
-                const edge = edges.find((e) => e.id === selectedEdgeId);
-                if (!edge) return null;
-                const src = nodes.find((n) => n.id === edge.sourceNodeId);
-                const tgt = nodes.find((n) => n.id === edge.targetNodeId);
-                if (!src || !tgt) return null;
-                const geom = _calculateEdgePath(src, tgt, connectorStyle, edge.waypointOffset, edge.sourceAnchor, edge.targetAnchor);
+                if (!isViewOnly) return null;
+
+                const activeHoverNodeId =
+                  flowRunner.isRunning && flowRunner.currentNodeId
+                    ? flowRunner.currentNodeId
+                    : hoveredNodeId;
+                if (!activeHoverNodeId) return null;
+                const hoverNode = nodes.find((n) => n.id === activeHoverNodeId);
+                if (!hoverNode || !hoverNode.previewImageUrl) return null;
+
+                const nodeDim = _getNodeDimensions(hoverNode);
+                const popoverLeft = hoverNode.position.x + nodeDim.width + 16;
+                const popoverTop = Math.max(10, hoverNode.position.y - 20);
 
                 return (
                   <div
                     style={{
                       position: 'absolute',
-                      left: `${geom.midX}px`,
-                      top: `${geom.midY - 40}px`,
-                      transform: 'translateX(-50%)',
+                      left: `${popoverLeft}px`,
+                      top: `${popoverTop}px`,
                     }}
-                    className="z-30 pointer-events-auto flex items-center justify-center bg-slate-900/95 backdrop-blur-md text-white px-2.5 py-1.5 rounded-full shadow-2xl border border-slate-700/80 text-[11px] select-none scale-95 hover:scale-100 transition-all animate-in fade-in zoom-in-95"
+                    className="z-50 max-w-sm sm:max-w-md rounded-2xl bg-slate-950/95 backdrop-blur-md border border-slate-700/80 shadow-2xl p-1.5 animate-in fade-in zoom-in-95 duration-150 pointer-events-none select-none"
                   >
-                    {/* Color Swatches Only */}
-                    <div className="flex items-center gap-1.5 px-0.5">
-                      {[
-                        { name: 'Indigo (Default)', color: '#4f46e5' },
-                        { name: 'Green', color: '#10b981' },
-                        { name: 'Red', color: '#f43f5e' },
-                        { name: 'Yellow', color: '#f59e0b' },
-                        { name: 'Purple', color: '#8b5cf6' },
-                        { name: 'Gray', color: '#64748b' },
-                      ].map((swatch) => {
-                        const isCurrentColor = (edge.color || '#4f46e5') === swatch.color;
-                        return (
-                          <button
-                            key={swatch.color}
-                            type="button"
-                            title={swatch.name}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onUpdateEdgeColor(edge.id, swatch.color);
-                            }}
-                            className={`w-4 h-4 rounded-full transition-transform cursor-pointer flex items-center justify-center ${isCurrentColor
-                              ? 'scale-125 ring-2 ring-white ring-offset-1 ring-offset-slate-900 shadow-xs'
-                              : 'hover:scale-110 opacity-75 hover:opacity-100'
-                              }`}
-                            style={{ backgroundColor: swatch.color }}
-                          />
-                        );
-                      })}
-                    </div>
-
-                    {/* Divider & Delete Edge Button */}
-                    <div className="h-3 w-px bg-slate-700 mx-1 shrink-0" />
-                    <button
-                      type="button"
-                      title="Delete Connection Line"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteEdgeById(edge.id);
-                        setActiveEdgeLabelToolbarId(null);
-                      }}
-                      className="w-5 h-5 rounded-full hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                    <img
+                      src={hoverNode.previewImageUrl}
+                      alt={hoverNode.previewImageCaption || hoverNode.label}
+                      className="w-full h-auto object-contain max-h-80 rounded-xl"
+                    />
                   </div>
                 );
               })()}
             </div>
+
+            {/* Floating Color Toolbar for Selected Edge (Shown only when edge label text is clicked) */}
+            {(() => {
+              if (!selectedEdgeId || isViewOnly || activeEdgeLabelToolbarId !== selectedEdgeId) return null;
+              const edge = edges.find((e) => e.id === selectedEdgeId);
+              if (!edge) return null;
+              const src = nodes.find((n) => n.id === edge.sourceNodeId);
+              const tgt = nodes.find((n) => n.id === edge.targetNodeId);
+              if (!src || !tgt) return null;
+              const geom = _calculateEdgePath(src, tgt, connectorStyle, edge.waypointOffset, edge.sourceAnchor, edge.targetAnchor);
+
+              return (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${geom.midX}px`,
+                    top: `${geom.midY - 40}px`,
+                    transform: 'translateX(-50%)',
+                  }}
+                  className="z-30 pointer-events-auto flex items-center justify-center bg-slate-900/95 backdrop-blur-md text-white px-2.5 py-1.5 rounded-full shadow-2xl border border-slate-700/80 text-[11px] select-none scale-95 hover:scale-100 transition-all animate-in fade-in zoom-in-95"
+                >
+                  {/* Color Swatches Only */}
+                  <div className="flex items-center gap-1.5 px-0.5">
+                    {[
+                      { name: 'Indigo (Default)', color: '#4f46e5' },
+                      { name: 'Green', color: '#10b981' },
+                      { name: 'Red', color: '#f43f5e' },
+                      { name: 'Yellow', color: '#f59e0b' },
+                      { name: 'Purple', color: '#8b5cf6' },
+                      { name: 'Gray', color: '#64748b' },
+                    ].map((swatch) => {
+                      const isCurrentColor = (edge.color || '#4f46e5') === swatch.color;
+                      return (
+                        <button
+                          key={swatch.color}
+                          type="button"
+                          title={swatch.name}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateEdgeColor(edge.id, swatch.color);
+                          }}
+                          className={`w-4 h-4 rounded-full transition-transform cursor-pointer flex items-center justify-center ${isCurrentColor
+                            ? 'scale-125 ring-2 ring-white ring-offset-1 ring-offset-slate-900 shadow-xs'
+                            : 'hover:scale-110 opacity-75 hover:opacity-100'
+                            }`}
+                          style={{ backgroundColor: swatch.color }}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Divider & Delete Edge Button */}
+                  <div className="h-3 w-px bg-slate-700 mx-1 shrink-0" />
+                  <button
+                    type="button"
+                    title="Delete Connection Line"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteEdgeById(edge.id);
+                      setActiveEdgeLabelToolbarId(null);
+                    }}
+                    className="w-5 h-5 rounded-full hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              );
+            })()}
 
             {/* Floating Auto-Focus Notification when user is dragged far from diagram */}
             {isFarFromStart && (

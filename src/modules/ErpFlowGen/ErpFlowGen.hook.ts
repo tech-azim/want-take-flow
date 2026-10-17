@@ -2519,6 +2519,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   const handleStartConnection = useCallback(
     (event: React.MouseEvent, nodeId: string, sourceAnchor?: 'top' | 'bottom' | 'left' | 'right'): void => {
       if (isViewOnly) return;
+      event.preventDefault();
       event.stopPropagation();
       const rect = mainContainerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
       const mouseX = (event.clientX - rect.left - transform.x) / transform.scale;
@@ -3107,8 +3108,8 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
 
             ports.forEach((p) => {
               const d = Math.hypot(canvasX - p.x, canvasY - p.y);
-              // Prioritize nodes if cursor is hovering over the node body
-              const effectiveDist = inside ? Math.min(d, 40) : d;
+              // Prioritize nodes if cursor is hovering over the node body without clamping so true closest port wins
+              const effectiveDist = inside ? d * 0.8 : d;
               if (effectiveDist < bestDist) {
                 bestDist = effectiveDist;
                 bestNodeId = n.id;
@@ -3159,7 +3160,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
             );
           }
         });
-      } else if (connectingState.isConnecting && connectingState.sourceNodeId) {
+      } else if (connectingStateRef.current.isConnecting && connectingStateRef.current.sourceNodeId) {
         // 10. Direct Drag-to-Connect from node handle or plus button
         if (rafRef.current) cancelAnimationFrame(rafRef.current);
         const clientX = event.clientX;
@@ -3168,17 +3169,20 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
           const rect = mainContainerRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
           const mouseX = (clientX - rect.left - transform.x) / transform.scale;
           const mouseY = (clientY - rect.top - transform.y) / transform.scale;
+          const sourceId = connectingStateRef.current.sourceNodeId;
 
           let candidateId: string | undefined;
+          let candidateAnchor: 'top' | 'bottom' | 'left' | 'right' | undefined;
           let minDistance = Infinity;
+
           activeTab.nodes.forEach((n) => {
-            if (n.id === connectingState.sourceNodeId) return;
+            if (n.id === sourceId) return;
             const dims = _getNodeDimensions(n);
             const inside =
-              mouseX >= n.position.x - 40 &&
-              mouseX <= n.position.x + dims.width + 40 &&
-              mouseY >= n.position.y - 40 &&
-              mouseY <= n.position.y + dims.height + 40;
+              mouseX >= n.position.x - 60 &&
+              mouseX <= n.position.x + dims.width + 60 &&
+              mouseY >= n.position.y - 60 &&
+              mouseY <= n.position.y + dims.height + 60;
             if (inside) {
               const centerX = n.position.x + dims.width / 2;
               const centerY = n.position.y + dims.height / 2;
@@ -3186,6 +3190,21 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
               if (dist < minDistance) {
                 minDistance = dist;
                 candidateId = n.id;
+
+                const ports: { anchor: 'top' | 'bottom' | 'left' | 'right'; x: number; y: number }[] = [
+                  { anchor: 'top', x: centerX, y: n.position.y },
+                  { anchor: 'bottom', x: centerX, y: n.position.y + dims.height },
+                  { anchor: 'left', x: n.position.x, y: centerY },
+                  { anchor: 'right', x: n.position.x + dims.width, y: centerY },
+                ];
+                let bestPortDist = Infinity;
+                ports.forEach((p) => {
+                  const d = Math.hypot(mouseX - p.x, mouseY - p.y);
+                  if (d < bestPortDist) {
+                    bestPortDist = d;
+                    candidateAnchor = p.anchor;
+                  }
+                });
               }
             }
           });
@@ -3195,6 +3214,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
             isConnecting: true,
             currentMousePosition: { x: mouseX, y: mouseY },
             candidateTargetNodeId: candidateId,
+            candidateTargetAnchor: candidateAnchor,
           };
           connectingStateRef.current = nextState;
           setConnectingState(nextState);
@@ -3211,16 +3231,18 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         const mouseY = (event.clientY - rect.top - transform.y) / transform.scale;
 
         let targetId = conn.candidateTargetNodeId;
+        let targetAnchor = conn.candidateTargetAnchor;
+
         if (!targetId) {
           let minDistance = Infinity;
           activeTab.nodes.forEach((n) => {
             if (n.id === sourceId) return;
             const dims = _getNodeDimensions(n);
             const inside =
-              mouseX >= n.position.x - 50 &&
-              mouseX <= n.position.x + dims.width + 50 &&
-              mouseY >= n.position.y - 50 &&
-              mouseY <= n.position.y + dims.height + 50;
+              mouseX >= n.position.x - 60 &&
+              mouseX <= n.position.x + dims.width + 60 &&
+              mouseY >= n.position.y - 60 &&
+              mouseY <= n.position.y + dims.height + 60;
             if (inside) {
               const centerX = n.position.x + dims.width / 2;
               const centerY = n.position.y + dims.height / 2;
@@ -3228,13 +3250,28 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
               if (dist < minDistance) {
                 minDistance = dist;
                 targetId = n.id;
+
+                const ports: { anchor: 'top' | 'bottom' | 'left' | 'right'; x: number; y: number }[] = [
+                  { anchor: 'top', x: centerX, y: n.position.y },
+                  { anchor: 'bottom', x: centerX, y: n.position.y + dims.height },
+                  { anchor: 'left', x: n.position.x, y: centerY },
+                  { anchor: 'right', x: n.position.x + dims.width, y: centerY },
+                ];
+                let bestPortDist = Infinity;
+                ports.forEach((p) => {
+                  const d = Math.hypot(mouseX - p.x, mouseY - p.y);
+                  if (d < bestPortDist) {
+                    bestPortDist = d;
+                    targetAnchor = p.anchor;
+                  }
+                });
               }
             }
           });
         }
 
         if (targetId) {
-          handleCompleteConnection(targetId);
+          handleCompleteConnection(targetId, targetAnchor);
           handleCanvasMouseUp();
           return;
         }
@@ -3246,6 +3283,8 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         };
         connectingStateRef.current = resetState;
         setConnectingState(resetState);
+        handleCanvasMouseUp();
+        return;
       }
 
       // Reconnect Edge Endpoint on Mouse Up

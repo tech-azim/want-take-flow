@@ -28,7 +28,7 @@ const PID_FILE = path.resolve(WTF_DIR, 'gateway.pid');
 const GLOBAL_WTF_DIR = path.resolve(os.homedir(), '.wtf');
 const GLOBAL_PID_FILE = path.resolve(GLOBAL_WTF_DIR, 'gateway.pid');
 
-const VERSION = '1.0.9';
+const VERSION = '1.0.10';
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
