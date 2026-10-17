@@ -155,6 +155,10 @@ export type SchemaExportData = {
   nodes: FlowNode[];
   edges: FlowEdge[];
   swimlanes?: SwimlaneLane[];
+  groups?: FlowGroupFrame[];
+  masterTitle?: string;
+  tableWidth?: number;
+  tabs?: FlowProjectTab[];
 };
 
 export type AddNodeModalData = {

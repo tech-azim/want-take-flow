@@ -166,6 +166,61 @@ describe('ErpFlowGen Utilities Test Suite', () => {
     expect(parsed?.nodes.length).toBe(SAMPLE_ERP_NODES.length);
   });
 
+  it('should validate schema JSON with group frames and preserve groups data', () => {
+    const validWithGroups: SchemaExportData = {
+      version: '1.2.0',
+      appName: 'FlowGen Chrome Edition',
+      exportDate: '2026-10-17T00:00:00Z',
+      nodes: SAMPLE_ERP_NODES,
+      edges: [],
+      groups: [
+        {
+          id: 'group_test_1',
+          title: 'Order Processing Group',
+          position: { x: 100, y: 100 },
+          width: 500,
+          height: 300,
+          colorTheme: 'indigo',
+        },
+      ],
+    };
+
+    const parsed = _validateSchemaJson(JSON.stringify(validWithGroups));
+    expect(parsed).not.toBeNull();
+    expect(parsed?.groups?.length).toBe(1);
+    expect(parsed?.groups?.[0].title).toBe('Order Processing Group');
+  });
+
+  it('should validate multi-tab project schema JSON (WTF schema format)', () => {
+    const multiTabPayload = {
+      version: '1.0.0',
+      tabs: [
+        {
+          id: 'tab_1',
+          title: 'Overview',
+          type: 'userflow',
+          nodes: SAMPLE_ERP_NODES,
+          edges: [],
+          groups: [
+            {
+              id: 'group_1',
+              title: 'Frontend Boundary',
+              position: { x: 50, y: 50 },
+              width: 400,
+              height: 250,
+              colorTheme: 'emerald',
+            },
+          ],
+        },
+      ],
+    };
+
+    const parsed = _validateSchemaJson(JSON.stringify(multiTabPayload));
+    expect(parsed).not.toBeNull();
+    expect(parsed?.tabs?.length).toBe(1);
+    expect(parsed?.tabs?.[0].groups?.length).toBe(1);
+  });
+
   it('should return null for corrupted schema JSON input', () => {
     const corruptedString = '{ "invalid": true }';
     const parsed = _validateSchemaJson(corruptedString);

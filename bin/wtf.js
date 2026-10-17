@@ -328,9 +328,14 @@ function handlePush(args) {
   }
 
   let content = '';
+  let parsedJson = null;
   try {
     content = fs.readFileSync(resolvedPath, 'utf-8');
-    JSON.parse(content);
+    parsedJson = JSON.parse(content);
+    if (!parsedJson.updatedAt) {
+      parsedJson.updatedAt = Date.now();
+      content = JSON.stringify(parsedJson, null, 2);
+    }
   } catch (e) {
     console.error(`${colors.red}Error: Invalid JSON in '${filePath}': ${e.message}${colors.reset}`);
     process.exit(1);
@@ -478,6 +483,16 @@ function handleSchema(args = []) {
           { id: 'e1', sourceNodeId: 'node_1', targetNodeId: 'node_2', label: 'POST /order' },
           { id: 'e2', sourceNodeId: 'node_2', targetNodeId: 'node_3', label: 'Verify' },
           { id: 'e3', sourceNodeId: 'node_3', targetNodeId: 'node_4', label: 'Approved' },
+        ],
+        groups: [
+          {
+            id: 'grp_backend',
+            title: 'Backend Order Processing Boundary',
+            position: { x: 200, y: 190 },
+            width: 320,
+            height: 290,
+            colorTheme: 'indigo',
+          },
         ],
       },
       {
@@ -628,6 +643,9 @@ function handleGatewayStart(args) {
       req.on('end', () => {
         try {
           const parsed = JSON.parse(body);
+          if (!parsed.updatedAt) {
+            parsed.updatedAt = Date.now();
+          }
           if (!fs.existsSync(path.resolve(WTF_DIR, 'schemas'))) {
             fs.mkdirSync(path.resolve(WTF_DIR, 'schemas'), { recursive: true });
           }

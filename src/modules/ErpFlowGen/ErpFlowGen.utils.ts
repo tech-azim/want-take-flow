@@ -594,13 +594,23 @@ export const _calculateEdgePath = (
  */
 export const _validateSchemaJson = (rawContent: string): SchemaExportData | null => {
   try {
-    const parsedData = JSON.parse(rawContent) as SchemaExportData;
+    const parsedData = JSON.parse(rawContent) as any;
 
-    const hasNodes = Boolean(parsedData && Array.isArray(parsedData.nodes));
-    const hasEdges = Boolean(parsedData && Array.isArray(parsedData.edges));
+    if (!parsedData || typeof parsedData !== 'object') {
+      return null;
+    }
+
+    // Support full multi-tab diagram schemas (e.g., flow.json, current.json, or multi-tab project exports)
+    if (Array.isArray(parsedData.tabs) && parsedData.tabs.length > 0) {
+      return parsedData as SchemaExportData;
+    }
+
+    // Support single-tab schema exports
+    const hasNodes = Boolean(Array.isArray(parsedData.nodes));
+    const hasEdges = Boolean(Array.isArray(parsedData.edges));
 
     if (hasNodes && hasEdges) {
-      return parsedData;
+      return parsedData as SchemaExportData;
     }
 
     return null;

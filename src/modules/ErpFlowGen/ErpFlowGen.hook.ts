@@ -54,6 +54,8 @@ import {
 
 const STORAGE_KEY = 'erp_flowgen_tabs_v7';
 const ACTIVE_TAB_KEY = 'erp_flowgen_active_tab_id_v7';
+const UPDATED_AT_KEY = 'erp_flowgen_updated_at_v7';
+const BROWSER_CLIENT_ID = typeof window !== 'undefined' ? `client_${Math.random().toString(36).slice(2, 9)}` : '';
 
 const _loadPersistedTabs = (): FlowProjectTab[] => {
   if (typeof window === 'undefined') return [];
@@ -261,11 +263,24 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
   );
 
   useEffect(() => {
+    const now = Date.now();
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tabs));
+      localStorage.setItem(UPDATED_AT_KEY, String(now));
     } catch (err) {
       console.warn('Failed writing tabs to localStorage:', err);
     }
+
+    // Debounced sync to WTF gateway or dev server
+    const timer = setTimeout(() => {
+      fetch('/api/diagram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tabs, updatedAt: now, clientId: BROWSER_CLIENT_ID }),
+      }).catch(() => {});
+    }, 800);
+
+    return () => clearTimeout(timer);
   }, [tabs]);
 
   useEffect(() => {
@@ -291,6 +306,19 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       })
       .then((data) => {
         if (!data) return;
+        const localUpdatedAt = Number(localStorage.getItem(UPDATED_AT_KEY) || '0');
+        const serverUpdatedAt = Number(data.updatedAt || '0');
+
+        // If local changes are strictly newer, keep local and sync to server
+        if (localUpdatedAt > 0 && localUpdatedAt >= serverUpdatedAt) {
+          fetch('/api/diagram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tabs: tabsRef.current, updatedAt: localUpdatedAt }),
+          }).catch(() => {});
+          return;
+        }
+
         if (Array.isArray(data.tabs) && data.tabs.length > 0) {
           setTabs(data.tabs);
           setActiveTabId((currentId) => {
@@ -307,7 +335,13 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
           setTabs((prev) =>
             prev.map((t, idx) =>
               idx === 0
-                ? { ...t, nodes: data.nodes, edges: data.edges, swimlanes: data.swimlanes || t.swimlanes }
+                ? {
+                    ...t,
+                    nodes: data.nodes,
+                    edges: data.edges,
+                    swimlanes: data.swimlanes || t.swimlanes,
+                    groups: data.groups || t.groups,
+                  }
                 : t,
             ),
           );
@@ -325,6 +359,9 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
           const msg = JSON.parse(event.data);
           if (msg.type === 'DIAGRAM_UPDATE' && msg.payload) {
             const data = msg.payload;
+            if (data.clientId && data.clientId === BROWSER_CLIENT_ID) {
+              return;
+            }
             if (Array.isArray(data.tabs) && data.tabs.length > 0) {
               setTabs(data.tabs);
               setActiveTabId((currentId) => {
@@ -3323,10 +3360,14 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       nodes,
       edges,
       swimlanes: activeTab.swimlanes,
+      groups: activeTab.groups,
+      masterTitle: activeTab.masterTitle,
+      tableWidth: activeTab.tableWidth,
+      tabs,
     };
     const fileName = `${activeTab.title.toLowerCase().replace(/\s+/g, '_')}_schema.json`;
     _downloadJsonFile(exportPayload, fileName);
-  }, [nodes, edges, activeTab.title, activeTab.swimlanes]);
+  }, [nodes, edges, activeTab.title, activeTab.swimlanes, activeTab.groups, activeTab.masterTitle, activeTab.tableWidth, tabs]);
 
   const handleImportJsonClick = useCallback((): void => {
     fileInputRef.current?.click();
@@ -3343,19 +3384,28 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
         const validated = _validateSchemaJson(content);
 
         if (validated) {
-          setTabs((prev) =>
-            prev.map((t) =>
-              t.id === activeTabId
-                ? {
-                    ...t,
-                    nodes: validated.nodes,
-                    edges: validated.edges,
-                    swimlanes: validated.swimlanes || t.swimlanes,
-                    showGhostSkeleton: false,
-                  }
-                : t,
-            ),
-          );
+          recordHistory();
+          if (Array.isArray(validated.tabs) && validated.tabs.length > 0) {
+            setTabs(validated.tabs);
+            setActiveTabId(validated.tabs[0]?.id || '');
+          } else {
+            setTabs((prev) =>
+              prev.map((t) =>
+                t.id === activeTabId
+                  ? {
+                      ...t,
+                      nodes: validated.nodes,
+                      edges: validated.edges,
+                      swimlanes: validated.swimlanes || t.swimlanes,
+                      groups: validated.groups || t.groups || [],
+                      masterTitle: validated.masterTitle || t.masterTitle,
+                      tableWidth: validated.tableWidth || t.tableWidth,
+                      showGhostSkeleton: false,
+                    }
+                  : t,
+              ),
+            );
+          }
         } else {
           alert('Format JSON diagram tidak valid!');
         }
@@ -3363,7 +3413,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
       reader.readAsText(file);
       event.target.value = '';
     },
-    [activeTabId],
+    [activeTabId, recordHistory],
   );
 
   const handleLoadTemplate = useCallback((): void => {
