@@ -28,7 +28,7 @@ const PID_FILE = path.resolve(WTF_DIR, 'gateway.pid');
 const GLOBAL_WTF_DIR = path.resolve(os.homedir(), '.wtf');
 const GLOBAL_PID_FILE = path.resolve(GLOBAL_WTF_DIR, 'gateway.pid');
 
-const VERSION = '1.0.4';
+const VERSION = '1.0.5';
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -742,6 +742,12 @@ function handleGatewayStart(args) {
     }
   });
 
+  const sockets = new Set();
+  server.on('connection', (socket) => {
+    sockets.add(socket);
+    socket.on('close', () => sockets.delete(socket));
+  });
+
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       console.log(`${colors.yellow}Port ${port} is in use, trying port ${port + 1}...${colors.reset}`);
@@ -782,17 +788,44 @@ ${colors.green}${colors.bold}  ✓ WTF Gateway Active & Ready!${colors.reset}
     }
   });
 
-  // Graceful shutdown
+  // Graceful & Instant shutdown
+  let isShuttingDown = false;
   const handleExit = () => {
+    if (isShuttingDown) {
+      process.exit(0);
+    }
+    isShuttingDown = true;
     console.log(`\n${colors.yellow}Stopping WTF Gateway...${colors.reset}`);
     try {
       if (fs.existsSync(PID_FILE)) fs.unlinkSync(PID_FILE);
       if (fs.existsSync(GLOBAL_PID_FILE)) fs.unlinkSync(GLOBAL_PID_FILE);
     } catch (_) {}
+
+    // 1. Immediately end all long-lived SSE connections
+    for (const client of sseClients) {
+      try { client.end(); } catch (_) {}
+    }
+    sseClients = [];
+
+    // 2. Destroy all active keep-alive sockets
+    if (typeof server.closeAllConnections === 'function') {
+      server.closeAllConnections();
+    }
+    for (const socket of sockets) {
+      try { socket.destroy(); } catch (_) {}
+    }
+    sockets.clear();
+
+    // 3. Close server and terminate process immediately
     server.close(() => {
       console.log(`${colors.green}Gateway shut down cleanly. Goodbye!${colors.reset}`);
       process.exit(0);
     });
+
+    setTimeout(() => {
+      console.log(`${colors.green}Gateway shut down cleanly. Goodbye!${colors.reset}`);
+      process.exit(0);
+    }, 50).unref();
   };
 
   process.on('SIGINT', handleExit);
