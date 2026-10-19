@@ -3912,7 +3912,7 @@ export const useErpFlowGen = (): UseErpFlowGenReturn => {
               [msg.peerId]: {
                 peerId: msg.peerId,
                 name: msg.name || 'Collaborator',
-                color: msg.color || '#4f46e5',
+                color: msg.color || '#dc2626',
                 cursor: msg.cursor,
                 activeTabId: msg.activeTabId,
                 selectedNodeId: msg.selectedNodeId,

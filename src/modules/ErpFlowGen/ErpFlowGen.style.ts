@@ -13,13 +13,13 @@ export type ThemeStyle = {
 
 export const COLOR_THEME_STYLES: Record<NodeColorTheme, ThemeStyle> = {
   indigo: {
-    border: 'border-indigo-300',
+    border: 'border-red-300',
     bg: 'bg-white',
-    headerBg: 'bg-indigo-50/90',
+    headerBg: 'bg-red-50/90',
     text: 'text-slate-900',
-    badgeBg: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
-    badgeText: 'text-indigo-700',
-    glow: 'shadow-indigo-500/10',
+    badgeBg: 'bg-red-50 text-red-700 border border-red-200',
+    badgeText: 'text-red-700',
+    glow: 'shadow-red-500/10',
   },
   emerald: {
     border: 'border-emerald-300',

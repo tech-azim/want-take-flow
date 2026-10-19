@@ -392,7 +392,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
     return (
       <div
         title="Screen Mockup available (Hover to preview)"
-        className="absolute -top-2 left-2 z-30 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-600 text-white text-[9px] font-bold shadow-xs pointer-events-none"
+        className="absolute -top-2 left-2 z-30 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-600 text-white text-[9px] font-bold shadow-xs pointer-events-none"
       >
         <Camera className="w-2.5 h-2.5 stroke-[2.5]" />
         <span>Screen</span>
@@ -417,7 +417,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
               e.stopPropagation();
               onStartConnection(e, node.id);
             }}
-            className="w-5 h-5 rounded-md hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 flex items-center justify-center transition-colors cursor-crosshair"
+            className="w-5 h-5 rounded-md hover:bg-red-50 text-slate-400 hover:text-red-600 flex items-center justify-center transition-colors cursor-crosshair"
           >
             <Link2 className="w-3 h-3" />
           </button>
@@ -430,7 +430,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
               e.stopPropagation();
               onOpenCreateKanbanTask('todo', node.id);
             }}
-            className="w-5 h-5 rounded-md hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 flex items-center justify-center transition-colors cursor-pointer"
+            className="w-5 h-5 rounded-md hover:bg-red-50 text-slate-400 hover:text-red-600 flex items-center justify-center transition-colors cursor-pointer"
           >
             <LayoutDashboard className="w-3 h-3" />
           </button>
@@ -442,7 +442,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
             e.stopPropagation();
             onOpenEditModal(node.id);
           }}
-          className="w-5 h-5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-indigo-600 flex items-center justify-center transition-colors cursor-pointer"
+          className="w-5 h-5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-red-600 flex items-center justify-center transition-colors cursor-pointer"
         >
           <Edit3 className="w-3 h-3" />
         </button>
@@ -485,7 +485,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
         {isCandidateNode && candidateAnchor && (
           <>
             <div
-              className={`absolute w-7 h-7 rounded-full bg-indigo-500/25 border-2 border-indigo-600 animate-ping pointer-events-none z-45 ${candidateAnchor === 'top'
+              className={`absolute w-7 h-7 rounded-full bg-red-500/25 border-2 border-red-600 animate-ping pointer-events-none z-45 ${candidateAnchor === 'top'
                 ? '-top-3.5 left-1/2 -translate-x-1/2'
                 : candidateAnchor === 'bottom'
                   ? '-bottom-3.5 left-1/2 -translate-x-1/2'
@@ -495,7 +495,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
                 }`}
             />
             <div
-              className={`absolute w-4 h-4 rounded-full bg-indigo-600 border-2 border-white shadow-lg pointer-events-none z-45 flex items-center justify-center scale-110 ${candidateAnchor === 'top'
+              className={`absolute w-4 h-4 rounded-full bg-red-600 border-2 border-white shadow-lg pointer-events-none z-45 flex items-center justify-center scale-110 ${candidateAnchor === 'top'
                 ? '-top-2 left-1/2 -translate-x-1/2'
                 : candidateAnchor === 'bottom'
                   ? '-bottom-2 left-1/2 -translate-x-1/2'
@@ -525,8 +525,8 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
               }}
               className={`absolute -top-3.5 left-1/2 -translate-x-1/2 w-7 h-7 flex items-center justify-center cursor-crosshair z-50 ${isPortVisible} pointer-events-auto`}
             >
-              <div className="w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-125 transition-all flex items-center justify-center pointer-events-none">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+              <div className="w-4 h-4 rounded-full bg-white border-2 border-red-600 shadow-md hover:scale-125 transition-all flex items-center justify-center pointer-events-none">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-600" />
               </div>
             </div>
 
@@ -544,8 +544,8 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
               }}
               className={`absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center cursor-crosshair z-50 ${isPortVisible} pointer-events-auto`}
             >
-              <div className="w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-125 transition-all flex items-center justify-center pointer-events-none">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+              <div className="w-4 h-4 rounded-full bg-white border-2 border-red-600 shadow-md hover:scale-125 transition-all flex items-center justify-center pointer-events-none">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-600" />
               </div>
             </div>
 
@@ -563,8 +563,8 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
               }}
               className={`absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center cursor-crosshair z-50 ${isPortVisible} pointer-events-auto`}
             >
-              <div className="w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-125 transition-all flex items-center justify-center pointer-events-none">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+              <div className="w-4 h-4 rounded-full bg-white border-2 border-red-600 shadow-md hover:scale-125 transition-all flex items-center justify-center pointer-events-none">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-600" />
               </div>
             </div>
 
@@ -582,8 +582,8 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
               }}
               className={`absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 flex items-center justify-center cursor-crosshair z-50 ${isPortVisible} pointer-events-auto`}
             >
-              <div className="w-4 h-4 rounded-full bg-white border-2 border-indigo-600 shadow-md hover:scale-125 transition-all flex items-center justify-center pointer-events-none">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+              <div className="w-4 h-4 rounded-full bg-white border-2 border-red-600 shadow-md hover:scale-125 transition-all flex items-center justify-center pointer-events-none">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-600" />
               </div>
             </div>
 
@@ -595,7 +595,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
                 e.stopPropagation();
                 onOpenAddModal(node.id, flowType === 'swimlane' ? 'right' : 'bottom');
               }}
-              className={`absolute -bottom-8 -right-8 w-6 h-6 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md flex items-center justify-center cursor-pointer hover:scale-115 transition-transform z-45 pointer-events-auto ${isSelected ? 'opacity-100' : isPortVisible
+              className={`absolute -bottom-8 -right-8 w-6 h-6 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-md flex items-center justify-center cursor-pointer hover:scale-115 transition-transform z-45 pointer-events-auto ${isSelected ? 'opacity-100' : isPortVisible
                 } transition-opacity`}
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5] pointer-events-none" />
@@ -627,7 +627,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
             e.stopPropagation();
             onStartResize(e, node.id, 'both');
           }}
-          className={`absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-indigo-600 rounded-xs shadow-md cursor-se-resize hover:scale-130 transition-transform z-40 select-none interactive-control ${showHandles ? 'opacity-100 scale-100 ring-2 ring-indigo-200' : 'opacity-0 group-hover:opacity-90 scale-90'
+          className={`absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-red-600 rounded-xs shadow-md cursor-se-resize hover:scale-130 transition-transform z-40 select-none interactive-control ${showHandles ? 'opacity-100 scale-100 ring-2 ring-red-200' : 'opacity-0 group-hover:opacity-90 scale-90'
             }`}
         />
 
@@ -640,7 +640,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
               e.stopPropagation();
               onStartResize(e, node.id, 'horizontal');
             }}
-            className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-2 h-6 bg-white border-2 border-indigo-600 rounded-full shadow-md cursor-ew-resize hover:scale-125 transition-transform z-40 select-none interactive-control opacity-0 group-hover:opacity-90"
+            className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-2 h-6 bg-white border-2 border-red-600 rounded-full shadow-md cursor-ew-resize hover:scale-125 transition-transform z-40 select-none interactive-control opacity-0 group-hover:opacity-90"
           />
         )}
 
@@ -653,7 +653,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
               e.stopPropagation();
               onStartResize(e, node.id, 'vertical');
             }}
-            className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-2 w-6 bg-white border-2 border-indigo-600 rounded-full shadow-md cursor-ns-resize hover:scale-125 transition-transform z-40 select-none interactive-control opacity-0 group-hover:opacity-90"
+            className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-2 w-6 bg-white border-2 border-red-600 rounded-full shadow-md cursor-ns-resize hover:scale-125 transition-transform z-40 select-none interactive-control opacity-0 group-hover:opacity-90"
           />
         )}
       </>
@@ -674,7 +674,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
           onMouseUp={_handleMouseUp}
           style={nodePositionStyle}
           className={`group flex items-center justify-center px-4 rounded-full border-2 bg-white shadow-xs select-none cursor-grab active:cursor-grabbing relative ${isSelected
-            ? 'border-indigo-600 ring-4 ring-indigo-100 shadow-md'
+            ? 'border-red-600 ring-4 ring-red-100 shadow-md'
             : isStartNode
               ? 'border-emerald-500 hover:border-emerald-600'
               : 'border-rose-500 hover:border-rose-600'
@@ -1366,7 +1366,7 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
         onDoubleClick={_handleDoubleClick}
         onMouseUp={_handleMouseUp}
         style={nodePositionStyle}
-        className={`group rounded-lg border-2 bg-white shadow-xs select-none cursor-grab active:cursor-grabbing relative flex items-center justify-center p-3 text-center ${isSelected ? `${theme.border} ring-4 ring-indigo-100 shadow-md` : `${theme.border} hover:shadow-md`
+        className={`group rounded-lg border-2 bg-white shadow-xs select-none cursor-grab active:cursor-grabbing relative flex items-center justify-center p-3 text-center ${isSelected ? `${theme.border} ring-4 ring-red-100 shadow-md` : `${theme.border} hover:shadow-md`
           }`}
       >
         <span className="text-xs font-bold text-slate-800 tracking-tight leading-snug line-clamp-3 max-w-[90%]">
@@ -1381,13 +1381,13 @@ const _CanvasNodeItem = (props: CanvasNodeProps): React.ReactElement => {
 
   const element = _renderNodeShape() as React.ReactElement<React.HTMLAttributes<HTMLDivElement>>;
   const runnerGlowClass = isRunnerActive
-    ? 'ring-4 ring-indigo-500 ring-offset-2 animate-pulse scale-105 z-30 shadow-2xl'
+    ? 'ring-4 ring-red-500 ring-offset-2 animate-pulse scale-105 z-30 shadow-2xl'
     : '';
   const isEndpointCandidate = Boolean(
     edgeEndpointDragState?.isDragging && edgeEndpointDragState.candidateNodeId === node.id,
   );
   const candidateClass = (isConnectingCandidate || isEndpointCandidate)
-    ? 'ring-4 ring-indigo-500 ring-offset-2 scale-[1.03] z-30 shadow-2xl transition-all'
+    ? 'ring-4 ring-red-500 ring-offset-2 scale-[1.03] z-30 shadow-2xl transition-all'
     : '';
 
   return React.cloneElement(element, {
@@ -1409,12 +1409,12 @@ const GROUP_FRAME_THEMES: Record<
   }
 > = {
   indigo: {
-    bg: 'bg-indigo-50/40',
-    border: 'border-indigo-300',
-    selectedBorder: 'border-indigo-600 ring-2 ring-indigo-400/30 shadow-md',
-    tagBg: 'bg-indigo-600',
+    bg: 'bg-red-50/40',
+    border: 'border-red-300',
+    selectedBorder: 'border-red-600 ring-2 ring-red-400/30 shadow-md',
+    tagBg: 'bg-red-600',
     tagText: 'text-white',
-    badgeBg: 'bg-indigo-700/80',
+    badgeBg: 'bg-red-700/80',
   },
   emerald: {
     bg: 'bg-emerald-50/40',
@@ -1653,7 +1653,7 @@ const _renderGroupFrames = (
                 title="Drag sisi kanan untuk atur lebar frame"
                 className="absolute top-1/2 -right-3 -translate-y-1/2 w-6 h-16 flex items-center justify-center cursor-ew-resize z-40 group/handle pointer-events-auto"
               >
-                <div className="w-1.5 h-8 rounded-full bg-slate-400 group-hover/frame:bg-indigo-500 group-hover/handle:bg-indigo-600 group-hover/handle:w-2 group-hover/handle:scale-y-110 shadow-xs transition-all" />
+                <div className="w-1.5 h-8 rounded-full bg-slate-400 group-hover/frame:bg-red-500 group-hover/handle:bg-red-600 group-hover/handle:w-2 group-hover/handle:scale-y-110 shadow-xs transition-all" />
               </div>
 
               {/* Resize Handle: Bottom Edge */}
@@ -1665,7 +1665,7 @@ const _renderGroupFrames = (
                 title="Drag sisi bawah untuk atur tinggi frame"
                 className="absolute -bottom-3 left-1/2 -translate-x-1/2 h-6 w-16 flex items-center justify-center cursor-ns-resize z-40 group/handle pointer-events-auto"
               >
-                <div className="h-1.5 w-8 rounded-full bg-slate-400 group-hover/frame:bg-indigo-500 group-hover/handle:bg-indigo-600 group-hover/handle:h-2 group-hover/handle:scale-x-110 shadow-xs transition-all" />
+                <div className="h-1.5 w-8 rounded-full bg-slate-400 group-hover/frame:bg-red-500 group-hover/handle:bg-red-600 group-hover/handle:h-2 group-hover/handle:scale-x-110 shadow-xs transition-all" />
               </div>
 
               {/* Resize Handle: Top Edge */}
@@ -1677,7 +1677,7 @@ const _renderGroupFrames = (
                 title="Drag sisi atas untuk atur tinggi frame"
                 className="absolute -top-3 left-1/2 -translate-x-1/2 h-6 w-16 flex items-center justify-center cursor-ns-resize z-40 group/handle pointer-events-auto"
               >
-                <div className="h-1.5 w-8 rounded-full bg-slate-400 group-hover/frame:bg-indigo-500 group-hover/handle:bg-indigo-600 group-hover/handle:h-2 group-hover/handle:scale-x-110 shadow-xs transition-all" />
+                <div className="h-1.5 w-8 rounded-full bg-slate-400 group-hover/frame:bg-red-500 group-hover/handle:bg-red-600 group-hover/handle:h-2 group-hover/handle:scale-x-110 shadow-xs transition-all" />
               </div>
 
               {/* Resize Handle: Left Edge */}
@@ -1689,7 +1689,7 @@ const _renderGroupFrames = (
                 title="Drag sisi kiri untuk atur lebar frame"
                 className="absolute top-1/2 -left-3 -translate-y-1/2 w-6 h-16 flex items-center justify-center cursor-ew-resize z-40 group/handle pointer-events-auto"
               >
-                <div className="w-1.5 h-8 rounded-full bg-slate-400 group-hover/frame:bg-indigo-500 group-hover/handle:bg-indigo-600 group-hover/handle:w-2 group-hover/handle:scale-y-110 shadow-xs transition-all" />
+                <div className="w-1.5 h-8 rounded-full bg-slate-400 group-hover/frame:bg-red-500 group-hover/handle:bg-red-600 group-hover/handle:w-2 group-hover/handle:scale-y-110 shadow-xs transition-all" />
               </div>
 
               {/* Resize Handle: Bottom-Right Corner */}
@@ -1699,7 +1699,7 @@ const _renderGroupFrames = (
                   onStartGroupResize(e, group.id, 'bottom-right');
                 }}
                 title="Drag sudut kanan-bawah untuk atur ukuran frame"
-                className="absolute -bottom-2.5 -right-2.5 w-5 h-5 bg-white border-2 border-slate-400 hover:border-indigo-600 hover:bg-indigo-50 rounded-md shadow-xs flex items-center justify-center cursor-nwse-resize z-40 pointer-events-auto transition-transform hover:scale-125"
+                className="absolute -bottom-2.5 -right-2.5 w-5 h-5 bg-white border-2 border-slate-400 hover:border-red-600 hover:bg-red-50 rounded-md shadow-xs flex items-center justify-center cursor-nwse-resize z-40 pointer-events-auto transition-transform hover:scale-125"
               >
                 <div className="w-1.5 h-1.5 bg-slate-500 rounded-xs" />
               </div>
@@ -1711,7 +1711,7 @@ const _renderGroupFrames = (
                   onStartGroupResize(e, group.id, 'top-right');
                 }}
                 title="Drag sudut kanan-atas untuk atur ukuran frame"
-                className="absolute -top-2.5 -right-2.5 w-5 h-5 bg-white border-2 border-slate-400 hover:border-indigo-600 hover:bg-indigo-50 rounded-md shadow-xs flex items-center justify-center cursor-nesw-resize z-40 pointer-events-auto transition-transform hover:scale-125"
+                className="absolute -top-2.5 -right-2.5 w-5 h-5 bg-white border-2 border-slate-400 hover:border-red-600 hover:bg-red-50 rounded-md shadow-xs flex items-center justify-center cursor-nesw-resize z-40 pointer-events-auto transition-transform hover:scale-125"
               >
                 <div className="w-1.5 h-1.5 bg-slate-500 rounded-xs" />
               </div>
@@ -1723,7 +1723,7 @@ const _renderGroupFrames = (
                   onStartGroupResize(e, group.id, 'bottom-left');
                 }}
                 title="Drag sudut kiri-bawah untuk atur ukuran frame"
-                className="absolute -bottom-2.5 -left-2.5 w-5 h-5 bg-white border-2 border-slate-400 hover:border-indigo-600 hover:bg-indigo-50 rounded-md shadow-xs flex items-center justify-center cursor-nesw-resize z-40 pointer-events-auto transition-transform hover:scale-125"
+                className="absolute -bottom-2.5 -left-2.5 w-5 h-5 bg-white border-2 border-slate-400 hover:border-red-600 hover:bg-red-50 rounded-md shadow-xs flex items-center justify-center cursor-nesw-resize z-40 pointer-events-auto transition-transform hover:scale-125"
               >
                 <div className="w-1.5 h-1.5 bg-slate-500 rounded-xs" />
               </div>
@@ -1755,9 +1755,9 @@ const _renderMinimap = (
           type="button"
           onClick={onToggle}
           title="Open Minimap"
-          className="flex items-center gap-2 px-3 py-2 bg-white/95 backdrop-blur-md rounded-xl border border-slate-200 shadow-md hover:shadow-lg text-slate-700 hover:text-indigo-600 text-xs font-semibold transition-all cursor-pointer"
+          className="flex items-center gap-2 px-3 py-2 bg-white/95 backdrop-blur-md rounded-xl border border-slate-200 shadow-md hover:shadow-lg text-slate-700 hover:text-red-600 text-xs font-semibold transition-all cursor-pointer"
         >
-          <Map className="w-4 h-4 text-indigo-600" />
+          <Map className="w-4 h-4 text-red-600" />
           <span>Minimap</span>
         </button>
       </div>
@@ -1837,7 +1837,7 @@ const _renderMinimap = (
       {/* Minimap Header */}
       <div className="px-3 py-1.5 bg-slate-50/90 border-b border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-700">
         <div className="flex items-center gap-1.5">
-          <Map className="w-3.5 h-3.5 text-indigo-600" />
+          <Map className="w-3.5 h-3.5 text-red-600" />
           <span>Minimap</span>
         </div>
         <button
@@ -2139,7 +2139,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   onStartRenameTab(tab.id, tab.title);
                 }}
                 className={`group/tab flex items-center gap-2 px-3.5 py-2 rounded-t-xl text-xs font-semibold cursor-pointer transition-all border-t border-x ${isActive
-                  ? 'bg-white text-indigo-900 border-slate-300 shadow-xs translate-y-[1px]'
+                  ? 'bg-white text-red-900 border-slate-300 shadow-xs translate-y-[1px]'
                   : 'bg-slate-200/60 text-slate-600 hover:bg-slate-100 hover:text-slate-800 border-transparent'
                   }`}
               >
@@ -2153,7 +2153,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                         : tab.type === 'kanban'
                           ? 'LayoutDashboard'
                           : 'Workflow',
-                  'w-3.5 h-3.5 text-indigo-600 shrink-0',
+                  'w-3.5 h-3.5 text-red-600 shrink-0',
                 )}
 
                 {isEditing ? (
@@ -2173,7 +2173,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                         onCancelRenameTab();
                       }
                     }}
-                    className="px-1.5 py-0.5 text-xs font-semibold bg-white border-2 border-indigo-500 rounded-md outline-none text-slate-900 shadow-xs max-w-[150px] min-w-[80px]"
+                    className="px-1.5 py-0.5 text-xs font-semibold bg-white border-2 border-red-500 rounded-md outline-none text-slate-900 shadow-xs max-w-[150px] min-w-[80px]"
                   />
                 ) : (
                   <div className="flex items-center gap-1.5 max-w-[160px]">
@@ -2190,7 +2190,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                         e.stopPropagation();
                         onStartRenameTab(tab.id, tab.title);
                       }}
-                      className="w-4 h-4 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-200 flex items-center justify-center opacity-0 group-hover/tab:opacity-100 transition-opacity"
+                      className="w-4 h-4 rounded text-slate-400 hover:text-red-600 hover:bg-slate-200 flex items-center justify-center opacity-0 group-hover/tab:opacity-100 transition-opacity"
                     >
                       <Edit3 className="w-2.5 h-2.5" />
                     </button>
@@ -2241,7 +2241,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             onClick={onToggleGhostSkeleton}
             title="Toggle Ghost Blueprint Guide"
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${showGhostSkeleton
-              ? 'bg-indigo-600 text-white shadow-xs'
+              ? 'bg-red-600 text-white shadow-xs'
               : 'bg-white/80 hover:bg-white text-slate-600 border border-slate-300'
               }`}
           >
@@ -2270,7 +2270,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   type="button"
                   title="Rename active project / tab"
                   onClick={() => onStartRenameTab(activeTab.id, activeTab.title)}
-                  className="w-4 h-4 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer transition-colors shrink-0"
+                  className="w-4 h-4 rounded text-slate-400 hover:text-red-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer transition-colors shrink-0"
                 >
                   <Edit3 className="w-3 h-3" />
                 </button>
@@ -2294,7 +2294,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               disabled={!canUndo}
               title="Undo (Ctrl+Z / Cmd+Z)"
               className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${canUndo
-                ? 'hover:bg-white text-slate-700 hover:text-indigo-600 cursor-pointer shadow-2xs active:scale-95'
+                ? 'hover:bg-white text-slate-700 hover:text-red-600 cursor-pointer shadow-2xs active:scale-95'
                 : 'text-slate-300 cursor-not-allowed'
                 }`}
             >
@@ -2307,7 +2307,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               disabled={!canRedo}
               title="Redo (Ctrl+Y / Cmd+Shift+Z)"
               className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${canRedo
-                ? 'hover:bg-white text-slate-700 hover:text-indigo-600 cursor-pointer shadow-2xs active:scale-95'
+                ? 'hover:bg-white text-slate-700 hover:text-red-600 cursor-pointer shadow-2xs active:scale-95'
                 : 'text-slate-300 cursor-not-allowed'
                 }`}
             >
@@ -2339,7 +2339,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             <span
               onClick={onResetZoom}
               title="Reset Zoom to 100%"
-              className="text-[11px] font-mono px-1.5 text-slate-600 cursor-pointer hover:text-indigo-600 font-semibold select-none"
+              className="text-[11px] font-mono px-1.5 text-slate-600 cursor-pointer hover:text-red-600 font-semibold select-none"
             >
               {Math.round((transform?.scale ?? 1) * 100)}%
             </span>
@@ -2359,7 +2359,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             type="button"
             onClick={() => onOpenAddNodeModal(selectedNodeId || (nodes[nodes.length - 1]?.id ?? ''))}
             title="Add New Step / Node to Flowchart"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all cursor-pointer shadow-xs active:scale-95 shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-all cursor-pointer shadow-xs active:scale-95 shrink-0"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Add Node</span>
@@ -2370,9 +2370,9 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             type="button"
             onClick={onAddGroupFrame}
             title="Group Nodes into Frame (Group Box)"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:text-indigo-600 hover:border-indigo-300 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:text-red-600 hover:border-red-300 transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
           >
-            <FolderPlus className="w-3.5 h-3.5 text-indigo-600" />
+            <FolderPlus className="w-3.5 h-3.5 text-red-600" />
             <span className="hidden lg:inline">Frame Group</span>
           </button>
 
@@ -2431,7 +2431,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               onClick={() => onSetProjectSubView('flowchart')}
               title="Show Flowchart Diagram / Nodes"
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${projectSubView === 'flowchart' && activeTab.type !== 'kanban'
-                ? 'bg-white text-indigo-700 shadow-xs'
+                ? 'bg-white text-red-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
@@ -2443,14 +2443,14 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               onClick={() => onSetProjectSubView('kanban')}
               title="Show Task Board (Workflow Tickets)"
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${projectSubView === 'kanban' || activeTab.type === 'kanban'
-                ? 'bg-white text-indigo-700 shadow-xs'
+                ? 'bg-white text-red-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span>Task Board</span>
               {(activeTab.kanbanTasks?.length ?? 0) > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700">
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-red-50 text-red-700">
                   {activeTab.kanbanTasks?.length}
                 </span>
               )}
@@ -2466,7 +2466,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               onClick={() => onSetConnectorStyle('orthogonal')}
               title="Orthogonal Right-Angle Lines (Flowchart Standard)"
               className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${connectorStyle === 'orthogonal'
-                ? 'bg-white text-indigo-700 shadow-xs'
+                ? 'bg-white text-red-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
@@ -2477,7 +2477,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               onClick={() => onSetConnectorStyle('curved')}
               title="Smooth Curved Lines"
               className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${connectorStyle === 'curved'
-                ? 'bg-white text-indigo-700 shadow-xs'
+                ? 'bg-white text-red-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
@@ -2491,7 +2491,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             onClick={onExportPng}
             disabled={isExportingPng}
             title="Export to PNG image"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-2xs cursor-pointer disabled:opacity-50 shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-2xs cursor-pointer disabled:opacity-50 shrink-0"
           >
             <ImageIcon className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">{isExportingPng ? 'Rendering...' : 'Export PNG'}</span>
@@ -2520,7 +2520,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     title={`${peer.name} (${isFollowed ? 'Following - Click to unfollow' : 'Click to follow'})`}
                     style={{ backgroundColor: peer.color }}
                     className={`w-7 h-7 rounded-full text-white text-[11px] font-bold border-2 border-white flex items-center justify-center shadow-xs select-none transition-all cursor-pointer hover:scale-115 hover:z-20 ${
-                      isFollowed ? 'ring-2 ring-indigo-500 ring-offset-1 z-10 scale-105' : ''
+                      isFollowed ? 'ring-2 ring-red-500 ring-offset-1 z-10 scale-105' : ''
                     }`}
                   >
                     {peer.name.charAt(0).toUpperCase()}
@@ -2611,8 +2611,8 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               {
                 id: 'in_progress',
                 title: 'IN PROGRESS',
-                bgBadge: 'bg-indigo-100 text-indigo-800',
-                dotColor: 'bg-indigo-500',
+                bgBadge: 'bg-indigo-100 text-red-800',
+                dotColor: 'bg-red-500',
               },
               {
                 id: 'review',
@@ -2643,12 +2643,12 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               {/* Kanban Board Top Control Bar */}
               <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-wrap items-center justify-between gap-4 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-100">
+                  <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shadow-md shadow-red-100">
                     <LayoutDashboard className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-200">
                         Task Board (Kanban)
                       </span>
                       <span className="text-xs text-slate-400">•</span>
@@ -2670,7 +2670,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     onClick={() => onSetProjectSubView('flowchart')}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer border border-slate-200"
                   >
-                    <Workflow className="w-3.5 h-3.5 text-indigo-600" />
+                    <Workflow className="w-3.5 h-3.5 text-red-600" />
                     <span>Back to Flowchart</span>
                   </button>
 
@@ -2681,7 +2681,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                       placeholder="Search tickets, keys, sprints, or nodes..."
                       value={kanbanSearchQuery}
                       onChange={(e) => onSetKanbanSearchQuery(e.target.value)}
-                      className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 w-48 transition-all"
+                      className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-red-500 w-48 transition-all"
                     />
                   </div>
 
@@ -2689,7 +2689,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   <select
                     value={kanbanSprintFilter}
                     onChange={(e) => onSetKanbanSprintFilter(e.target.value)}
-                    className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-red-500 cursor-pointer"
                   >
                     <option value="all">All Sprints</option>
                     {availableSprints.map((sp) => (
@@ -2703,7 +2703,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   <select
                     value={kanbanPriorityFilter}
                     onChange={(e) => onSetKanbanPriorityFilter(e.target.value)}
-                    className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-red-500 cursor-pointer"
                   >
                     <option value="all">All Priorities</option>
                     <option value="urgent">Urgent (P1)</option>
@@ -2716,7 +2716,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     type="button"
                     onClick={() => onSetKanbanLinkFilter(!kanbanLinkFilter)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${kanbanLinkFilter
-                      ? 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-xs'
+                      ? 'bg-red-50 border-red-300 text-red-700 shadow-xs'
                       : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                       }`}
                   >
@@ -2729,9 +2729,9 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                       type="button"
                       onClick={onGenerateTasksFromNodes}
                       title="Automatically generate tickets from each node in this flowchart"
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors cursor-pointer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-red-700 bg-red-50 hover:bg-indigo-100 border border-red-200 transition-colors cursor-pointer"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                      <Sparkles className="w-3.5 h-3.5 text-red-600" />
                       <span>Sync Nodes to Tickets</span>
                     </button>
                   )}
@@ -2740,7 +2740,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     <button
                       type="button"
                       onClick={() => onOpenCreateKanbanTask('todo')}
-                      className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm cursor-pointer hover:scale-102 transition-all active:scale-98"
+                      className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm cursor-pointer hover:scale-102 transition-all active:scale-98"
                     >
                       <Plus className="w-4 h-4 stroke-[2.5]" />
                       <span>Create New Ticket</span>
@@ -2783,7 +2783,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                         setDragOverKanbanColId(null);
                       }}
                       className={`flex flex-col rounded-2xl border p-3 h-full min-h-[450px] transition-all duration-150 ${dragOverKanbanColId === col.id
-                        ? 'bg-indigo-50/70 border-indigo-400 ring-2 ring-indigo-400/30 shadow-md'
+                        ? 'bg-red-50/70 border-indigo-400 ring-2 ring-red-400/30 shadow-md'
                         : 'bg-slate-200/50 border-slate-200/80'
                         }`}
                     >
@@ -2816,7 +2816,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                         {colTasks.length === 0 ? (
                           <div
                             className={`flex-1 flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed rounded-xl text-center transition-colors ${dragOverKanbanColId === col.id
-                              ? 'border-indigo-400 bg-indigo-50/50 text-indigo-700'
+                              ? 'border-indigo-400 bg-red-50/50 text-red-700'
                               : 'border-slate-200 text-slate-400'
                               }`}
                           >
@@ -2890,7 +2890,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                                           type="button"
                                           title="Edit Ticket"
                                           onClick={() => onOpenEditKanbanTask(task.id)}
-                                          className="w-5 h-5 rounded hover:bg-slate-100 text-slate-400 hover:text-indigo-600 flex items-center justify-center cursor-pointer"
+                                          className="w-5 h-5 rounded hover:bg-slate-100 text-slate-400 hover:text-red-600 flex items-center justify-center cursor-pointer"
                                         >
                                           <Edit3 className="w-3 h-3" />
                                         </button>
@@ -3036,7 +3036,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                                         <button
                                           type="button"
                                           onClick={() => onMoveKanbanTaskStatus(task.id, 'in_progress')}
-                                          className="px-2 py-0.5 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold transition-colors cursor-pointer"
+                                          className="px-2 py-0.5 rounded bg-red-50 hover:bg-indigo-100 text-red-700 text-[10px] font-bold transition-colors cursor-pointer"
                                         >
                                           Start ➔
                                         </button>
@@ -3079,7 +3079,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
 
                         {/* Drop Target Indicator when hovering over column */}
                         {dragOverKanbanColId === col.id && draggingKanbanTaskId && colTasks.length > 0 && (
-                          <div className="py-3 px-4 rounded-xl border-2 border-dashed border-indigo-400 bg-indigo-50/70 text-indigo-700 text-xs font-semibold text-center flex items-center justify-center gap-1.5 animate-in fade-in transition-all">
+                          <div className="py-3 px-4 rounded-xl border-2 border-dashed border-indigo-400 bg-red-50/70 text-red-700 text-xs font-semibold text-center flex items-center justify-center gap-1.5 animate-in fade-in transition-all">
                             <Plus className="w-4 h-4 stroke-[2.5]" />
                             <span>Drop ticket here to move to {col.title}</span>
                           </div>
@@ -3403,88 +3403,88 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                       className="w-full h-auto object-contain max-h-80 rounded-xl"
                     />
                   </div>
+              {/* Floating Color Toolbar for Selected Edge (Shown only when edge label text or edge is clicked) */}
+              {(() => {
+                if (!selectedEdgeId || isViewOnly || activeEdgeLabelToolbarId !== selectedEdgeId) return null;
+                const edge = edges.find((e) => e.id === selectedEdgeId);
+                if (!edge) return null;
+                const src = nodes.find((n) => n.id === edge.sourceNodeId);
+                const tgt = nodes.find((n) => n.id === edge.targetNodeId);
+                if (!src || !tgt) return null;
+                const geom = _calculateEdgePath(src, tgt, connectorStyle, edge.waypointOffset, edge.sourceAnchor, edge.targetAnchor);
+                const toolbarTop = geom.midY > 60 ? geom.midY - 44 : geom.midY + 28;
+
+                return (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: `${geom.midX}px`,
+                      top: `${toolbarTop}px`,
+                      transform: 'translateX(-50%)',
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    className="z-50 pointer-events-auto flex items-center justify-center bg-slate-900/95 backdrop-blur-md text-white px-2.5 py-1.5 rounded-full shadow-2xl border border-slate-700/80 text-[11px] select-none scale-95 hover:scale-100 transition-all animate-in fade-in zoom-in-95"
+                  >
+                    {/* Color Swatches Only */}
+                    <div className="flex items-center gap-1.5 px-0.5">
+                      {[
+                        { name: 'Indigo (Default)', color: '#4f46e5' },
+                        { name: 'Green', color: '#10b981' },
+                        { name: 'Red', color: '#f43f5e' },
+                        { name: 'Yellow', color: '#f59e0b' },
+                        { name: 'Purple', color: '#8b5cf6' },
+                        { name: 'Gray', color: '#64748b' },
+                      ].map((swatch) => {
+                        const isCurrentColor = (edge.color || '#4f46e5') === swatch.color;
+                        return (
+                          <button
+                            key={swatch.color}
+                            type="button"
+                            title={swatch.name}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onUpdateEdgeColor(edge.id, swatch.color);
+                            }}
+                            className={`w-4 h-4 rounded-full transition-transform cursor-pointer flex items-center justify-center ${isCurrentColor
+                              ? 'scale-125 ring-2 ring-white ring-offset-1 ring-offset-slate-900 shadow-xs'
+                              : 'hover:scale-110 opacity-75 hover:opacity-100'
+                              }`}
+                            style={{ backgroundColor: swatch.color }}
+                          />
+                        );
+                      })}
+                    </div>
+
+                    {/* Divider & Delete Edge Button */}
+                    <div className="h-3 w-px bg-slate-700 mx-1 shrink-0" />
+                    <button
+                      type="button"
+                      title="Delete Connection Line"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteEdgeById(edge.id);
+                        setActiveEdgeLabelToolbarId(null);
+                      }}
+                      className="w-5 h-5 rounded-full hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
                 );
               })()}
+
+              {/* Multiplayer Remote Cursors Layer (Canvas Coordinates, Version 2) */}
+              {multiplayerState?.isEnabled &&
+                Object.values(multiplayerState.peers).map((peer) => {
+                  if (peer.activeTabId && peer.activeTabId !== activeTab.id) return null;
+                  return _renderRemotePeerCursor(
+                    peer,
+                    multiplayerState.followedPeerId === peer.peerId,
+                    transform?.scale ?? 1,
+                  );
+                })}
             </div>
-
-            {/* Floating Color Toolbar for Selected Edge (Shown only when edge label text is clicked) */}
-            {(() => {
-              if (!selectedEdgeId || isViewOnly || activeEdgeLabelToolbarId !== selectedEdgeId) return null;
-              const edge = edges.find((e) => e.id === selectedEdgeId);
-              if (!edge) return null;
-              const src = nodes.find((n) => n.id === edge.sourceNodeId);
-              const tgt = nodes.find((n) => n.id === edge.targetNodeId);
-              if (!src || !tgt) return null;
-              const geom = _calculateEdgePath(src, tgt, connectorStyle, edge.waypointOffset, edge.sourceAnchor, edge.targetAnchor);
-
-              return (
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: `${geom.midX}px`,
-                    top: `${geom.midY - 40}px`,
-                    transform: 'translateX(-50%)',
-                  }}
-                  className="z-30 pointer-events-auto flex items-center justify-center bg-slate-900/95 backdrop-blur-md text-white px-2.5 py-1.5 rounded-full shadow-2xl border border-slate-700/80 text-[11px] select-none scale-95 hover:scale-100 transition-all animate-in fade-in zoom-in-95"
-                >
-                  {/* Color Swatches Only */}
-                  <div className="flex items-center gap-1.5 px-0.5">
-                    {[
-                      { name: 'Indigo (Default)', color: '#4f46e5' },
-                      { name: 'Green', color: '#10b981' },
-                      { name: 'Red', color: '#f43f5e' },
-                      { name: 'Yellow', color: '#f59e0b' },
-                      { name: 'Purple', color: '#8b5cf6' },
-                      { name: 'Gray', color: '#64748b' },
-                    ].map((swatch) => {
-                      const isCurrentColor = (edge.color || '#4f46e5') === swatch.color;
-                      return (
-                        <button
-                          key={swatch.color}
-                          type="button"
-                          title={swatch.name}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onUpdateEdgeColor(edge.id, swatch.color);
-                          }}
-                          className={`w-4 h-4 rounded-full transition-transform cursor-pointer flex items-center justify-center ${isCurrentColor
-                            ? 'scale-125 ring-2 ring-white ring-offset-1 ring-offset-slate-900 shadow-xs'
-                            : 'hover:scale-110 opacity-75 hover:opacity-100'
-                            }`}
-                          style={{ backgroundColor: swatch.color }}
-                        />
-                      );
-                    })}
-                  </div>
-
-                  {/* Divider & Delete Edge Button */}
-                  <div className="h-3 w-px bg-slate-700 mx-1 shrink-0" />
-                  <button
-                    type="button"
-                    title="Delete Connection Line"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteEdgeById(edge.id);
-                      setActiveEdgeLabelToolbarId(null);
-                    }}
-                    className="w-5 h-5 rounded-full hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              );
-            })()}
-
-            {/* Multiplayer Remote Cursors Layer (Canvas Coordinates, Version 2) */}
-            {multiplayerState?.isEnabled &&
-              Object.values(multiplayerState.peers).map((peer) => {
-                if (peer.activeTabId && peer.activeTabId !== activeTab.id) return null;
-                return _renderRemotePeerCursor(
-                  peer,
-                  multiplayerState.followedPeerId === peer.peerId,
-                  transform?.scale ?? 1,
-                );
-              })}
 
             {/* Floating Auto-Focus Notification when user is dragged far from diagram */}
             {isFarFromStart && (
@@ -3496,7 +3496,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 <button
                   type="button"
                   onClick={onFocusStart}
-                  className="flex items-center gap-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-full shadow-xs transition-all cursor-pointer hover:scale-105 active:scale-95"
+                  className="flex items-center gap-1.5 px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-full shadow-xs transition-all cursor-pointer hover:scale-105 active:scale-95"
                 >
                   <Target className="w-3.5 h-3.5" />
                   <span>Focus on Start</span>
@@ -3533,7 +3533,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 }}
                 title="Switch to Edit Mode (Add, edit, and organize diagram)"
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${!isViewOnly
-                  ? 'bg-indigo-600 text-white shadow-md active:scale-95'
+                  ? 'bg-red-600 text-white shadow-md active:scale-95'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
                   }`}
               >
@@ -3578,7 +3578,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-red-600 text-white flex items-center justify-center shadow-xs">
                   <Plus className="w-4 h-4 stroke-[2.5]" />
                 </div>
                 <div>
@@ -3588,7 +3588,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
                     <span>Continuing from: <strong>{addNodeModal.sourceNodeLabel || 'Previous Node'}</strong></span>
                     <span className="text-slate-300">•</span>
-                    <span className="text-indigo-600 font-semibold flex items-center gap-0.5">
+                    <span className="text-red-600 font-semibold flex items-center gap-0.5">
                       {addNodeModal.direction === 'bottom' ? (
                         <>
                           <ArrowDown className="w-3 h-3" /> Downward
@@ -3625,7 +3625,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   placeholder="e.g. Verify Customer Payment"
                   value={addNodeModal.label}
                   onChange={(e) => onUpdateAddNodeField('label', e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-red-500 focus:outline-hidden transition-all"
                   autoFocus
                 />
               </div>
@@ -3641,7 +3641,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     placeholder="e.g. Yes / Valid / Approved"
                     value={addNodeModal.edgeLabel}
                     onChange={(e) => onUpdateAddNodeField('edgeLabel', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-red-500 focus:outline-hidden transition-all"
                   />
                 </div>
 
@@ -3654,7 +3654,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     placeholder="e.g. Finance / Sales"
                     value={addNodeModal.category}
                     onChange={(e) => onUpdateAddNodeField('category', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-red-500 focus:outline-hidden transition-all"
                   />
                 </div>
               </div>
@@ -3669,7 +3669,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   placeholder="Brief work instructions or parameter notes..."
                   value={addNodeModal.description}
                   onChange={(e) => onUpdateAddNodeField('description', e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all resize-none"
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-red-500 focus:outline-hidden transition-all resize-none"
                 />
               </div>
 
@@ -3688,7 +3688,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                         type="button"
                         onClick={() => onUpdateAddNodeField('shapeCategoryFilter', cat)}
                         className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${addNodeModal.shapeCategoryFilter === cat
-                          ? 'bg-indigo-600 text-white shadow-2xs font-bold'
+                          ? 'bg-red-600 text-white shadow-2xs font-bold'
                           : 'text-slate-600 hover:text-slate-900'
                           }`}
                       >
@@ -3706,13 +3706,13 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                         key={shape.type}
                         onClick={() => onUpdateAddNodeField('type', shape.type)}
                         className={`p-2.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3 ${isSelected
-                          ? 'border-indigo-600 bg-indigo-50/90 text-indigo-950 shadow-xs ring-2 ring-indigo-200'
+                          ? 'border-red-600 bg-red-50/90 text-indigo-950 shadow-xs ring-2 ring-red-200'
                           : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-2xs text-slate-800'
                           }`}
                       >
                         <div
                           className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isSelected
-                            ? 'bg-indigo-600 text-white shadow-2xs'
+                            ? 'bg-red-600 text-white shadow-2xs'
                             : 'bg-slate-100 text-slate-700'
                             }`}
                         >
@@ -3743,7 +3743,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                         type="button"
                         onClick={() => onUpdateAddNodeField('colorTheme', color)}
                         className={`w-7 h-7 rounded-full transition-transform cursor-pointer flex items-center justify-center ${addNodeModal.colorTheme === color
-                          ? 'scale-115 ring-2 ring-offset-2 ring-indigo-500 shadow-sm'
+                          ? 'scale-115 ring-2 ring-offset-2 ring-red-500 shadow-sm'
                           : 'opacity-70 hover:opacity-100'
                           }`}
                         style={{
@@ -3783,7 +3783,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm hover:shadow transition-all cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 shadow-sm hover:shadow transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   <Plus className="w-4 h-4 stroke-[2.5]" />
                   <span>Add Step</span>
@@ -3801,7 +3801,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-red-600 text-white flex items-center justify-center shadow-xs">
                   <Edit3 className="w-4 h-4 stroke-[2.5]" />
                 </div>
                 <div>
@@ -3835,7 +3835,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   required
                   value={editNodeModal.label}
                   onChange={(e) => onUpdateEditNodeField('label', e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-red-500 focus:outline-hidden transition-all"
                   autoFocus
                 />
               </div>
@@ -3846,7 +3846,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   <label className="text-xs font-bold text-slate-800">
                     Flowchart Shape Type
                   </label>
-                  <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
+                  <span className="text-[11px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md">
                     {FLOW_NODE_TYPE_OPTIONS.find((s) => s.type === editNodeModal.type)?.label || 'Standard Shape'}
                   </span>
                 </div>
@@ -3858,11 +3858,11 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                         key={shape.type}
                         onClick={() => onUpdateEditNodeField('type', shape.type)}
                         className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 ${isSelected
-                          ? 'border-indigo-600 bg-indigo-50 text-indigo-950 font-bold ring-2 ring-indigo-400 shadow-xs'
+                          ? 'border-red-600 bg-red-50 text-indigo-950 font-bold ring-2 ring-red-400 shadow-xs'
                           : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700 hover:shadow-2xs'
                           }`}
                       >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-700'
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isSelected ? 'bg-red-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-700'
                           }`}>
                           {_renderShapeVisualPreview(shape.type, 'w-5 h-5')}
                         </div>
@@ -3872,7 +3872,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                           </div>
                         </div>
                         {isSelected && (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-red-600 shrink-0" />
                         )}
                       </div>
                     );
@@ -3889,7 +3889,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   type="text"
                   value={editNodeModal.moduleCategory}
                   onChange={(e) => onUpdateEditNodeField('moduleCategory', e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-red-500 focus:outline-hidden transition-all"
                 />
               </div>
 
@@ -3902,7 +3902,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   rows={2}
                   value={editNodeModal.description}
                   onChange={(e) => onUpdateEditNodeField('description', e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden transition-all resize-none"
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-red-500 focus:outline-hidden transition-all resize-none"
                 />
               </div>
 
@@ -3919,7 +3919,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                         type="button"
                         onClick={() => onUpdateEditNodeField('colorTheme', color)}
                         className={`w-7 h-7 rounded-full transition-transform cursor-pointer flex items-center justify-center ${editNodeModal.colorTheme === color
-                          ? 'scale-115 ring-2 ring-offset-2 ring-indigo-500 shadow-sm'
+                          ? 'scale-115 ring-2 ring-offset-2 ring-red-500 shadow-sm'
                           : 'opacity-70 hover:opacity-100'
                           }`}
                         style={{
@@ -3952,7 +3952,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               <div className="pt-3 border-t border-slate-200 space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <Camera className="w-3.5 h-3.5 text-indigo-600" />
+                    <Camera className="w-3.5 h-3.5 text-red-600" />
                     <span>Upload Screen Image (Shown During Preview)</span>
                   </label>
                   {editNodeModal.previewImageUrl ? (
@@ -4002,11 +4002,11 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   </div>
                 ) : (
                   <label className="flex flex-col items-center justify-center gap-2 p-5 bg-slate-50 hover:bg-slate-100/80 border-2 border-slate-300 border-dashed rounded-2xl text-xs font-medium text-slate-700 cursor-pointer transition-all hover:border-indigo-400 group">
-                    <div className="w-10 h-10 rounded-full bg-indigo-50 group-hover:bg-indigo-100 text-indigo-600 flex items-center justify-center transition-colors">
+                    <div className="w-10 h-10 rounded-full bg-red-50 group-hover:bg-indigo-100 text-red-600 flex items-center justify-center transition-colors">
                       <Upload className="w-4 h-4" />
                     </div>
                     <div className="text-center">
-                      <span className="font-semibold text-indigo-600 group-hover:underline">Click to upload image</span>
+                      <span className="font-semibold text-red-600 group-hover:underline">Click to upload image</span>
                       <span className="text-slate-500"> (PNG, JPG, WebP)</span>
                     </div>
                     <input
@@ -4041,9 +4041,9 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                       onOpenCreateKanbanTask('todo', editNodeModal.nodeId);
                       onCloseEditNodeModal();
                     }}
-                    className="px-3 py-2 rounded-xl text-xs font-semibold text-indigo-700 hover:bg-indigo-50 border border-indigo-200 transition-colors cursor-pointer flex items-center gap-1.5"
+                    className="px-3 py-2 rounded-xl text-xs font-semibold text-red-700 hover:bg-red-50 border border-red-200 transition-colors cursor-pointer flex items-center gap-1.5"
                   >
-                    <LayoutDashboard className="w-3.5 h-3.5 text-indigo-600" />
+                    <LayoutDashboard className="w-3.5 h-3.5 text-red-600" />
                     <span>Create Task Ticket</span>
                   </button>
                 </div>
@@ -4058,7 +4058,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm hover:shadow transition-all cursor-pointer"
+                    className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 shadow-sm hover:shadow transition-all cursor-pointer"
                   >
                     Save Changes
                   </button>
@@ -4098,7 +4098,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                   required
                   value={createProjectModal.projectName}
                   onChange={(e) => onUpdateCreateProjectField('projectName', e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-red-500 focus:outline-hidden"
                   autoFocus
                 />
               </div>
@@ -4115,12 +4115,12 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                         key={meta.type}
                         onClick={() => onUpdateCreateProjectField('projectType', meta.type)}
                         className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${isSelected
-                          ? 'border-indigo-600 bg-indigo-50/80 shadow-xs ring-2 ring-indigo-200'
+                          ? 'border-red-600 bg-red-50/80 shadow-xs ring-2 ring-red-200'
                           : 'border-slate-200 bg-white hover:border-slate-300'
                           }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
-                          {_renderShapeIcon(meta.iconName, 'w-4 h-4 text-indigo-600')}
+                          {_renderShapeIcon(meta.iconName, 'w-4 h-4 text-red-600')}
                           <span className="font-bold text-xs text-slate-800">
                             {meta.title}
                           </span>
@@ -4144,7 +4144,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm cursor-pointer"
+                  className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 shadow-sm cursor-pointer"
                 >
                   Create Project
                 </button>
@@ -4160,7 +4160,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-                <HelpCircle className="w-4 h-4 text-indigo-600" />
+                <HelpCircle className="w-4 h-4 text-red-600" />
                 <span>Flowchart Navigation Guide</span>
               </h3>
               <button
@@ -4185,7 +4185,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               <button
                 type="button"
                 onClick={onToggleHelpModal}
-                className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-semibold cursor-pointer"
               >
                 Got it
               </button>
@@ -4300,7 +4300,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
                     onClick={onCopyShareLink}
                     className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white transition-all cursor-pointer shadow-xs ${shareModal.isCopied
                       ? 'bg-emerald-600 hover:bg-emerald-700'
-                      : 'bg-indigo-600 hover:bg-indigo-700'
+                      : 'bg-red-600 hover:bg-red-700'
                       }`}
                   >
                     {shareModal.isCopied ? (
@@ -4786,9 +4786,9 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
           <div className="relative bg-slate-900/95 text-white rounded-3xl border border-slate-700/80 shadow-2xl p-7 max-w-sm w-full mx-4 flex flex-col items-center text-center backdrop-blur-xl">
             {/* Glowing Radar Pulse Animation */}
             <div className="relative flex items-center justify-center mb-5 mt-1">
-              <span className="w-16 h-16 rounded-full bg-indigo-500/20 animate-ping absolute" />
-              <span className="w-12 h-12 rounded-full bg-indigo-500/30 animate-pulse absolute" />
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/50 z-10">
+              <span className="w-16 h-16 rounded-full bg-red-500/20 animate-ping absolute" />
+              <span className="w-12 h-12 rounded-full bg-red-500/30 animate-pulse absolute" />
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-red-600 via-red-500 to-rose-600 flex items-center justify-center text-white shadow-lg shadow-red-500/50 z-10">
                 <Users className="w-5 h-5 animate-pulse" />
               </div>
             </div>
@@ -4797,7 +4797,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
               Menghubungkan ke Ruang Live
             </h3>
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-semibold mb-3">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold mb-3">
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
               <span>Room: {multiplayerState.roomId}</span>
             </div>
@@ -4808,7 +4808,7 @@ export const ErpFlowGenComponent = (props: ErpFlowGenComponentProps): React.Reac
 
             {/* Glowing Progress Indicator */}
             <div className="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden mb-5">
-              <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 h-full rounded-full animate-pulse w-3/4" />
+              <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-red-500 h-full rounded-full animate-pulse w-3/4" />
             </div>
 
             {/* Quick Dismiss / Continue Button */}

@@ -34,7 +34,7 @@ const _instanceTabPeerId = `peer_${Math.random().toString(36).substring(2, 9)}_$
  */
 export const _getLocalPeerIdentity = (): { peerId: string; name: string; color: string } => {
   if (typeof window === 'undefined') {
-    return { peerId: 'peer_ssr', name: 'Collaborator', color: '#4f46e5' };
+    return { peerId: 'peer_ssr', name: 'Collaborator', color: '#dc2626' };
   }
 
   try {
@@ -46,7 +46,7 @@ export const _getLocalPeerIdentity = (): { peerId: string; name: string; color: 
     return {
       peerId: `peer_${Math.random().toString(36).substring(2, 8)}`,
       name: 'Collaborator',
-      color: '#4f46e5',
+      color: '#dc2626',
     };
   }
 };
@@ -104,7 +104,7 @@ export const _renderRemotePeerCursor = (
       <div
         style={{ backgroundColor: peer.color }}
         className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-white text-[10px] font-bold shadow-md -mt-1 ml-3 whitespace-nowrap transform scale-95 transition-all ${
-          isFollowed ? 'ring-2 ring-white ring-offset-2 ring-offset-indigo-600 animate-pulse' : ''
+          isFollowed ? 'ring-2 ring-white ring-offset-2 ring-offset-red-600 animate-pulse' : ''
         }`}
       >
         <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />

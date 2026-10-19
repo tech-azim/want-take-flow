@@ -190,14 +190,14 @@ export const _renderConnectingPath = (
       {/* Primary visible dashed connecting path */}
       <path
         d={pathD}
-        stroke="#4f46e5"
+        stroke="#dc2626"
         strokeWidth={3}
         strokeDasharray="6 4"
         fill="none"
-        markerEnd="url(#erp-arrow-marker-indigo)"
+        markerEnd="url(#erp-arrow-marker-rose)"
       />
-      <circle cx={startX} cy={startY} r={5} fill="#4f46e5" stroke="#ffffff" strokeWidth={2} />
-      <circle cx={endX} cy={endY} r={6} fill="#4f46e5" stroke="#ffffff" strokeWidth={2} className="animate-pulse" />
+      <circle cx={startX} cy={startY} r={5} fill="#dc2626" stroke="#ffffff" strokeWidth={2} />
+      <circle cx={endX} cy={endY} r={6} fill="#dc2626" stroke="#ffffff" strokeWidth={2} className="animate-pulse" />
     </g>
   );
 };
@@ -335,6 +335,7 @@ export const _renderEdgeCurve = (
         onClick={(e) => {
           e.stopPropagation();
           onSelectEdge?.(edge.id);
+          onClickEdgeLabel?.(edge.id);
         }}
       />
 
@@ -357,7 +358,7 @@ export const _renderEdgeCurve = (
         stroke={strokeColor}
         strokeWidth={isSelected ? 3.5 : 2}
         markerEnd={markerId}
-        className="transition-colors group-hover:stroke-indigo-600 pointer-events-none"
+        className="transition-colors group-hover:stroke-red-600 pointer-events-none"
       />
 
       {/* Interactive Arrowhead Endpoint Drag Handle (Reconnecting target node) */}
@@ -537,9 +538,9 @@ export const _renderEdgeCurve = (
                     : edge.color === '#8b5cf6'
                       ? 'bg-purple-50 border-purple-300 text-purple-800'
                       : edge.color === '#4f46e5'
-                        ? 'bg-indigo-50 border-indigo-300 text-indigo-800'
+                        ? 'bg-red-50 border-red-300 text-red-800'
                         : 'bg-white border-slate-300 text-slate-800 hover:border-slate-400'
-                } ${isSelected ? 'ring-2 ring-indigo-400 border-indigo-500 shadow-md' : ''}`}
+                } ${isSelected ? 'ring-2 ring-red-400 border-red-500 shadow-md' : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onSelectEdge?.(edge.id);
@@ -683,7 +684,7 @@ export const _renderSwimlaneTable = (
                         placeholder="Department Name..."
                         title="Click to edit department name"
                         style={{ color: lane.color }}
-                        className={`w-full bg-transparent hover:bg-white/40 focus:bg-white/95 focus:ring-1 focus:ring-indigo-400 outline-none text-center font-bold uppercase tracking-wider leading-snug rounded-md px-1.5 py-1 transition-all cursor-text resize-none overflow-hidden break-words whitespace-pre-wrap ${lane.name.length > 22 ? 'text-[11px]' : 'text-xs'
+                        className={`w-full bg-transparent hover:bg-white/40 focus:bg-white/95 focus:ring-1 focus:ring-red-400 outline-none text-center font-bold uppercase tracking-wider leading-snug rounded-md px-1.5 py-1 transition-all cursor-text resize-none overflow-hidden break-words whitespace-pre-wrap ${lane.name.length > 22 ? 'text-[11px]' : 'text-xs'
                           }`}
                       />
                     ) : (
@@ -732,9 +733,9 @@ export const _renderSwimlaneTable = (
                     className="absolute -bottom-2.5 left-0 right-0 h-5 z-20 cursor-ns-resize flex items-center justify-center group/lane-resize pointer-events-auto select-none"
                   >
                     {/* Visual drag divider line with hover effect */}
-                    <div className="w-full h-1 bg-transparent group-hover/lane-resize:bg-indigo-500/80 transition-colors flex items-center justify-center relative">
+                    <div className="w-full h-1 bg-transparent group-hover/lane-resize:bg-red-500/80 transition-colors flex items-center justify-center relative">
                       {/* Center grip pill */}
-                      <div className="px-2.5 py-0.5 rounded-full bg-white text-slate-600 group-hover/lane-resize:bg-indigo-600 group-hover/lane-resize:text-white border border-slate-300 group-hover/lane-resize:border-indigo-600 text-[9px] font-mono font-bold shadow-xs flex items-center gap-1 transition-colors scale-90 group-hover/lane-resize:scale-100">
+                      <div className="px-2.5 py-0.5 rounded-full bg-white text-slate-600 group-hover/lane-resize:bg-red-600 group-hover/lane-resize:text-white border border-slate-300 group-hover/lane-resize:border-red-600 text-[9px] font-mono font-bold shadow-xs flex items-center gap-1 transition-colors scale-90 group-hover/lane-resize:scale-100">
                         <GripHorizontal className="w-3 h-3" />
                       </div>
                     </div>
@@ -754,7 +755,7 @@ export const _renderSwimlaneTable = (
               e.stopPropagation();
               onStartTableResize(e);
             }}
-            className="w-4 bg-slate-100 hover:bg-indigo-600 border-l border-slate-300 hover:border-indigo-700 flex items-center justify-center cursor-ew-resize transition-colors group/resize pointer-events-auto shrink-0 select-none interactive-control z-20"
+            className="w-4 bg-slate-100 hover:bg-red-600 border-l border-slate-300 hover:border-red-700 flex items-center justify-center cursor-ew-resize transition-colors group/resize pointer-events-auto shrink-0 select-none interactive-control z-20"
           >
             <div className="flex flex-col gap-1 items-center pointer-events-none">
               <div className="w-1 h-3 rounded-full bg-slate-400 group-hover/resize:bg-white" />
@@ -770,9 +771,9 @@ export const _renderSwimlaneTable = (
           <button
             type="button"
             onClick={onAddLane}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white border border-slate-300 hover:border-indigo-500 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 text-xs font-semibold shadow-xs transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white border border-slate-300 hover:border-red-500 hover:bg-red-50 text-slate-700 hover:text-red-700 text-xs font-semibold shadow-xs transition-all cursor-pointer"
           >
-            <Plus className="w-4 h-4 text-indigo-600" />
+            <Plus className="w-4 h-4 text-red-600" />
             <span>Add New Lane</span>
           </button>
         ) : null}
